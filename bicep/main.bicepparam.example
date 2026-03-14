@@ -1,0 +1,11 @@
+// main.bicepparam.example
+// Copy to main.bicepparam and fill in your values.
+// DO NOT commit main.bicepparam – it is excluded by .gitignore.
+
+using 'main.bicep'
+
+param location             = 'eastus'
+param resourceGroupName    = 'rg-azurelocal-prod'
+param diagStorageAccountName = 'stazlhcidiag001'   // Must be globally unique
+param environmentTag       = 'production'
+param ownerTag             = 'platform-team'

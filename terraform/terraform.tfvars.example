@@ -1,0 +1,10 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in your values.
+# DO NOT commit terraform.tfvars – it is excluded by .gitignore.
+
+subscription_id            = "00000000-0000-0000-0000-000000000000"
+resource_group_name        = "rg-azurelocal-prod"
+location                   = "eastus"
+diag_storage_account_name  = "stazlhcidiag001"
+environment_tag            = "production"
+owner_tag                  = "platform-team"

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Deploys supporting Azure infrastructure for SOFS/FSLogix on Azure Local (subscription scope)."
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for all resources."
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the resource group to create."
+      }
+    },
+    "diagStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Globally unique name for the diagnostic storage account (3-24 lowercase alphanumeric)."
+      }
+    },
+    "environmentTag": {
+      "type": "string",
+      "defaultValue": "production",
+      "metadata": {
+        "description": "Environment tag value (e.g. production, staging, dev)."
+      }
+    },
+    "ownerTag": {
+      "type": "string",
+      "defaultValue": "platform-team",
+      "metadata": {
+        "description": "Owner tag value."
+      }
+    }
+  },
+  "variables": {
+    "tags": {
+      "environment": "[parameters('environmentTag')]",
+      "owner": "[parameters('ownerTag')]",
+      "deployedBy": "arm"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('resourceGroupName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2023-07-01",
+      "name": "deploy-storage-diag",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {},
+          "variables": {},
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[parameters('diagStorageAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[variables('tags')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "properties": {
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "encryption": {
+                  "services": {
+                    "blob": { "enabled": true, "keyType": "Account" },
+                    "file": { "enabled": true, "keyType": "Account" }
+                  },
+                  "keySource": "Microsoft.Storage"
+                }
+              }
+            }
+          ],
+          "outputs": {}
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "resourceGroupId": {
+      "type": "string",
+      "value": "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+    }
+  }
+}
