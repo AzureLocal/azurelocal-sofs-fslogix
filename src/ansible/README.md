@@ -1,5 +1,7 @@
 # SOFS on Azure Local — Ansible Deployment
 
+![Status: Untested](https://img.shields.io/badge/status-untested-red)
+
 ## Overview
 
 Two-playbook approach for deploying and configuring the SOFS guest cluster:

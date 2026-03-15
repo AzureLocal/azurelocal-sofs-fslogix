@@ -1,4 +1,6 @@
-# ARM – SOFS & FSLogix Deployment
+# ARM — SOFS & FSLogix Deployment
+
+![Status: Untested](https://img.shields.io/badge/status-untested-red)
 
 ARM JSON templates for deploying Azure-side resources supporting the SOFS/FSLogix solution on Azure Local.
 

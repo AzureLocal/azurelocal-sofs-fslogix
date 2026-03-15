@@ -1,5 +1,7 @@
 # SOFS on Azure Local — Terraform Deployment
 
+![Status: Tested](https://img.shields.io/badge/status-tested-brightgreen)
+
 ## Overview
 
 Deploys all Azure-side resources for the SOFS guest cluster using Terraform with the `azapi` provider (Azure Local `Microsoft.AzureStackHCI/*` resource types are not yet supported by `azurerm`).

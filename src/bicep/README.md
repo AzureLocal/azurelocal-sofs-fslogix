@@ -1,5 +1,7 @@
 # SOFS on Azure Local — Bicep Deployment
 
+![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow)
+
 ## Overview
 
 Subscription-scope Bicep deployment that creates:
