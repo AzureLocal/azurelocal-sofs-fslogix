@@ -859,32 +859,34 @@ HKLM\SOFTWARE\FSLogix\Profiles
 
 ## Automation Scripts
 
-The SOFS solution includes automation for both phases of the deployment. All scripts are in the `solutions/sofs/` directory:
+The SOFS solution includes automation for both phases of the deployment. All scripts are in the [`azurelocal-sofs-fslogix`](https://github.com/AzureLocal/azurelocal-sofs-fslogix) repository:
 
 ### Phase 1 — Azure Resource Provisioning
 
 | Tool | Path | Description |
 |------|------|-------------|
-| **Terraform** | `solutions/sofs/terraform/` | Full IaC: resource group, Key Vault, cloud witness, Arc VMs, data disks. Auto-generates Ansible inventory. Run via `Deploy-SOFS.ps1` wrapper or `terraform apply`. |
-| **Bicep** | `solutions/sofs/bicep/` | Subscription-scope Bicep modules for the same resources. Run via `Deploy-SOFS-Azure.ps1` wrapper. |
-| **PowerShell** | `solutions/sofs/powershell/Deploy-SOFS-Azure.ps1` | Az CLI wrapper — creates resource group, storage account witness, VMs, and data disks. Suitable when IaC is not required. |
-| **Ansible** | `solutions/sofs/ansible/deploy-azure-resources.yml` | Playbook using `azure.azcollection` modules for the same provisioning. |
+| **Terraform** | [`src/terraform/`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/tree/main/src/terraform) | Full IaC: resource group, Key Vault, cloud witness, Arc VMs, data disks. Auto-generates Ansible inventory. Run via `Deploy-SOFS.ps1` wrapper or `terraform apply`. |
+| **Bicep** | [`src/bicep/`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/tree/main/src/bicep) | Subscription-scope Bicep modules for the same resources. Run via `Deploy-SOFS-Azure.ps1` wrapper. |
+| **PowerShell** | [`src/powershell/Deploy-SOFS-Azure.ps1`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/src/powershell/Deploy-SOFS-Azure.ps1) | Az CLI wrapper — creates resource group, storage account witness, VMs, and data disks. Suitable when IaC is not required. |
+| **Ansible** | [`src/ansible/playbooks/deploy-azure-resources.yml`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/src/ansible/playbooks/deploy-azure-resources.yml) | Playbook using `azure.azcollection` modules for the same provisioning. |
 
 ### Phase 2 — Guest Cluster Configuration (Phases 4–11 of this Guide)
 
 | Tool | Path | Description |
 |------|------|-------------|
-| **PowerShell** | `solutions/sofs/powershell/Configure-SOFS-Cluster.ps1` | PSRemoting-based script — runs all 11 configuration phases against the SOFS VMs. |
-| **Ansible** | `solutions/sofs/ansible/configure-sofs-cluster.yml` | WinRM+Kerberos playbook for the same configuration phases. |
+| **PowerShell** | [`src/powershell/Configure-SOFS-Cluster.ps1`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/src/powershell/Configure-SOFS-Cluster.ps1) | PSRemoting-based script — runs all 11 configuration phases against the SOFS VMs. |
+| **Ansible** | [`src/ansible/playbooks/configure-sofs-cluster.yml`](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/src/ansible/playbooks/configure-sofs-cluster.yml) | WinRM+Kerberos playbook for the same configuration phases. |
 
 > **Note:** Terraform and Bicep handle only Phase 1 (Azure resource provisioning). Guest OS cluster configuration (Phases 4–11) is handled by the PowerShell script or Ansible playbook.
 
 ---
 
-## Source Document
+## Related Resources
 
 | | |
 |---|---|
-| **Repository** | `azurelocal-sofs-fslogix` |
-| **Path** | `docs/guides/sofs-deployment-guide.md` |
+| **Repository** | [AzureLocal/azurelocal-sofs-fslogix](https://github.com/AzureLocal/azurelocal-sofs-fslogix) |
+| **AVD Repository** | [AzureLocal/azure_avd](https://github.com/AzureLocal/azure_avd) |
+| **Website** | [azurelocal.cloud](https://azurelocal.cloud) |
+| **Path** | `docs/reference/sofs-deployment-guide.md` |
 | **Maintained by** | Hybrid Cloud Solutions LLC |
