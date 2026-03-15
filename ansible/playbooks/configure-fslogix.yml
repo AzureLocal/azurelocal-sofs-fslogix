@@ -1,0 +1,66 @@
+---
+# playbooks/configure-fslogix.yml
+# Applies FSLogix registry settings to AVD session hosts.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/configure-fslogix.yml
+
+- name: Configure FSLogix on AVD session hosts
+  hosts: avd_session_hosts
+  gather_facts: false
+
+  vars:
+    fslogix_vhd_location: "\\\\SOFS01\\FSLogixProfiles"
+    fslogix_reg_path: "HKLM:\\SOFTWARE\\FSLogix\\Profiles"
+
+  tasks:
+    - name: Ensure FSLogix Profiles registry key exists
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        state: present
+
+    - name: Enable FSLogix profile containers
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: Enabled
+        data: 1
+        type: dword
+
+    - name: Set VHD locations
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: VHDLocations
+        data: "{{ fslogix_vhd_location }}"
+        type: string
+
+    - name: Enable FlipFlopProfileDirectoryName (SID_Username format)
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: FlipFlopProfileDirectoryName
+        data: 1
+        type: dword
+
+    - name: Delete local profile when VHD should apply
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: DeleteLocalProfileWhenVHDShouldApply
+        data: 1
+        type: dword
+
+    - name: Set profile container size (MB) - default 30 GB
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: SizeInMBs
+        data: 30720
+        type: dword
+
+    - name: Verify FSLogix configuration
+      ansible.windows.win_powershell:
+        script: |
+          Get-ItemProperty -Path "{{ fslogix_reg_path }}" |
+            Select-Object Enabled, VHDLocations, FlipFlopProfileDirectoryName, SizeInMBs
+      register: fslogix_config
+
+    - name: Show FSLogix configuration
+      ansible.builtin.debug:
+        var: fslogix_config.output

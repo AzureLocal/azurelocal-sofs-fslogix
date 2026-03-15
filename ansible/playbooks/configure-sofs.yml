@@ -1,0 +1,51 @@
+---
+# playbooks/configure-sofs.yml
+# Configures SMB share settings and optimisations on SOFS cluster nodes.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/configure-sofs.yml
+
+- name: Configure SOFS SMB share for FSLogix
+  hosts: sofs_nodes
+  gather_facts: false
+
+  vars:
+    sofs_name: "SOFS01"
+    share_name: "FSLogixProfiles"
+    share_path: "C:\\ClusterStorage\\Volume1\\FSLogixProfiles"
+    avd_users_group: "AVD-Users"
+
+  tasks:
+    - name: Ensure FSLogixProfiles directory exists on CSV
+      ansible.windows.win_file:
+        path: "{{ share_path }}"
+        state: directory
+
+    - name: Create SMB share (if not present)
+      community.windows.win_share:
+        name: "{{ share_name }}"
+        path: "{{ share_path }}"
+        state: present
+        full: "{{ avd_users_group }},CREATOR OWNER"
+        description: "FSLogix profile containers"
+
+    - name: Enable SMB encryption on the server
+      ansible.windows.win_powershell:
+        script: |
+          Set-SmbServerConfiguration -EncryptData $true -Confirm:$false
+
+    - name: Enable access-based enumeration on the share
+      ansible.windows.win_powershell:
+        script: |
+          Set-SmbShare -Name "{{ share_name }}" -FolderEnumerationMode AccessBased -ContinuouslyAvailable $true -Confirm:$false
+        error_action: stop
+
+    - name: Report share configuration
+      ansible.windows.win_powershell:
+        script: |
+          Get-SmbShare -Name "{{ share_name }}" | Select-Object Name, Path, EncryptData, ContinuouslyAvailable
+      register: share_info
+
+    - name: Show share configuration
+      ansible.builtin.debug:
+        var: share_info.output
