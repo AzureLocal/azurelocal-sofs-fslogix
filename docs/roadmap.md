@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Last updated:** 2026-03-14
+> **Last updated:** 2026-03-15
 
 This document tracks planned work, upcoming features, and improvements for the Azure Local SOFS for FSLogix project. Items are organized by priority and grouped into milestones.
 
