@@ -37,6 +37,9 @@ nav:
   - Getting Started: getting-started.md
   - Guides:
       - SOFS Deployment: guides/sofs-deployment-guide.md
+      - CI/CD Pipelines: guides/cicd-pipelines.md
+      - Runner & Agent Setup: guides/runner-setup.md
+      - Secrets Management: guides/secrets-management.md
   - Reference:
       - Variables: reference/variables.md
   - Standards:

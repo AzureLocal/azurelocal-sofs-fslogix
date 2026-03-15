@@ -73,12 +73,12 @@ data_disks:
 # Domain
 # =============================================================================
 domain:
-  fqdn: "contoso.local"
-  netbios: "CONTOSO"
+  fqdn: "iic.local"
+  netbios: "IIC"
   join_username: "svc.domainjoin"
   join_password: "keyvault://kv-platform-prod/domain-join-password"
-  cluster_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=contoso,DC=local"
-  nodes_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=contoso,DC=local"
+  cluster_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+  nodes_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
 
 
 # =============================================================================

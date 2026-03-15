@@ -1,0 +1,83 @@
+# deploy-ansible.yml
+# Azure DevOps — Configure SOFS cluster via Ansible
+#
+# REQUIREMENTS:
+#   - Self-hosted agent pool: AzureLocal
+#   - Ansible >= 2.14 on agent (Linux agent recommended)
+#   - WinRM connectivity to target Windows nodes (5985/5986)
+#
+# SETUP:
+#   1. Copy to your Azure DevOps repo
+#   2. Create variable group 'sofs-ansible' with:
+#        ANSIBLE_VAULT_PASSWORD (secret)
+#   3. Create environment 'production' with approval gates
+#
+# See docs/guides/runner-setup.md for network requirements.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - src/ansible/*
+      - config/*
+
+pool:
+  name: AzureLocal
+
+variables:
+  - group: sofs-ansible
+
+stages:
+  - stage: Lint
+    jobs:
+      - job: Lint
+        steps:
+          - checkout: self
+
+          - script: |
+              pip install ansible-lint
+              ansible-lint src/ansible/playbooks/
+            displayName: 'Ansible Lint'
+
+  - stage: Configure
+    dependsOn: Lint
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: ConfigureSOFS
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - script: echo "$(ANSIBLE_VAULT_PASSWORD)" > .vault_pass
+                  displayName: 'Write vault password'
+
+                - script: |
+                    ansible-playbook \
+                      -i src/ansible/inventory/inventory.yml \
+                      src/ansible/playbooks/configure-sofs-cluster.yml \
+                      --vault-password-file .vault_pass
+                  displayName: 'Configure SOFS Cluster'
+                  env:
+                    ANSIBLE_HOST_KEY_CHECKING: 'false'
+
+                - script: |
+                    ansible-playbook \
+                      -i src/ansible/inventory/inventory.yml \
+                      src/ansible/playbooks/configure-fslogix.yml \
+                      --vault-password-file .vault_pass
+                  displayName: 'Configure FSLogix'
+                  env:
+                    ANSIBLE_HOST_KEY_CHECKING: 'false'
+
+                - script: rm -f .vault_pass
+                  displayName: 'Clean up vault password'
+                  condition: always()
+
+    # TODO: Add --check dry-run for PRs

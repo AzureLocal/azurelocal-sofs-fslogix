@@ -1,0 +1,58 @@
+# deploy-ansible.gitlab-ci.yml
+# GitLab CI — Configure SOFS cluster via Ansible
+#
+# REQUIREMENTS:
+#   - GitLab Runner with tag: azurelocal
+#   - Ansible >= 2.14 installed on runner
+#   - WinRM connectivity to target Windows nodes (5985/5986)
+#
+# SETUP:
+#   1. Copy/include into .gitlab-ci.yml
+#   2. Configure CI/CD variables:
+#        ANSIBLE_VAULT_PASSWORD (protected, masked)
+#        WINRM_USERNAME, WINRM_PASSWORD (or use keyvault lookup)
+#
+# See docs/guides/runner-setup.md for network requirements.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+stages:
+  - lint
+  - configure
+
+lint:
+  stage: lint
+  tags: [azurelocal]
+  script:
+    - pip install ansible-lint
+    - ansible-lint src/ansible/playbooks/
+  rules:
+    - changes:
+        - src/ansible/**/*
+
+configure:
+  stage: configure
+  tags: [azurelocal]
+  before_script:
+    - echo "$ANSIBLE_VAULT_PASSWORD" > .vault_pass
+  script:
+    - ansible-playbook
+        -i src/ansible/inventory/inventory.yml
+        src/ansible/playbooks/configure-sofs-cluster.yml
+        --vault-password-file .vault_pass
+    - ansible-playbook
+        -i src/ansible/inventory/inventory.yml
+        src/ansible/playbooks/configure-fslogix.yml
+        --vault-password-file .vault_pass
+  after_script:
+    - rm -f .vault_pass
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/ansible/**/*
+        - config/**/*
+      when: manual
+  # TODO: Add --check dry-run for merge requests

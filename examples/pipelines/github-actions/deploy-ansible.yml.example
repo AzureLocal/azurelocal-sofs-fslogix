@@ -1,0 +1,84 @@
+# deploy-ansible.yml
+# GitHub Actions — Configure SOFS cluster via Ansible
+#
+# REQUIREMENTS:
+#   - Self-hosted runner with network access to cluster nodes
+#   - Runner label: azurelocal
+#   - Ansible >= 2.14 installed on runner
+#   - WinRM connectivity to target Windows nodes (ports 5985/5986)
+#   - Kerberos or NTLM auth configured for WinRM
+#
+# SETUP:
+#   1. Copy this file to .github/workflows/deploy-ansible.yml
+#   2. Configure repository secrets:
+#        ANSIBLE_VAULT_PASSWORD — vault password for encrypted vars
+#        WINRM_USERNAME, WINRM_PASSWORD — or use keyvault lookup plugin
+#   3. Update inventory with your actual hosts
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# See docs/guides/runner-setup.md for runner network requirements.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+name: 'Configure SOFS - Ansible'
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/ansible/**', 'config/**']
+  pull_request:
+    branches: [main]
+    paths: ['src/ansible/**']
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: [self-hosted, azurelocal]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+
+      - name: Ansible Lint
+        run: ansible-lint src/ansible/playbooks/
+
+  configure-sofs:
+    name: Configure SOFS Cluster
+    needs: lint
+    runs-on: [self-hosted, azurelocal]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write vault password file
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
+        shell: bash
+
+      - name: Run SOFS cluster playbook
+        run: |
+          ansible-playbook \
+            -i src/ansible/inventory/inventory.yml \
+            src/ansible/playbooks/configure-sofs-cluster.yml \
+            --vault-password-file .vault_pass
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "false"
+
+      - name: Run FSLogix playbook
+        run: |
+          ansible-playbook \
+            -i src/ansible/inventory/inventory.yml \
+            src/ansible/playbooks/configure-fslogix.yml \
+            --vault-password-file .vault_pass
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "false"
+
+      - name: Clean up vault password
+        if: always()
+        run: rm -f .vault_pass
+
+      # TODO: Add --check (dry-run) step for PRs
+      # TODO: Add notification on success/failure

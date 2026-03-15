@@ -1,0 +1,67 @@
+# deploy-powershell.gitlab-ci.yml
+# GitLab CI — Deploy & configure SOFS via PowerShell
+#
+# REQUIREMENTS:
+#   - GitLab Runner with tag: azurelocal
+#   - Runner on Windows with PowerShell 5.1+, Az module, RSAT-Clustering
+#   - Network access to Azure Local cluster nodes
+#
+# SETUP:
+#   1. Copy/include into .gitlab-ci.yml
+#   2. Configure CI/CD variables:
+#        AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+stages:
+  - lint
+  - deploy
+  - test
+
+lint:
+  stage: lint
+  tags: [azurelocal, windows]
+  script:
+    - Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction SilentlyContinue
+    - $results = Invoke-ScriptAnalyzer -Path ./src/powershell -Recurse -Severity Warning
+    - $results | Format-Table -AutoSize
+    - if ($results.Count -gt 0) { throw "PSScriptAnalyzer found $($results.Count) issues" }
+  rules:
+    - changes:
+        - src/powershell/**/*
+
+deploy:
+  stage: deploy
+  tags: [azurelocal, windows]
+  script:
+    - |
+      $securePassword = ConvertTo-SecureString "$env:AZURE_CLIENT_SECRET" -AsPlainText -Force
+      $credential = New-Object PSCredential("$env:AZURE_CLIENT_ID", $securePassword)
+      Connect-AzAccount -ServicePrincipal -Credential $credential -Tenant "$env:AZURE_TENANT_ID"
+      Set-AzContext -SubscriptionId "$env:AZURE_SUBSCRIPTION_ID"
+    - .\src\powershell\New-SOFSDeployment.ps1 -ConfigFile .\config\variables.yml
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/powershell/**/*
+        - config/**/*
+      when: manual
+  # TODO: Add Configure-SOFS-Cluster.ps1 step
+  # TODO: Add Set-FSLogixShare.ps1 step
+
+test:
+  stage: test
+  tags: [azurelocal, windows]
+  script:
+    - .\tests\Test-SOFSDeployment.ps1 -SOFSName "FSLogixSOFS" -ShareName "FSLogix"
+  needs:
+    - deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  # TODO: Publish test results as artifacts
