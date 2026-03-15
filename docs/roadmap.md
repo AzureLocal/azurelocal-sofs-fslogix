@@ -29,7 +29,7 @@ Replace placeholder content with production-quality documentation using IIC exam
 | [#12](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/12) | Flesh out `docs/architecture.md` with SOFS topology diagrams | docs | Planned |
 | [#13](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/13) | Create architecture diagrams in `docs/assets/diagrams/` (draw.io) | docs | Planned |
 | [#14](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/14) | Update `docs/getting-started.md` with end-to-end walkthrough | docs | Planned |
-| [#15](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/15) | Update all docs and scripts to use IIC naming (replace contoso/fabrikam) | docs | Planned |
+| [#15](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/15) | Update all docs and scripts to use IIC naming (replace contoso/fabrikam) | docs | Done |
 | [#16](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/16) | Add variable reference docs from `config/README.md` into MkDocs site | docs | Planned |
 | [#17](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/17) | Add troubleshooting guide under `docs/guides/` | docs | Planned |
 

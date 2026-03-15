@@ -44,7 +44,7 @@
     .\Deploy-SOFS-Azure.ps1 -WhatIf
 
     # Explicit config paths:
-    .\Deploy-SOFS-Azure.ps1 -SolutionConfigPath ".\solutions\sofs\solution-sofs.yml" -ConfigPath ".\configs\infrastructure-tplabs.yml"
+    .\Deploy-SOFS-Azure.ps1 -SolutionConfigPath ".\solutions\sofs\solution-sofs.yml" -ConfigPath ".\config\variables.yml"
 #>
 
 #Requires -Version 7.0

@@ -38,8 +38,8 @@ All deployment phases read from a single configuration file: `config/variables.y
 
 | Variable | Type | Description | Default | Phases |
 |----------|------|-------------|---------|--------|
-| `domain_fqdn` | string | AD domain FQDN | `contoso.local` | Deploy, Configure |
-| `ou_path` | string | OU for the SOFS computer object | `OU=Servers,DC=contoso,DC=local` | Deploy |
+| `domain_fqdn` | string | AD domain FQDN | `iic.local` | Deploy, Configure |
+| `ou_path` | string | OU for the SOFS computer object | `OU=Servers,DC=iic,DC=local` | Deploy |
 
 ## FSLogix / AVD
 

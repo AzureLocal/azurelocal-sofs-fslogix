@@ -14,9 +14,9 @@ all:
   children:
     sofs_nodes:
       hosts:
-        node01.contoso.local:
+        node01.iic.local:
           ansible_host: 192.168.1.11
-        node02.contoso.local:
+        node02.iic.local:
           ansible_host: 192.168.1.12
       vars:
         sofs_name: "SOFS01"
@@ -26,9 +26,9 @@ all:
 
     avd_session_hosts:
       hosts:
-        avd-host-01.contoso.local:
+        avd-host-01.iic.local:
           ansible_host: 192.168.2.11
-        avd-host-02.contoso.local:
+        avd-host-02.iic.local:
           ansible_host: 192.168.2.12
       vars:
         fslogix_vhd_location: "\\\\SOFS01\\FSLogixProfiles"

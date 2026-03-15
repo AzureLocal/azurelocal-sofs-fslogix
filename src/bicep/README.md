@@ -22,7 +22,7 @@ Subscription-scope Bicep deployment that creates:
 
 ```powershell
 # Generate solution config first:
-.\tools\Generate-SolutionConfig.ps1 -Solution sofs-azure-local -Environment tplabs
+.\tools\Generate-SolutionConfig.ps1 -Solution sofs-azure-local -Environment production
 
 # Dry run (validate templates):
 .\solutions\sofs\bicep\Deploy-SOFS-Azure.ps1 -WhatIf

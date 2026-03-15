@@ -95,7 +95,7 @@
     .\Configure-SOFS-Cluster.ps1 -GuestClusterName "SOFS-Cluster" -VMCount 3
 
 .NOTES
-    Author:  TierPoint Hybrid Cloud Solutions
+    Author:  Hybrid Cloud Solutions LLC
     Version: 3.0
 #>
 

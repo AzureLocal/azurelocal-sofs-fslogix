@@ -85,7 +85,7 @@
     .\Deploy-SOFS-Azure.ps1 -Credential (Get-Credential) -StoragePathIds @{ "01"="..."; "02"="..."; "03"="..." }
 
 .NOTES
-    Author:  TierPoint Hybrid Cloud Solutions
+    Author:  Hybrid Cloud Solutions LLC
     Version: 3.0
 #>
 

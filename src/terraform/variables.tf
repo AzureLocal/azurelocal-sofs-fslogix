@@ -95,7 +95,7 @@ variable "admin_username" {
 # admin_password is resolved directly from Key Vault by keyvault.tf — no TF_VAR needed.
 
 variable "key_vault_name" {
-  description = "Key Vault name containing the SOFS VM admin password secret (kv-tplabs-platform)"
+  description = "Key Vault name containing the SOFS VM admin password secret (e.g. kv-platform-prod)"
   type        = string
 }
 
