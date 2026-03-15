@@ -35,13 +35,13 @@ Pick the approach that best fits your team's workflow:
 
 | Tool | Phase | When to use |
 |------|-------|-------------|
-| [Bicep](../infrastructure/bicep/README.md) | 1 — Infrastructure | Azure-native IaC, **recommended** for new deployments |
-| [ARM](../infrastructure/arm/README.md) | 1 — Infrastructure | Legacy IaC or tooling that requires JSON templates |
-| [Terraform](../infrastructure/terraform/README.md) | 1 — Infrastructure | Multi-cloud IaC, GitOps workflows |
-| [Azure CLI](../infrastructure/azure-cli/README.md) | 1 — Infrastructure | Cross-platform CLI, CI/CD pipelines |
-| [PowerShell (deploy)](../deploy/README.md) | 2 — Deploy | SOFS cluster role creation |
-| [PowerShell (configure)](../configure/README.md) | 3 — Configure | Share permissions, SMB settings |
-| [Ansible](../configure/ansible/README.md) | 3 — Configure | Configuration management, Day-2 operations |
+| [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/) | 1 — Infrastructure | Azure-native IaC, **recommended** for new deployments |
+| [ARM templates](https://learn.microsoft.com/azure/azure-resource-manager/templates/overview) | 1 — Infrastructure | Legacy IaC or tooling that requires JSON templates |
+| [Terraform](https://developer.hashicorp.com/terraform/docs) | 1 — Infrastructure | Multi-cloud IaC, GitOps workflows |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) | 1 — Infrastructure | Cross-platform CLI, CI/CD pipelines |
+| [PowerShell (deploy)](https://learn.microsoft.com/powershell/) | 2 — Deploy | SOFS cluster role creation |
+| [PowerShell (configure)](https://learn.microsoft.com/powershell/) | 3 — Configure | Share permissions, SMB settings |
+| [Ansible](https://docs.ansible.com/) | 3 — Configure | Configuration management, Day-2 operations |
 
 ### 2. Configure Parameters
 
