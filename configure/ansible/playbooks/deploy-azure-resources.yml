@@ -1,0 +1,202 @@
+# =============================================================================
+# SOFS on Azure Local — Deploy Azure Resources (Ansible Playbook)
+# =============================================================================
+# Creates all Azure-side resources using Azure CLI via command/shell modules.
+# Run from a management workstation with Azure CLI authenticated.
+#
+# Usage:
+#   ansible-playbook -i inventory.yml deploy-azure-resources.yml
+#   ansible-playbook -i inventory.yml deploy-azure-resources.yml --check  (dry-run)
+#
+# NOTE: This playbook runs against localhost — it provisions Azure resources,
+#       not guest OS configuration. Use configure-sofs-cluster.yml for that.
+# =============================================================================
+---
+- name: Deploy SOFS Azure Resources
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Pull vars from inventory (all.vars) or override via --extra-vars
+    subscription_id: "{{ sofs_subscription_id }}"
+    resource_group: "{{ sofs_resource_group }}"
+    location: "{{ sofs_location }}"
+    custom_location_id: "{{ sofs_custom_location_id }}"
+    logical_network_id: "{{ sofs_logical_network_id }}"
+    gallery_image: "{{ sofs_gallery_image }}"
+    storage_path_id: "{{ sofs_storage_path_id }}"
+    vm_prefix: "{{ sofs_vm_prefix }}"
+    vm_count: "{{ sofs_vm_count | int }}"
+    vm_processors: "{{ sofs_vm_processors | int }}"
+    vm_memory_mb: "{{ sofs_vm_memory_mb | int }}"
+    admin_username: "{{ sofs_admin_username }}"
+    admin_password: "{{ sofs_admin_password }}"
+    data_disk_count: "{{ sofs_data_disk_count | int }}"
+    data_disk_size_gb: "{{ sofs_data_disk_size_gb | int }}"
+    cloud_witness_name: "{{ sofs_cloud_witness_name }}"
+    tags: "project=SOFS environment=production workload=FSLogix solution=sofs-azure-local"
+
+  tasks:
+    # -----------------------------------------------------------------
+    # Prerequisite: Ensure stack-hci-vm CLI extension
+    # -----------------------------------------------------------------
+    - name: Ensure Azure CLI stack-hci-vm extension
+      ansible.builtin.command: az extension add --name stack-hci-vm --upgrade --yes
+      changed_when: false
+
+    - name: Set Azure subscription
+      ansible.builtin.command: az account set --subscription {{ subscription_id }}
+      changed_when: false
+
+    # -----------------------------------------------------------------
+    # Step 1: Cloud Witness Storage Account
+    # -----------------------------------------------------------------
+    - name: Create cloud witness storage account
+      ansible.builtin.command: >
+        az storage account create
+          --name {{ cloud_witness_name }}
+          --resource-group {{ resource_group }}
+          --location {{ location }}
+          --sku Standard_LRS
+          --kind StorageV2
+          --tags {{ tags }}
+          --output none
+      register: witness_result
+      changed_when: witness_result.rc == 0
+
+    - name: Retrieve cloud witness storage key
+      ansible.builtin.command: >
+        az storage account keys list
+          --account-name {{ cloud_witness_name }}
+          --resource-group {{ resource_group }}
+          --query "[0].value" -o tsv
+      register: witness_key_result
+      changed_when: false
+      no_log: true
+
+    - name: Store witness key as fact
+      ansible.builtin.set_fact:
+        witness_key: "{{ witness_key_result.stdout }}"
+      no_log: true
+
+    # -----------------------------------------------------------------
+    # Step 2: Create NICs
+    # -----------------------------------------------------------------
+    - name: Create NICs on compute logical network
+      ansible.builtin.command: >
+        az stack-hci-vm network nic create
+          --resource-group {{ resource_group }}
+          --custom-location {{ custom_location_id }}
+          --location {{ location }}
+          --name {{ vm_prefix }}-{{ '%02d' | format(item) }}-nic
+          --subnet-id {{ logical_network_id }}
+          --tags {{ tags }}
+          --output none
+      loop: "{{ range(1, vm_count | int + 1) | list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}-nic"
+
+    # -----------------------------------------------------------------
+    # Step 3: Create VMs
+    # -----------------------------------------------------------------
+    - name: Create SOFS VMs
+      ansible.builtin.command: >
+        az stack-hci-vm create
+          --name {{ vm_prefix }}-{{ '%02d' | format(item) }}
+          --resource-group {{ resource_group }}
+          --custom-location {{ custom_location_id }}
+          --location {{ location }}
+          --image {{ gallery_image }}
+          --admin-username {{ admin_username }}
+          --admin-password {{ admin_password }}
+          --computer-name {{ vm_prefix }}-{{ '%02d' | format(item) }}
+          --hardware-profile memory-mb="{{ vm_memory_mb }}" processors="{{ vm_processors }}"
+          --nics {{ vm_prefix }}-{{ '%02d' | format(item) }}-nic
+          --storage-path-id {{ storage_path_id }}
+          --authentication-type all
+          --enable-agent true
+          --tags {{ tags }}
+          --output none
+      loop: "{{ range(1, vm_count | int + 1) | list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}"
+      no_log: true  # hide admin_password from output
+
+    # -----------------------------------------------------------------
+    # Step 4: Create Data Disks
+    # -----------------------------------------------------------------
+    - name: Build data disk list
+      ansible.builtin.set_fact:
+        data_disk_list: >-
+          {{
+            range(1, vm_count | int + 1) | product(range(1, data_disk_count | int + 1)) | list
+          }}
+
+    - name: Create data disks for S2D pool
+      ansible.builtin.command: >
+        az stack-hci-vm disk create
+          --resource-group {{ resource_group }}
+          --custom-location {{ custom_location_id }}
+          --location {{ location }}
+          --name {{ vm_prefix }}-{{ '%02d' | format(item[0]) }}-data{{ item[1] }}
+          --size-gb {{ data_disk_size_gb }}
+          --dynamic true
+          --storage-path-id {{ storage_path_id }}
+          --tags {{ tags }}
+          --output none
+      loop: "{{ data_disk_list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item[0]) }}-data{{ item[1] }}"
+
+    # -----------------------------------------------------------------
+    # Step 5: Attach Data Disks to VMs
+    # -----------------------------------------------------------------
+    - name: Build disk name lists per VM
+      ansible.builtin.set_fact:
+        vm_disk_names: >-
+          {{
+            dict(
+              range(1, vm_count | int + 1) | map('regex_replace', '^(.*)$', vm_prefix ~ '-' ~ '\1') |
+              zip(range(1, vm_count | int + 1) | map('apply_format') | list) | list
+            )
+          }}
+      ignore_errors: true  # complex Jinja — fallback below
+
+    - name: Attach data disks to VMs
+      ansible.builtin.command: >
+        az stack-hci-vm disk attach
+          --resource-group {{ resource_group }}
+          --vm-name {{ vm_prefix }}-{{ '%02d' | format(item) }}
+          --disks {% for d in range(1, data_disk_count | int + 1) %}{{ vm_prefix }}-{{ '%02d' | format(item) }}-data{{ d }}{{ ' ' if not loop.last else '' }}{% endfor %}
+          --yes
+          --output none
+      loop: "{{ range(1, vm_count | int + 1) | list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}"
+
+    # -----------------------------------------------------------------
+    # Step 6: Verify
+    # -----------------------------------------------------------------
+    - name: List deployed VMs
+      ansible.builtin.command: az stack-hci-vm list --resource-group {{ resource_group }} -o table
+      register: vm_list
+      changed_when: false
+
+    - name: Display deployed VMs
+      ansible.builtin.debug:
+        msg: "{{ vm_list.stdout_lines }}"
+
+    - name: Deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SOFS Azure Resources Deployed
+          ============================================
+          VMs Created:        {{ vm_count }}
+          Data Disks per VM:  {{ data_disk_count }} x {{ data_disk_size_gb }} GB
+          Total S2D Pool:     {{ (vm_count | int * data_disk_count | int * data_disk_size_gb | int / 1024) | int }} TB
+          Cloud Witness:      {{ cloud_witness_name }}
+          ============================================
+          NEXT: Run configure-sofs-cluster.yml
+          ============================================
