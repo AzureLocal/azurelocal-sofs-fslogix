@@ -1,0 +1,75 @@
+#cloud-config
+# =============================================================================
+# Ansible Controller — Cloud-Init
+# =============================================================================
+# Installs Ansible + WinRM deps, writes inventory + playbook, runs playbook.
+# Fully autonomous — no SSH from management workstation required.
+# =============================================================================
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+  - libkrb5-dev
+  - gcc
+  - git
+  - krb5-user
+  - sshpass
+
+write_files:
+  # Ansible configuration
+  - path: /opt/sofs/.ansible.cfg
+    permissions: "0644"
+    content: |
+      [defaults]
+      host_key_checking = False
+      stdout_callback = yaml
+      callbacks_enabled = timer, profile_tasks
+      timeout = 60
+      [winrm]
+      operation_timeout_sec = 120
+      read_timeout_sec = 180
+
+  # Generated inventory (Terraform injects all values at plan time)
+  - path: /opt/sofs/inventory.yml
+    permissions: "0600"
+    encoding: b64
+    content: ${inventory_b64}
+
+  # Playbook (Terraform injects at plan time)
+  - path: /opt/sofs/configure-sofs-cluster.yml
+    permissions: "0644"
+    encoding: b64
+    content: ${playbook_b64}
+
+runcmd:
+  # Install Ansible and WinRM dependencies via pip
+  - pip3 install --break-system-packages ansible pywinrm requests-kerberos
+
+  # Install ansible.windows collection (system-wide)
+  - ansible-galaxy collection install ansible.windows --force
+
+  # Prepare runtime directories for controller user
+  - mkdir -p /home/${admin_username}/sofs
+  - cp /opt/sofs/.ansible.cfg /home/${admin_username}/.ansible.cfg
+  - cp /opt/sofs/inventory.yml /home/${admin_username}/sofs/inventory.yml
+  - cp /opt/sofs/configure-sofs-cluster.yml /home/${admin_username}/sofs/configure-sofs-cluster.yml
+  - chown -R ${admin_username}:${admin_username} /home/${admin_username}/sofs /home/${admin_username}/.ansible.cfg
+
+  # Run the playbook (as the controller user, with full logging)
+  - |
+    su - ${admin_username} -c '
+      cd ~/sofs
+      ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
+        2>&1 | tee ~/sofs/ansible-run.log
+      echo "EXIT_CODE=$?" >> ~/sofs/ansible-run.log
+    '
+
+  # Signal completion (success or failure — check the log)
+  - touch /tmp/ansible-controller-ready
+
+final_message: "Ansible controller — cloud-init complete. Check /home/${admin_username}/sofs/ansible-run.log"

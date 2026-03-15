@@ -1,50 +1,56 @@
-# Bicep – SOFS & FSLogix Deployment
+# SOFS on Azure Local — Bicep Deployment
 
-Bicep templates for deploying Azure-side resources that support the SOFS/FSLogix solution on Azure Local.
+## Overview
 
----
+Subscription-scope Bicep deployment that creates:
+- Resource group (if it doesn't exist)
+- 3 Azure Local VMs (Arc machines + NICs + VM instances)
+- 12 data disks (4 × 1 TB per VM) for S2D storage pool
+- Cloud witness storage account for guest cluster quorum
 
-## Templates
+## Files
 
-| File | Description |
-|------|-------------|
-| `main.bicep` | Entry-point template; orchestrates module deployments |
-| `main.bicepparam.example` | Example parameters file |
-| `modules/resourceGroup.bicep` | Resource group creation (subscription scope) |
-| `modules/storageAccount.bicep` | Diagnostic / backup storage account |
+| File | Purpose |
+|------|---------|
+| `main.bicep` | Subscription-scope wrapper — creates RG, calls modules |
+| `sofs-resources.bicep` | Resource-group-scope module — VMs, NICs, data disks |
+| `witness-storage.bicep` | Cloud witness storage account |
+| `main.bicepparam` | Example parameters (reference only — never commit secrets) |
+| `Deploy-SOFS-Azure.ps1` | Orchestrator script — reads solution config, resolves KV, deploys |
 
----
+## Usage
 
-## Prerequisites
+```powershell
+# Generate solution config first:
+.\tools\Generate-SolutionConfig.ps1 -Solution sofs-azure-local -Environment tplabs
 
-- **Azure CLI** >= 2.50 with the Bicep CLI (`az bicep install`).
-- Azure subscription with **Contributor** or higher RBAC.
+# Dry run (validate templates):
+.\solutions\sofs\bicep\Deploy-SOFS-Azure.ps1 -WhatIf
 
----
+# Full deployment:
+.\solutions\sofs\bicep\Deploy-SOFS-Azure.ps1
+```
 
-## Quick Start
+## Architecture
 
-1. Build and validate:
-   ```bash
-   az bicep build --file main.bicep
-   ```
+```
+main.bicep (subscription scope)
+├── Creates resource group
+├── sofs-resources.bicep (resource-group scope)
+│   ├── Microsoft.HybridCompute/machines[]           — Arc placeholders
+│   ├── Microsoft.AzureStackHCI/networkInterfaces[]   — NICs
+│   ├── Microsoft.AzureStackHCI/virtualHardDisks[]    — Data disks
+│   └── Microsoft.AzureStackHCI/VirtualMachineInstances[] — VMs
+└── witness-storage.bicep (resource-group scope)
+    └── Microsoft.Storage/storageAccounts             — Cloud witness
+```
 
-2. Copy and edit the parameters file:
-   ```bash
-   cp main.bicepparam.example main.bicepparam
-   # Edit main.bicepparam with your values
-   ```
+## Post-Deployment
 
-3. Deploy:
-   ```bash
-   az deployment sub create \
-     --location eastus \
-     --template-file main.bicep \
-     --parameters main.bicepparam
-   ```
+After Bicep deploys the Azure resources, run the PowerShell guest configuration:
 
----
+```powershell
+.\solutions\sofs\powershell\Configure-SOFS-Cluster.ps1
+```
 
-## Parameters Reference
-
-See `main.bicepparam.example` for all parameters and descriptions.
+This handles: domain join verification, anti-affinity rules, failover clustering, S2D, SOFS role, SMB share, and NTFS permissions.

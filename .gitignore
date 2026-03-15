@@ -36,6 +36,13 @@ ansible/.vault_pass
 # Central config (actual values — never commit)
 config/variables.yml
 
+# Log files (keep the directory via .gitkeep)
+logs/**
+!logs/.gitkeep
+
+# Source working folder (integrated into repo structure — not tracked directly)
+sofs/
+
 # Editor / OS artifacts
 .vscode/
 .idea/
