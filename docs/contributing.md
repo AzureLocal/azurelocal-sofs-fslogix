@@ -34,16 +34,18 @@ This project follows the [Microsoft Open Source Code of Conduct](https://opensou
 
 ## Folder Conventions
 
-The repository is organised by deployment phase:
+The repository is organised by tool under `src/`:
 
 | Directory | Purpose |
 |-----------|-------------------------------------------|
 | `config/` | Central variables — single source of truth |
-| `infrastructure/` | Phase 1: Azure resource provisioning (Bicep, ARM, Terraform, Azure CLI) |
-| `deploy/` | Phase 2: SOFS cluster role creation |
-| `configure/` | Phase 3: Post-deployment configuration (PowerShell, Ansible) |
-| `tests/` | Phase 4: Deployment validation |
-| `scripts/` | Standalone utilities |
+| `src/bicep/` | Azure Bicep templates and modules |
+| `src/arm/` | ARM JSON templates |
+| `src/terraform/` | Terraform configuration |
+| `src/ansible/` | Ansible playbooks, inventory, and roles |
+| `src/powershell/` | PowerShell deploy and configure scripts |
+| `tests/` | Deployment validation |
+| `scripts/` | Standalone utilities (prerequisites, Arc extensions) |
 | `examples/` | Scenarios & walkthroughs |
 | `docs/` | Architecture, getting-started, contributing |
 
@@ -93,44 +95,43 @@ Before opening a PR, verify your changes locally:
 ### PowerShell
 ```powershell
 # Syntax check all scripts
-Get-ChildItem -Path ./deploy, ./configure/powershell, ./tests -Filter *.ps1 -Recurse |
+Get-ChildItem -Path ./src/powershell, ./tests -Filter *.ps1 -Recurse |
     ForEach-Object { $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors); $errors }
 
 # PSScriptAnalyzer (install once: Install-Module PSScriptAnalyzer)
-Invoke-ScriptAnalyzer -Path ./deploy -Recurse
-Invoke-ScriptAnalyzer -Path ./configure/powershell -Recurse
+Invoke-ScriptAnalyzer -Path ./src/powershell -Recurse
 Invoke-ScriptAnalyzer -Path ./tests -Recurse
 ```
 
 ### Azure CLI / Bash
 ```bash
 # ShellCheck (install: apt/brew install shellcheck)
-shellcheck infrastructure/azure-cli/*.sh scripts/*.sh
+shellcheck scripts/*.sh
 ```
 
 ### Bicep
 ```bash
-az bicep build --file infrastructure/bicep/main.bicep
+az bicep build --file src/bicep/main.bicep
 ```
 
 ### ARM
 ```bash
 az deployment group validate \
   --resource-group <rg> \
-  --template-file infrastructure/arm/azuredeploy.json \
-  --parameters infrastructure/arm/azuredeploy.parameters.example.json
+  --template-file src/arm/azuredeploy.json \
+  --parameters src/arm/azuredeploy.parameters.example.json
 ```
 
 ### Terraform
 ```bash
-cd infrastructure/terraform
+cd src/terraform
 terraform fmt -check -recursive
 terraform validate
 ```
 
 ### Ansible
 ```bash
-ansible-lint configure/ansible/playbooks/
+ansible-lint src/ansible/playbooks/
 ```
 
 ---

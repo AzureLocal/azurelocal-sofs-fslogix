@@ -18,15 +18,18 @@ For the AVD session-host side of the deployment, see the sister repository: [Azu
 
 ```
 azurelocal-sofs-fslogix/
+├── src/                       # All automation code, organised by tool
+│   ├── bicep/                 #   Azure Bicep templates
+│   ├── arm/                   #   ARM JSON templates
+│   ├── terraform/             #   Terraform configuration
+│   ├── ansible/               #   Ansible playbooks & inventory
+│   └── powershell/            #   PowerShell deploy & configure scripts
 ├── config/                    # Central variables — single source of truth
 ├── docs/                      # Architecture, getting-started, contributing guide
-├── infrastructure/            # Phase 1 — Azure resource provisioning (Bicep / ARM / Terraform / CLI)
-├── deploy/                    # Phase 2 — SOFS cluster role + SMB share creation
-├── configure/                 # Phase 3 — Share permissions & FSLogix settings (PowerShell / Ansible)
-├── tests/                     # Phase 4 — Deployment validation
-├── scripts/                   # Standalone utilities (Arc extensions, etc.)
+├── tests/                     # Deployment validation
+├── scripts/                   # Standalone utilities (Arc extensions, prerequisites)
 ├── examples/                  # Scenarios & walkthroughs (future)
-└── sofs/                      # Advanced orchestrated solution (future)
+└── logs/                      # Runtime logs (gitignored)
 ```
 
 ---
@@ -34,11 +37,12 @@ azurelocal-sofs-fslogix/
 ## Deployment Workflow
 
 ```
-1. config/           →  Set your variables (single source of truth)
-2. infrastructure/   →  Deploy Azure resources — pick one IaC tool
-3. deploy/           →  Create SOFS cluster role + SMB share
-4. configure/        →  Set permissions & FSLogix settings — pick PowerShell or Ansible
-5. tests/            →  Validate the deployment
+1. config/              →  Set your variables (single source of truth)
+2. src/<tool>/          →  Deploy Azure resources — pick one IaC tool
+3. src/powershell/      →  Create SOFS cluster role + SMB share
+4. src/powershell/ or   →  Set permissions & FSLogix settings
+   src/ansible/
+5. tests/               →  Validate the deployment
 ```
 
 ---
@@ -52,29 +56,28 @@ cp config/variables.example.yml config/variables.yml
 # Edit config/variables.yml with your environment values
 ```
 
-### 2. Deploy Azure Infrastructure (Phase 1 — choose one)
+### 2. Deploy Azure Infrastructure (choose one)
 
 | Tool | Location | Guide |
 |------|----------|-------|
-| Bicep _(recommended)_ | [`infrastructure/bicep/`](./infrastructure/bicep/) | [README](./infrastructure/bicep/README.md) |
-| ARM | [`infrastructure/arm/`](./infrastructure/arm/) | [README](./infrastructure/arm/README.md) |
-| Terraform | [`infrastructure/terraform/`](./infrastructure/terraform/) | [README](./infrastructure/terraform/README.md) |
-| Azure CLI | [`infrastructure/azure-cli/`](./infrastructure/azure-cli/) | [README](./infrastructure/azure-cli/README.md) |
+| Bicep _(recommended)_ | [`src/bicep/`](./src/bicep/) | [README](./src/bicep/README.md) |
+| ARM | [`src/arm/`](./src/arm/) | [README](./src/arm/README.md) |
+| Terraform | [`src/terraform/`](./src/terraform/) | [README](./src/terraform/README.md) |
 
-### 3. Deploy SOFS (Phase 2)
-
-| Tool | Location | Guide |
-|------|----------|-------|
-| PowerShell | [`deploy/`](./deploy/) | [README](./deploy/README.md) |
-
-### 4. Configure (Phase 3 — choose one)
+### 3. Deploy SOFS
 
 | Tool | Location | Guide |
 |------|----------|-------|
-| PowerShell | [`configure/powershell/`](./configure/powershell/) | [README](./configure/README.md) |
-| Ansible | [`configure/ansible/`](./configure/ansible/) | [README](./configure/README.md) |
+| PowerShell | [`src/powershell/`](./src/powershell/) | [README](./src/powershell/README.md) |
 
-### 5. Validate (Phase 4)
+### 4. Configure (choose one)
+
+| Tool | Location | Guide |
+|------|----------|-------|
+| PowerShell | [`src/powershell/`](./src/powershell/) | [README](./src/powershell/README.md) |
+| Ansible | [`src/ansible/`](./src/ansible/) | [README](./src/ansible/README.md) |
+
+### 5. Validate
 
 | Tool | Location | Guide |
 |------|----------|-------|

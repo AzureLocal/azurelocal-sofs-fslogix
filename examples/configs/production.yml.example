@@ -1,0 +1,72 @@
+# =============================================================================
+# production.yml.example
+# Production environment configuration for IIC SOFS + FSLogix deployment.
+#
+# Copy to your config directory and adjust values:
+#   cp examples/configs/production.yml.example config/variables.yml
+# =============================================================================
+
+azure:
+  subscription_id: "00000000-0000-0000-0000-000000000002"
+  resource_group: "rg-sofs-azl-eus-01"
+  location: "eastus"
+
+keyvault:
+  name: "kv-platform-prod"
+
+azure_local:
+  cluster_name: "azl-cluster-01"
+  custom_location_id: "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.ExtendedLocation/customLocations/azl-cluster-cl"
+  logical_network_id: "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/logicalNetworks/lnet-tenant-vlan"
+  gallery_image_name: "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/microsoft.azurestackhci/marketplaceGalleryImages/img-ws2025-core-g2-v1"
+  storage_path_id: "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-01"
+  storage_path_ids:
+    "01": "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-01"
+    "02": "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-02"
+    "03": "/subscriptions/00000000-0000-0000-0000-000000000002/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-03"
+
+vm:
+  prefix: "sofs"
+  count: 3
+  processors: 4
+  memory_mb: 8192
+  admin_username: "sofs_admin"
+  admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
+  ips:
+    "01": "192.168.1.201"
+    "02": "192.168.1.202"
+    "03": "192.168.1.203"
+
+data_disks:
+  count: 4
+  size_gb: 500
+
+domain:
+  fqdn: "iic.local"
+  netbios: "IIC"
+  join_username: "svc.domainjoin"
+  join_password: "keyvault://kv-platform-prod/domain-join-password"
+  cluster_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+  nodes_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+
+dns_servers:
+  - "10.0.1.10"
+  - "10.0.1.11"
+
+sofs:
+  name: "FSLogixSOFS"
+  cluster_name: "sofs-cluster"
+  cluster_ip: "192.168.1.204"
+  share_name: "FSLogix"
+  role_enabled: true
+  anti_affinity_rule_name: "SOFS-AntiAffinity"
+
+s2d:
+  volume_name: "FSLogixData"
+  volume_size_gb: 2560
+  data_copies: 2
+
+cloud_witness:
+  name: "stsofswitnessprod01"
+  key_uri: ""
+  key_secret: ""

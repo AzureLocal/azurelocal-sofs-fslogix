@@ -1,0 +1,125 @@
+# deploy-terraform.yml
+# GitHub Actions — Deploy SOFS infrastructure via Terraform
+#
+# REQUIREMENTS:
+#   - Self-hosted runner with network access to Azure Local cluster
+#   - Runner label: azurelocal
+#   - Terraform >= 1.5 installed on runner (or use setup-terraform action)
+#
+# SETUP:
+#   1. Copy this file to .github/workflows/deploy-terraform.yml
+#   2. Configure repository secrets (Settings > Secrets > Actions):
+#        ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID
+#   3. Push to main or trigger manually
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# See docs/guides/runner-setup.md for self-hosted runner installation.
+# See docs/guides/secrets-management.md for secrets configuration.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# Example domain:  iic.local
+# -------------------------------------------------------------------------
+
+name: 'Deploy SOFS - Terraform'
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/terraform/**', 'config/**']
+  pull_request:
+    branches: [main]
+    paths: ['src/terraform/**', 'config/**']
+  workflow_dispatch:
+
+env:
+  TF_WORKING_DIR: src/terraform
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: [self-hosted, azurelocal]
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.5'
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  plan:
+    name: Plan
+    needs: validate
+    runs-on: [self-hosted, azurelocal]
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.5'
+
+      - name: Terraform Init
+        run: terraform init
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      # TODO: Upload plan as artifact for apply job
+      # TODO: Add plan summary as PR comment
+
+  apply:
+    name: Apply
+    needs: plan
+    runs-on: [self-hosted, azurelocal]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '~> 1.5'
+
+      - name: Terraform Init
+        run: terraform init
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      # TODO: Post deployment status notification

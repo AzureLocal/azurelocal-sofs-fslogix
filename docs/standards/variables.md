@@ -80,10 +80,10 @@ The shim is transparent — downstream script logic is unchanged.
 | Tool | File | Location |
 |------|------|----------|
 | PowerShell | `variables.yml` | `config/` |
-| Bicep | `main.bicepparam` | `infrastructure/bicep/` |
-| Terraform | `terraform.tfvars` | `infrastructure/terraform/` |
-| ARM | `azuredeploy.parameters.json` | `infrastructure/arm/` |
-| Ansible | `inventory.yml` | `configure/ansible/inventory/` |
-| Azure CLI | `.env` | `infrastructure/azure-cli/` |
+| Bicep | `main.bicepparam` | `src/bicep/` |
+| Terraform | `terraform.tfvars` | `src/terraform/` |
+| ARM | `azuredeploy.parameters.json` | `src/arm/` |
+| Ansible | `inventory.yml` | `src/ansible/inventory/` |
+| Azure CLI | `.env` | `scripts/` |
 
 All tool-specific parameter files should derive their values from the central `config/variables.yml`.

@@ -885,6 +885,6 @@ The SOFS solution includes automation for both phases of the deployment. All scr
 
 | | |
 |---|---|
-| **Repository** | `prodtech-docs-azl-toolkit` |
-| **Path** | `solutions/sofs/SOFS-Deployment-Guide.md` |
-| **Maintained by** | TierPoint — Hybrid Cloud Solutions / ProdTech |
+| **Repository** | `azurelocal-sofs-fslogix` |
+| **Path** | `docs/guides/sofs-deployment-guide.md` |
+| **Maintained by** | Hybrid Cloud Solutions LLC |

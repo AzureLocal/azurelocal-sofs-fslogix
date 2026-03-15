@@ -1,0 +1,107 @@
+# deploy-terraform.yml
+# Azure DevOps — Deploy SOFS infrastructure via Terraform
+#
+# REQUIREMENTS:
+#   - Self-hosted agent pool: AzureLocal
+#   - Agent deployed on management VM with network access to cluster
+#   - Terraform >= 1.5 installed on agent
+#
+# SETUP:
+#   1. Copy this file to your Azure DevOps repo
+#   2. Create a variable group 'sofs-terraform' with:
+#        ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID
+#        (mark secrets as secret variables)
+#   3. Create an environment 'production' with approval gates
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# See docs/guides/runner-setup.md for agent pool setup.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - src/terraform/*
+      - config/*
+
+pr:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - src/terraform/*
+
+pool:
+  name: AzureLocal
+
+variables:
+  - group: sofs-terraform
+  - name: TF_WORKING_DIR
+    value: src/terraform
+
+stages:
+  - stage: Validate
+    jobs:
+      - job: Validate
+        steps:
+          - checkout: self
+
+          - script: |
+              cd $(TF_WORKING_DIR)
+              terraform fmt -check -recursive
+              terraform init -backend=false
+              terraform validate
+            displayName: 'Terraform Validate'
+
+  - stage: Plan
+    dependsOn: Validate
+    jobs:
+      - job: Plan
+        steps:
+          - checkout: self
+
+          - script: |
+              cd $(TF_WORKING_DIR)
+              terraform init
+              terraform plan -out=tfplan
+            displayName: 'Terraform Plan'
+            env:
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+
+          - publish: $(TF_WORKING_DIR)/tfplan
+            artifact: tfplan
+            displayName: 'Publish Plan'
+
+  - stage: Apply
+    dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Apply
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - download: current
+                  artifact: tfplan
+
+                - script: |
+                    cd $(TF_WORKING_DIR)
+                    terraform init
+                    terraform apply -auto-approve $(Pipeline.Workspace)/tfplan/tfplan
+                  displayName: 'Terraform Apply'
+                  env:
+                    ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+                    ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+                    ARM_TENANT_ID: $(ARM_TENANT_ID)
+                    ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+
+    # TODO: Add post-deployment notification

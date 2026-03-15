@@ -1,0 +1,93 @@
+# deploy-powershell.yml
+# Azure DevOps — Deploy & configure SOFS via PowerShell
+#
+# REQUIREMENTS:
+#   - Self-hosted agent pool: AzureLocal
+#   - Windows agent with PowerShell 5.1+, Az module, RSAT-Clustering
+#   - Network access to Azure Local cluster nodes
+#
+# SETUP:
+#   1. Copy to your Azure DevOps repo
+#   2. Create variable group 'sofs-powershell' with:
+#        AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (secret), AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   3. Create environment 'production' with approval gates
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - src/powershell/*
+      - config/*
+
+pool:
+  name: AzureLocal
+  demands:
+    - Agent.OS -equals Windows_NT
+
+variables:
+  - group: sofs-powershell
+
+stages:
+  - stage: Lint
+    jobs:
+      - job: Lint
+        steps:
+          - checkout: self
+
+          - pwsh: |
+              Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction SilentlyContinue
+              $results = Invoke-ScriptAnalyzer -Path ./src/powershell -Recurse -Severity Warning
+              $results | Format-Table -AutoSize
+              if ($results.Count -gt 0) { throw "PSScriptAnalyzer found $($results.Count) issues" }
+            displayName: 'PSScriptAnalyzer'
+
+          - pwsh: |
+              Get-ChildItem -Path ./src/powershell, ./tests -Filter *.ps1 -Recurse | ForEach-Object {
+                $errors = $null
+                [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+                if ($errors) { throw "Syntax errors in $($_.Name): $errors" }
+              }
+            displayName: 'Syntax Check'
+
+  - stage: Deploy
+    dependsOn: Lint
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeploySOFS
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - pwsh: |
+                    $securePassword = ConvertTo-SecureString "$(AZURE_CLIENT_SECRET)" -AsPlainText -Force
+                    $credential = New-Object PSCredential("$(AZURE_CLIENT_ID)", $securePassword)
+                    Connect-AzAccount -ServicePrincipal -Credential $credential -Tenant "$(AZURE_TENANT_ID)"
+                    Set-AzContext -SubscriptionId "$(AZURE_SUBSCRIPTION_ID)"
+                    .\src\powershell\New-SOFSDeployment.ps1 -ConfigFile .\config\variables.yml
+                  displayName: 'Deploy SOFS'
+
+    # TODO: Add Configure-SOFS-Cluster.ps1 step
+    # TODO: Add Set-FSLogixShare.ps1 step
+
+  - stage: Test
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: Validate
+        steps:
+          - checkout: self
+
+          - pwsh: |
+              .\tests\Test-SOFSDeployment.ps1 -SOFSName "FSLogixSOFS" -ShareName "FSLogix"
+            displayName: 'Run Validation Tests'
+
+    # TODO: Publish test results

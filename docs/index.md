@@ -45,17 +45,16 @@ Choose one IaC tool to create the Azure resource group and diagnostic storage:
 
 | Tool | Path | Recommended |
 |------|------|:-----------:|
-| Bicep | `infrastructure/bicep/` | :material-check: |
-| ARM | `infrastructure/arm/` | |
-| Terraform | `infrastructure/terraform/` | |
-| Azure CLI | `infrastructure/azure-cli/` | |
+| Bicep | `src/bicep/` | :material-check: |
+| ARM | `src/arm/` | |
+| Terraform | `src/terraform/` | |
 
 ### 3. Deploy SOFS
 
 Create the SOFS cluster role and SMB share on the Azure Local failover cluster:
 
 ```powershell
-.\deploy\New-SOFSDeployment.ps1 -ParametersFile .\deploy\parameters.example.ps1
+.\src\powershell\New-SOFSDeployment.ps1 -ParametersFile .\src\powershell\parameters.example.ps1
 ```
 
 ### 4. Configure Share & FSLogix
@@ -65,7 +64,7 @@ Choose PowerShell or Ansible to set share permissions and FSLogix registry setti
 === "PowerShell"
 
     ```powershell
-    .\configure\powershell\Set-FSLogixShare.ps1 `
+    .\src\powershell\Set-FSLogixShare.ps1 `
       -SOFSName "SOFS01" `
       -ShareName "FSLogixProfiles" `
       -SharePath "C:\ClusterStorage\Volume1\FSLogixProfiles" `
@@ -76,11 +75,11 @@ Choose PowerShell or Ansible to set share permissions and FSLogix registry setti
 === "Ansible"
 
     ```bash
-    ansible-playbook -i configure/ansible/inventory/hosts.yml \
-      configure/ansible/playbooks/configure-sofs.yml
+    ansible-playbook -i src/ansible/inventory/hosts.yml \
+      src/ansible/playbooks/configure-sofs.yml
 
-    ansible-playbook -i configure/ansible/inventory/hosts.yml \
-      configure/ansible/playbooks/configure-fslogix.yml
+    ansible-playbook -i src/ansible/inventory/hosts.yml \
+      src/ansible/playbooks/configure-fslogix.yml
     ```
 
 ### 5. Validate
@@ -94,11 +93,14 @@ Choose PowerShell or Ansible to set share permissions and FSLogix registry setti
 ## Repository Structure
 
 ```
+├── src/                   # All automation code, organised by tool
+│   ├── bicep/             #   Azure Bicep templates
+│   ├── arm/               #   ARM JSON templates
+│   ├── terraform/         #   Terraform configuration
+│   ├── ansible/           #   Ansible playbooks & inventory
+│   └── powershell/        #   PowerShell deploy & configure scripts
 ├── config/                # Central variables — single source of truth
 ├── docs/                  # This documentation site (MkDocs)
-├── infrastructure/        # Phase 1 — Azure resource provisioning
-├── deploy/                # Phase 2 — SOFS cluster role + SMB share
-├── configure/             # Phase 3 — Share permissions & FSLogix settings
 ├── tests/                 # Phase 4 — Deployment validation
 ├── scripts/               # Standalone utilities
 └── examples/              # Scenarios & walkthroughs

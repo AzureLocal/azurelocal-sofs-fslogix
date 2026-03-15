@@ -1,0 +1,34 @@
+---
+# inventory/hosts.example.yml
+# Copy to hosts.yml and fill in your values.
+# DO NOT commit hosts.yml if it contains credentials – it is excluded by .gitignore.
+
+all:
+  vars:
+    ansible_user: "{{ lookup('env', 'ANSIBLE_WIN_USER') }}"
+    ansible_password: "{{ lookup('env', 'ANSIBLE_WIN_PASSWORD') }}"
+    ansible_connection: winrm
+    ansible_winrm_transport: kerberos        # or 'ntlm' / 'basic' depending on your setup
+    ansible_winrm_server_cert_validation: ignore
+
+  children:
+    sofs_nodes:
+      hosts:
+        node01.iic.local:
+          ansible_host: 192.168.1.11
+        node02.iic.local:
+          ansible_host: 192.168.1.12
+      vars:
+        sofs_name: "SOFS01"
+        share_name: "FSLogixProfiles"
+        share_path: "C:\\ClusterStorage\\Volume1\\FSLogixProfiles"
+        avd_users_group: "AVD-Users"
+
+    avd_session_hosts:
+      hosts:
+        avd-host-01.iic.local:
+          ansible_host: 192.168.2.11
+        avd-host-02.iic.local:
+          ansible_host: 192.168.2.12
+      vars:
+        fslogix_vhd_location: "\\\\SOFS01\\FSLogixProfiles"

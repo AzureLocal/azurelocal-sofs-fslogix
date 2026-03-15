@@ -1,0 +1,68 @@
+# =============================================================================
+# staging.yml.example
+# Staging / lab environment configuration for IIC SOFS + FSLogix deployment.
+#
+# Copy to your config directory and adjust values:
+#   cp examples/configs/staging.yml.example config/variables.yml
+# =============================================================================
+
+azure:
+  subscription_id: "00000000-0000-0000-0000-000000000001"
+  resource_group: "rg-sofs-azl-eus-staging"
+  location: "eastus"
+
+keyvault:
+  name: "kv-platform-staging"
+
+azure_local:
+  cluster_name: "azl-cluster-lab"
+  custom_location_id: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-azl-lab/providers/Microsoft.ExtendedLocation/customLocations/azl-lab-cl"
+  logical_network_id: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-azl-lab/providers/Microsoft.AzureStackHCI/logicalNetworks/lnet-lab-vlan"
+  gallery_image_name: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-azl-lab/providers/microsoft.azurestackhci/marketplaceGalleryImages/img-ws2025-core-g2-v1"
+  storage_path_id: "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-azl-lab/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-lab"
+  storage_path_ids:
+    "01": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-azl-lab/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-lab"
+
+vm:
+  prefix: "sofslab"
+  count: 2
+  processors: 2
+  memory_mb: 4096
+  admin_username: "sofs_admin"
+  admin_password: "keyvault://kv-platform-staging/sofs-vm-admin-password"
+  ips:
+    "01": "10.100.1.201"
+    "02": "10.100.1.202"
+
+data_disks:
+  count: 2
+  size_gb: 200
+
+domain:
+  fqdn: "iic.local"
+  netbios: "IIC"
+  join_username: "svc.domainjoin"
+  join_password: "keyvault://kv-platform-staging/domain-join-password"
+  cluster_ou_path: "OU=Lab-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+  nodes_ou_path: "OU=Lab-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+
+dns_servers:
+  - "10.100.1.10"
+
+sofs:
+  name: "FSLogixSOFS-Lab"
+  cluster_name: "sofs-lab"
+  cluster_ip: "10.100.1.204"
+  share_name: "FSLogix"
+  role_enabled: true
+  anti_affinity_rule_name: "SOFS-AntiAffinity-Lab"
+
+s2d:
+  volume_name: "FSLogixData"
+  volume_size_gb: 512
+  data_copies: 2
+
+cloud_witness:
+  name: "stsofswitnesslab01"
+  key_uri: ""
+  key_secret: ""
