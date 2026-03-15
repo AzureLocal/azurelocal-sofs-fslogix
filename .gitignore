@@ -40,6 +40,9 @@ config/variables.yml
 logs/**
 !logs/.gitkeep
 
+# Source working folder (integrated into repo structure — not tracked directly)
+sofs/
+
 # Editor / OS artifacts
 .vscode/
 .idea/

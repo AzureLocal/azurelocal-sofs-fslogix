@@ -35,7 +35,8 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Getting Started: getting-started.md
-  - Deployment Guide: sofs-deployment-guide.md
+  - Guides:
+      - SOFS Deployment: guides/sofs-deployment-guide.md
   - Reference:
       - Variables: reference/variables.md
   - Standards:
