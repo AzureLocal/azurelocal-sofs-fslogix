@@ -33,6 +33,9 @@ ansible/.vault_pass
 .env.*
 !.env.example
 
+# Central config (actual values — never commit)
+config/variables.yml
+
 # Editor / OS artifacts
 .vscode/
 .idea/
@@ -46,3 +49,4 @@ Thumbs.db
 dist/
 out/
 build/
+site/

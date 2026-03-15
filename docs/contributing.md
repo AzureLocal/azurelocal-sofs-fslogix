@@ -34,10 +34,22 @@ This project follows the [Microsoft Open Source Code of Conduct](https://opensou
 
 ## Folder Conventions
 
-Each automation-tool folder (`powershell/`, `azure-cli/`, `bicep/`, `arm/`, `terraform/`, `ansible/`) should:
+The repository is organised by deployment phase:
+
+| Directory | Purpose |
+|-----------|-------------------------------------------|
+| `config/` | Central variables — single source of truth |
+| `infrastructure/` | Phase 1: Azure resource provisioning (Bicep, ARM, Terraform, Azure CLI) |
+| `deploy/` | Phase 2: SOFS cluster role creation |
+| `configure/` | Phase 3: Post-deployment configuration (PowerShell, Ansible) |
+| `tests/` | Phase 4: Deployment validation |
+| `scripts/` | Standalone utilities |
+| `examples/` | Scenarios & walkthroughs |
+| `docs/` | Architecture, getting-started, contributing |
+
+Each directory should:
 
 - Contain its own `README.md` explaining what the scripts/templates do and how to run them.
-- Include an example parameters file (`.example` extension) so credentials are never committed.
 - Follow the naming conventions for its ecosystem (see below).
 
 ---
@@ -81,42 +93,44 @@ Before opening a PR, verify your changes locally:
 ### PowerShell
 ```powershell
 # Syntax check all scripts
-Get-ChildItem -Path ./powershell -Filter *.ps1 -Recurse |
+Get-ChildItem -Path ./deploy, ./configure/powershell, ./tests -Filter *.ps1 -Recurse |
     ForEach-Object { $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors); $errors }
 
 # PSScriptAnalyzer (install once: Install-Module PSScriptAnalyzer)
-Invoke-ScriptAnalyzer -Path ./powershell -Recurse
+Invoke-ScriptAnalyzer -Path ./deploy -Recurse
+Invoke-ScriptAnalyzer -Path ./configure/powershell -Recurse
+Invoke-ScriptAnalyzer -Path ./tests -Recurse
 ```
 
 ### Azure CLI / Bash
 ```bash
 # ShellCheck (install: apt/brew install shellcheck)
-shellcheck azure-cli/*.sh
+shellcheck infrastructure/azure-cli/*.sh scripts/*.sh
 ```
 
 ### Bicep
 ```bash
-az bicep build --file bicep/main.bicep
+az bicep build --file infrastructure/bicep/main.bicep
 ```
 
 ### ARM
 ```bash
 az deployment group validate \
   --resource-group <rg> \
-  --template-file arm/azuredeploy.json \
-  --parameters arm/azuredeploy.parameters.example.json
+  --template-file infrastructure/arm/azuredeploy.json \
+  --parameters infrastructure/arm/azuredeploy.parameters.example.json
 ```
 
 ### Terraform
 ```bash
-cd terraform
+cd infrastructure/terraform
 terraform fmt -check -recursive
 terraform validate
 ```
 
 ### Ansible
 ```bash
-ansible-lint ansible/playbooks/
+ansible-lint configure/ansible/playbooks/
 ```
 
 ---

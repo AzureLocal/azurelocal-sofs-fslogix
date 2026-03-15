@@ -1,0 +1,94 @@
+# =============================================================================
+# SOFS on Azure Local — Example tfvars
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in environment-specific values.
+# Values align with wsfc_sofs_* variables from master-registry.yaml.
+#
+# EXAMPLE COMPANY: Infinite Improbability Corp (improbability.cloud)
+# DO NOT use real environment names or internal domain info.
+# =============================================================================
+
+# --- Azure Subscription & Resource Group ---
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+resource_group_name = "rg-sofs-azl-eus-01"
+location            = "eastus"
+
+# --- Azure Local Infrastructure IDs ---
+custom_location_id  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.ExtendedLocation/customLocations/iic-azl-eus-cl"
+logical_network_id  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/logicalNetworks/iic-compute-network"
+gallery_image_id    = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/marketplaceGalleryImages/img-iic-ws2025-datacenter-g2-v1"
+
+# Each VM gets its own storage path to spread I/O across CSV volumes
+storage_path_ids = {
+  "01" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/storageContainers/iic-azl-eus-storage-01"
+  "02" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/storageContainers/iic-azl-eus-storage-02"
+  "03" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/storageContainers/iic-azl-eus-storage-03"
+}
+
+# --- VM Configuration ---
+vm_count      = 3
+vm_prefix     = "IIC-SOFS"
+vm_processors = 4
+vm_memory_mb  = 8192
+admin_username = "LocalAdmin"
+# admin_password sourced from environment variable or Key Vault at plan time:
+#   export TF_VAR_admin_password=$(az keyvault secret show ...)
+
+# --- Data Disks ---
+data_disk_count   = 4
+data_disk_size_gb = 1024
+
+# --- Cloud Witness ---
+cloud_witness_name = "stsofswitnessiic01"
+
+# --- Guest Cluster Configuration ---
+cluster_name       = "SOFS-Cluster"
+cluster_ip         = "192.168.211.60"
+access_point       = "FSLogixSOFS"
+share_name         = "FSLogix"
+s2d_volume_name    = "FSLogixData"
+s2d_volume_size    = "5632GB"
+s2d_data_copies    = 2
+domain_fqdn        = "iic.local"
+domain_netbios     = "IMPROBABLE"
+anti_affinity_rule = "SOFS-AntiAffinity"
+azl_cluster_name   = "AzLocalCluster"
+
+# --- VM IP Addresses (keyed by zero-padded index) ---
+# Leave empty {} to use FILL_IN_IP placeholders and fill in after deploy.
+# Or, if IPs are pre-allocated in the Azure Local logical network IP pool:
+vm_ips = {
+  "01" = "192.168.211.51"
+  "02" = "192.168.211.52"
+  "03" = "192.168.211.53"
+}
+
+# --- WinRM transport (kerberos after domain join, ntlm before) ---
+winrm_transport = "kerberos"
+
+# --- Phase 2: Guest Config Engine ---
+# powershell       = Configure via PSRemoting from this workstation
+# ansible_create   = Deploy a new Linux controller VM in Azure hub subnet
+# ansible_existing = Use an existing Linux controller VM
+guest_config_engine = "powershell"
+
+# --- Ansible Controller (only for ansible_create) ---
+# ansible_controller_name           = "vm-ansible-sofs-eus-01"
+# ansible_controller_size           = "Standard_B2s"
+# ansible_controller_admin_username = "ansibleadmin"
+# ansible_controller_hub_rg         = "rg-hub-eus-01"
+# ansible_controller_hub_subnet_id  = "/subscriptions/.../subnets/snet-mgmt"
+# ansible_controller_ssh_public_key: set via TF_VAR_ansible_controller_ssh_public_key env var
+
+# --- Ansible Controller (only for ansible_existing) ---
+# ansible_existing_controller_ip   = "10.250.1.50"
+# ansible_existing_controller_user = "ansibleadmin"
+
+# --- Tags ---
+tags = {
+  project     = "SOFS"
+  environment = "production"
+  workload    = "FSLogix"
+  solution    = "sofs-azure-local"
+  customer    = "iic"
+}

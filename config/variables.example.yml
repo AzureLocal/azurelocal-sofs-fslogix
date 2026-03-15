@@ -1,0 +1,69 @@
+# -------------------------------------------------------
+# variables.example.yml
+# Central configuration — single source of truth for all deployment phases.
+#
+# Copy this file to variables.yml and fill in your values:
+#   cp config/variables.example.yml config/variables.yml
+#
+# DO NOT commit variables.yml — it is excluded by .gitignore.
+# -------------------------------------------------------
+
+# =====================
+# Azure Subscription
+# =====================
+subscription_id: "00000000-0000-0000-0000-000000000000"
+resource_group: "rg-azurelocal-prod"
+location: "eastus"
+
+# =====================
+# Azure Local Cluster
+# =====================
+cluster_name: "AZLHCI-CLUSTER"               # Failover cluster network name
+cluster_resource_group: "rg-azurelocal-prod"  # Resource group where the Arc-registered cluster lives
+
+# =====================
+# SOFS Configuration
+# =====================
+sofs_name: "SOFS01"                           # SOFS cluster role / client access point name
+share_name: "FSLogixProfiles"                 # SMB share name
+share_path: "C:\\ClusterStorage\\Volume1\\FSLogixProfiles"  # Path on the CSV
+
+# =====================
+# Active Directory
+# =====================
+domain_fqdn: "contoso.local"                  # AD domain FQDN
+ou_path: "OU=Servers,DC=contoso,DC=local"     # OU for the SOFS computer object
+
+# =====================
+# FSLogix / AVD
+# =====================
+avd_users_group: "AVD-Users"                  # AD group whose members mount FSLogix profiles
+
+# =====================
+# Diagnostics (Azure)
+# =====================
+diag_storage_account: "stazlhcidiag001"       # Diagnostic storage account name (must be globally unique)
+
+# =====================
+# Tags
+# =====================
+tags:
+  environment: "production"
+  owner: "platform-team"
+
+# =====================
+# Ansible (used by configure/ansible only)
+# =====================
+ansible:
+  winrm_transport: "kerberos"                 # kerberos | ntlm | basic
+  cert_validation: "ignore"                   # ignore | validate
+  sofs_nodes:
+    - hostname: "node01.contoso.local"
+      ip: "192.168.1.11"
+    - hostname: "node02.contoso.local"
+      ip: "192.168.1.12"
+  avd_session_hosts:
+    - hostname: "avd-host-01.contoso.local"
+      ip: "192.168.2.11"
+    - hostname: "avd-host-02.contoso.local"
+      ip: "192.168.2.12"

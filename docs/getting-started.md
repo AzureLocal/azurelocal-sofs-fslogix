@@ -33,27 +33,25 @@ Before you begin, ensure you have the following in place:
 
 Pick the approach that best fits your team's workflow:
 
-| Tool | When to use |
-|------|-------------|
-| [PowerShell](../powershell/README.md) | Windows-native automation, direct cluster management |
-| [Azure CLI](../azure-cli/README.md) | Cross-platform CLI, CI/CD pipelines |
-| [Bicep](../bicep/README.md) | Azure-native IaC, recommended for new deployments |
-| [ARM](../arm/README.md) | Legacy IaC or tooling that requires JSON templates |
-| [Terraform](../terraform/README.md) | Multi-cloud IaC, GitOps workflows |
-| [Ansible](../ansible/README.md) | Configuration management, Day-2 operations |
+| Tool | Phase | When to use |
+|------|-------|-------------|
+| [Bicep](../infrastructure/bicep/README.md) | 1 — Infrastructure | Azure-native IaC, **recommended** for new deployments |
+| [ARM](../infrastructure/arm/README.md) | 1 — Infrastructure | Legacy IaC or tooling that requires JSON templates |
+| [Terraform](../infrastructure/terraform/README.md) | 1 — Infrastructure | Multi-cloud IaC, GitOps workflows |
+| [Azure CLI](../infrastructure/azure-cli/README.md) | 1 — Infrastructure | Cross-platform CLI, CI/CD pipelines |
+| [PowerShell (deploy)](../deploy/README.md) | 2 — Deploy | SOFS cluster role creation |
+| [PowerShell (configure)](../configure/README.md) | 3 — Configure | Share permissions, SMB settings |
+| [Ansible](../configure/ansible/README.md) | 3 — Configure | Configuration management, Day-2 operations |
 
 ### 2. Configure Parameters
 
-Each tool folder contains an example parameters file. Copy and edit it for your environment:
+All tools read from a central variables file. Copy the example and fill in your values:
 
+```bash
+cp config/variables.example.yml config/variables.yml
 ```
-powershell/  → parameters.example.ps1
-azure-cli/   → parameters.example.env
-bicep/       → main.bicepparam.example
-arm/         → azuredeploy.parameters.example.json
-terraform/   → terraform.tfvars.example
-ansible/     → inventory/hosts.example.yml
-```
+
+Each tool folder also contains its own example parameters file for tool-specific use.
 
 Key parameters to set:
 
@@ -96,7 +94,7 @@ Set-ItemProperty -Path $RegPath -Name "FlipFlopProfileDirectoryName" -Value 1 -T
 Run the validation script to confirm the share is accessible and FSLogix settings are correct:
 
 ```powershell
-.\powershell\Test-SOFSDeployment.ps1 -SOFSName "SOFS01" -ShareName "FSLogixProfiles"
+.\tests\Test-SOFSDeployment.ps1 -SOFSName "SOFS01" -ShareName "FSLogixProfiles"
 ```
 
 ---
