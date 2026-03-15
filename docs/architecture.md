@@ -9,6 +9,7 @@ This solution deploys a **Scale Out File Server (SOFS)** cluster on **Azure Loca
 ## High-Level Architecture
 
 ```
+
 ┌──────────────────────────────────────────────────────────┐
 │                      Azure Local Cluster                  │
 │                                                          │
