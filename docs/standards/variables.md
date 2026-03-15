@@ -41,6 +41,7 @@ tags:             # Resource tags
 | Per-VM maps | Zero-padded string keys | `"01"`, `"02"`, `"03"` |
 | Booleans | Descriptive name | `role_enabled: true` |
 | Secrets | `keyvault://` URI | `keyvault://kv-name/secret-name` |
+| Example values | IIC fictional identity | `iic.local`, `rg-iic-sofs-01`, `kv-iic-platform` |
 
 ---
 

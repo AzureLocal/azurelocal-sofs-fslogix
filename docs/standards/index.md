@@ -24,14 +24,30 @@ Standards and conventions for the Azure Local SOFS + FSLogix repository. These e
 
 ---
 
-## Company / Fictional References
+## Company & Fictional References
 
-All examples and naming conventions in this repository use fictional company identities. When contributing, use one of the following:
+### Real Identities
 
-| Name | Context |
-|------|---------|
-| **Hybrid Cloud Solutions** | The LLC / parent organization |
-| **Azure Local Cloud** | The domain and repository focus area |
-| **Infinite Improbability Corp (IIC)** | Fictional customer / tenant (Hitchhiker's Guide reference) |
+| Name | Usage |
+|------|-------|
+| **Hybrid Cloud Solutions** | Author/maintainer LLC. Used in script headers (`Author: Hybrid Cloud Solutions`), copyright notices, contact emails (`support@hybridsolutions.cloud`, `info@`, `sales@`, `contact@`), and website links (`hybridsolutions.cloud`). |
+| **Azure Local Cloud** | The community project and GitHub org. Shows up in repo URLs, `azurelocal.cloud` site, and org references. Not a fictional identity — this is the real project name. |
 
-These ensure examples feel realistic without exposing real infrastructure details.
+### Fictional Identity
+
+All example configs, resource names, domains, tenants, and walkthroughs use **one** fictional company:
+
+| Name | Abbreviation | Domain | Description |
+|------|:------------:|--------|-------------|
+| **Infinite Improbability Corp** | **IIC** | `iic.local` / `iic.cloud` | The fictional customer/tenant used across all examples. A nod to *The Hitchhiker's Guide to the Galaxy*. |
+
+**Use IIC everywhere you'd normally reach for `contoso`:**
+
+- AD domains: `iic.local`, `IIC` (NetBIOS)
+- Resource names: `rg-iic-sofs-01`, `kv-iic-platform`, `st-iic-witness01`
+- OUs: `OU=Servers,DC=iic,DC=local`
+- User accounts: `svc.iic.deploy`, `admin@iic.local`
+- Tenant references: "Infinite Improbability Corp's production SOFS cluster"
+
+!!! warning "Consistency"
+    Never use `contoso`, `fabrikam`, `adventure-works`, or other Microsoft example names. **IIC only.**

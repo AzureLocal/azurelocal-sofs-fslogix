@@ -42,7 +42,7 @@ How to tear down resources created by this example.
 
 ## Guidelines
 
-- Use the fictional company names from the [Standards overview](index.md) (Hybrid Cloud Solutions, IIC, etc.)
+- Use **Infinite Improbability Corp (IIC)** as the fictional company in all examples — `iic.local` for domains, `IIC` for NetBIOS, `rg-iic-*` for resources. Never use `contoso`. See [Standards overview](index.md#fictional-identity).
 - Show realistic but safe values (no real subscription IDs, IPs, or secrets)
 - Include both the happy path and common failure scenarios
 - Reference the relevant standards pages for conventions used

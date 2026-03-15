@@ -81,6 +81,18 @@ $legacyPath  = Join-Path $repoRoot "solutions\sofs\solution-sofs.yml"
 
 Every script must include a `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE`, and `.NOTES` comment block.
 
+### Author Attribution
+
+Use the real LLC name in script `.NOTES` blocks:
+
+```powershell
+.NOTES
+    Author:  Hybrid Cloud Solutions
+    Contact: support@hybridsolutions.cloud
+```
+
+For any example domains, users, or resources in scripts, use **Infinite Improbability Corp (IIC)** — never `contoso`. See [Standards overview](index.md#fictional-identity).
+
 ---
 
 ## Ansible
