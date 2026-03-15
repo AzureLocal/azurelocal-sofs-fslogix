@@ -8,13 +8,13 @@ This document tracks planned work, upcoming features, and improvements for the A
 
 ## Milestone 1 — Repository Cleanup & Foundation
 
-Finalize the phase-oriented repo structure and remove legacy artifacts.
+Finalize the tool-based repo structure under `src/` and remove legacy artifacts.
 
 | Issue | Item | Type | Status |
 |-------|------|------|--------|
-| [#5](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/5) | Remove `sofs/` from git tracking (`git rm -r --cached`) | chore | Planned |
-| [#6](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/6) | Migrate legacy root folders (`arm/`, `azure-cli/`, `bicep/`, `powershell/`, `terraform/`) to phase-oriented structure or archive | chore | Planned |
-| [#7](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/7) | Consolidate `scripts/` — move `configure-arc-extensions.sh` into `configure/` | chore | Planned |
+| [#5](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/5) | Remove `sofs/` from git tracking (`git rm -r --cached`) | chore | Done |
+| [#6](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/6) | Consolidate all automation code under `src/` organised by tool | chore | Done |
+| [#7](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/7) | Consolidate Azure CLI scripts into `scripts/` | chore | Done |
 | [#8](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/8) | Consolidate `tests/` — move `Test-SOFSDeployment.ps1` into `tests/` with proper Pester structure | chore | Planned |
 | [#9](https://github.com/AzureLocal/azurelocal-sofs-fslogix/issues/9) | Populate `examples/` with sample config files and usage patterns | docs | Planned |
 | — | Adopt Conventional Commits across all contributors | chore | In Progress |

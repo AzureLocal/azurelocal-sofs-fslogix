@@ -62,7 +62,7 @@ All deployment phases read from a single configuration file: `config/variables.y
 
 ## Ansible Connection
 
-These are only used by `configure/ansible/` playbooks.
+These are only used by `src/ansible/` playbooks.
 
 | Variable | Type | Description | Default |
 |----------|------|-------------|---------|

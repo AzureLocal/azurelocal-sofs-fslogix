@@ -1,0 +1,78 @@
+# deploy-terraform.gitlab-ci.yml
+# GitLab CI — Deploy SOFS infrastructure via Terraform
+#
+# REQUIREMENTS:
+#   - GitLab Runner registered with tag: azurelocal
+#   - Runner deployed on a management VM with network access to Azure Local cluster
+#   - Terraform >= 1.5 installed on runner
+#
+# SETUP:
+#   1. Copy this file to .gitlab-ci.yml (or include it)
+#   2. Configure CI/CD variables (Settings > CI/CD > Variables):
+#        ARM_CLIENT_ID (protected, masked)
+#        ARM_CLIENT_SECRET (protected, masked)
+#        ARM_TENANT_ID (protected, masked)
+#        ARM_SUBSCRIPTION_ID (protected, masked)
+#   3. Push to main or trigger manually
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# See docs/guides/runner-setup.md for GitLab Runner installation.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+stages:
+  - validate
+  - plan
+  - apply
+
+variables:
+  TF_WORKING_DIR: src/terraform
+
+validate:
+  stage: validate
+  tags: [azurelocal]
+  script:
+    - cd $TF_WORKING_DIR
+    - terraform fmt -check -recursive
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - changes:
+        - src/terraform/**/*
+        - config/**/*
+
+plan:
+  stage: plan
+  tags: [azurelocal]
+  script:
+    - cd $TF_WORKING_DIR
+    - terraform init
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - $TF_WORKING_DIR/tfplan
+    expire_in: 1 hour
+  rules:
+    - changes:
+        - src/terraform/**/*
+        - config/**/*
+
+apply:
+  stage: apply
+  tags: [azurelocal]
+  script:
+    - cd $TF_WORKING_DIR
+    - terraform init
+    - terraform apply -auto-approve tfplan
+  dependencies:
+    - plan
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/terraform/**/*
+        - config/**/*
+      when: manual
+  # TODO: Add notification on success/failure

@@ -1,0 +1,99 @@
+# deploy-powershell.yml
+# GitHub Actions — Deploy & configure SOFS via PowerShell
+#
+# REQUIREMENTS:
+#   - Self-hosted runner on Windows with:
+#       - PowerShell 5.1+ (or 7+)
+#       - Az PowerShell module
+#       - RSAT-Clustering tools
+#       - Network access to Azure Local cluster nodes
+#   - Runner label: azurelocal
+#
+# SETUP:
+#   1. Copy this file to .github/workflows/deploy-powershell.yml
+#   2. Configure repository secrets:
+#        AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#        CONFIG_VARIABLES — base64-encoded config/variables.yml (or use Key Vault)
+#   3. Push to main or trigger manually
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+name: 'Deploy SOFS - PowerShell'
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/powershell/**', 'config/**']
+  pull_request:
+    branches: [main]
+    paths: ['src/powershell/**']
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: [self-hosted, azurelocal, windows]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction SilentlyContinue
+          $results = Invoke-ScriptAnalyzer -Path ./src/powershell -Recurse -Severity Warning
+          $results | Format-Table -AutoSize
+          if ($results.Count -gt 0) { throw "PSScriptAnalyzer found $($results.Count) issues" }
+
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path ./src/powershell, ./tests -Filter *.ps1 -Recurse | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+            if ($errors) { throw "Syntax errors in $($_.Name): $errors" }
+          }
+
+  deploy:
+    name: Deploy SOFS
+    needs: lint
+    runs-on: [self-hosted, azurelocal, windows]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        shell: pwsh
+        run: |
+          $securePassword = ConvertTo-SecureString "${{ secrets.AZURE_CLIENT_SECRET }}" -AsPlainText -Force
+          $credential = New-Object PSCredential("${{ secrets.AZURE_CLIENT_ID }}", $securePassword)
+          Connect-AzAccount -ServicePrincipal -Credential $credential -Tenant "${{ secrets.AZURE_TENANT_ID }}"
+          Set-AzContext -SubscriptionId "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Run SOFS Deployment
+        shell: pwsh
+        run: |
+          .\src\powershell\New-SOFSDeployment.ps1 `
+            -ConfigFile .\config\variables.yml
+
+      # TODO: Add Configure-SOFS-Cluster.ps1 step
+      # TODO: Add Set-FSLogixShare.ps1 step
+      # TODO: Run Test-SOFSDeployment.ps1 as validation
+
+  test:
+    name: Validate Deployment
+    needs: deploy
+    runs-on: [self-hosted, azurelocal, windows]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        shell: pwsh
+        run: |
+          .\tests\Test-SOFSDeployment.ps1 -SOFSName "FSLogixSOFS" -ShareName "FSLogix"
+
+      # TODO: Publish test results

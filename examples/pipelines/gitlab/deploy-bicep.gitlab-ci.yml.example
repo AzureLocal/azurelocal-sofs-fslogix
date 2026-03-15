@@ -1,0 +1,64 @@
+# deploy-bicep.gitlab-ci.yml
+# GitLab CI — Deploy SOFS infrastructure via Bicep
+#
+# REQUIREMENTS:
+#   - GitLab Runner with tag: azurelocal
+#   - Azure CLI >= 2.50 installed on runner
+#
+# SETUP:
+#   1. Copy/include into .gitlab-ci.yml
+#   2. Configure CI/CD variables (Settings > CI/CD > Variables):
+#        AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   3. Update RESOURCE_GROUP variable below
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+stages:
+  - validate
+  - deploy
+
+variables:
+  RESOURCE_GROUP: rg-sofs-azl-eus-01
+
+.azure_login: &azure_login
+  before_script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+    - az account set --subscription $AZURE_SUBSCRIPTION_ID
+
+validate:
+  stage: validate
+  tags: [azurelocal]
+  <<: *azure_login
+  script:
+    - az bicep build --file src/bicep/main.bicep
+    - az deployment group what-if
+        --resource-group $RESOURCE_GROUP
+        --template-file src/bicep/main.bicep
+        --parameters src/bicep/main.bicepparam
+  rules:
+    - changes:
+        - src/bicep/**/*
+        - config/**/*
+
+deploy:
+  stage: deploy
+  tags: [azurelocal]
+  <<: *azure_login
+  script:
+    - az deployment group create
+        --resource-group $RESOURCE_GROUP
+        --template-file src/bicep/main.bicep
+        --parameters src/bicep/main.bicepparam
+        --name "sofs-deploy-$(date +%Y%m%d%H%M%S)"
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/bicep/**/*
+        - config/**/*
+      when: manual
+  # TODO: Post deployment status notification
