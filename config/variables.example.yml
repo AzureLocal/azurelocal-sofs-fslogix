@@ -1,4 +1,4 @@
-# -------------------------------------------------------
+# =============================================================================
 # variables.example.yml
 # Central configuration — single source of truth for all deployment phases.
 #
@@ -6,64 +6,143 @@
 #   cp config/variables.example.yml config/variables.yml
 #
 # DO NOT commit variables.yml — it is excluded by .gitignore.
-# -------------------------------------------------------
+#
+# Key Vault References:
+#   Secrets use keyvault:// URIs and are resolved at runtime.
+#   Format: keyvault://<vault-name>/<secret-name>
+#   NEVER put actual passwords or secrets in this file.
+# =============================================================================
 
-# =====================
-# Azure Subscription
-# =====================
-subscription_id: "00000000-0000-0000-0000-000000000000"
-resource_group: "rg-azurelocal-prod"
-location: "eastus"
 
-# =====================
-# Azure Local Cluster
-# =====================
-cluster_name: "AZLHCI-CLUSTER"               # Failover cluster network name
-cluster_resource_group: "rg-azurelocal-prod"  # Resource group where the Arc-registered cluster lives
+# =============================================================================
+# Azure
+# =============================================================================
+azure:
+  subscription_id: "00000000-0000-0000-0000-000000000000"
+  resource_group: "rg-sofs-azl-eus-01"
+  location: "eastus"
 
-# =====================
-# SOFS Configuration
-# =====================
-sofs_name: "SOFS01"                           # SOFS cluster role / client access point name
-share_name: "FSLogixProfiles"                 # SMB share name
-share_path: "C:\\ClusterStorage\\Volume1\\FSLogixProfiles"  # Path on the CSV
 
-# =====================
-# Active Directory
-# =====================
-domain_fqdn: "contoso.local"                  # AD domain FQDN
-ou_path: "OU=Servers,DC=contoso,DC=local"     # OU for the SOFS computer object
+# =============================================================================
+# Key Vault
+# =============================================================================
+keyvault:
+  name: "kv-platform-prod"
 
-# =====================
-# FSLogix / AVD
-# =====================
-avd_users_group: "AVD-Users"                  # AD group whose members mount FSLogix profiles
 
-# =====================
-# Diagnostics (Azure)
-# =====================
-diag_storage_account: "stazlhcidiag001"       # Diagnostic storage account name (must be globally unique)
+# =============================================================================
+# Azure Local
+# =============================================================================
+azure_local:
+  cluster_name: "azl-cluster-01"
+  custom_location_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.ExtendedLocation/customLocations/azl-cluster-cl"
+  logical_network_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/logicalNetworks/lnet-tenant-vlan"
+  gallery_image_name: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/microsoft.azurestackhci/marketplaceGalleryImages/img-ws2025-core-g2-v1"
+  storage_path_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-01"
+  storage_path_ids:
+    "01": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-01"
+    "02": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-02"
+    "03": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-cluster/providers/Microsoft.AzureStackHCI/storageContainers/sp-vmstore-03"
 
-# =====================
+
+# =============================================================================
+# Virtual Machines
+# =============================================================================
+vm:
+  prefix: "sofs"
+  count: 3
+  processors: 4
+  memory_mb: 8192
+  admin_username: "sofs_admin"
+  admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
+  ips:
+    "01": "192.168.1.201"
+    "02": "192.168.1.202"
+    "03": "192.168.1.203"
+
+
+# =============================================================================
+# Data Disks (for S2D pool)
+# =============================================================================
+data_disks:
+  count: 4
+  size_gb: 500
+
+
+# =============================================================================
+# Domain
+# =============================================================================
+domain:
+  fqdn: "contoso.local"
+  netbios: "CONTOSO"
+  join_username: "svc.domainjoin"
+  join_password: "keyvault://kv-platform-prod/domain-join-password"
+  cluster_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=contoso,DC=local"
+  nodes_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=contoso,DC=local"
+
+
+# =============================================================================
+# DNS
+# =============================================================================
+dns_servers:
+  - "10.0.1.10"
+  - "10.0.1.11"
+
+
+# =============================================================================
+# SOFS (Scale-Out File Server)
+# =============================================================================
+sofs:
+  name: "FSLogixSOFS"
+  cluster_name: "sofs-cluster"
+  cluster_ip: "192.168.1.204"
+  share_name: "FSLogix"
+  role_enabled: true
+  anti_affinity_rule_name: "SOFS-AntiAffinity"
+
+
+# =============================================================================
+# Storage Spaces Direct (S2D)
+# =============================================================================
+s2d:
+  volume_name: "FSLogixData"
+  volume_size_gb: 2560
+  data_copies: 2
+
+
+# =============================================================================
+# Cloud Witness
+# =============================================================================
+cloud_witness:
+  name: "stsofswitnessprod01"
+  key_uri: ""
+  key_secret: ""
+
+
+# =============================================================================
+# Guest Configuration Engine
+# =============================================================================
+guest_config_engine: "ansible_create"        # ansible_create | ansible_existing | manual
+
+
+# =============================================================================
+# Ansible Controller (used when guest_config_engine = ansible_create)
+# =============================================================================
+ansible_controller:
+  name: "vm-ansible-sofs-01"
+  size: "Standard_B2s"
+  admin_username: "ansibleadmin"
+  hub_subnet_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-connectivity/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-mgmt"
+  hub_rg: "rg-connectivity"
+  existing_controller_ip: ""
+  existing_controller_user: "ansibleadmin"
+
+
+# =============================================================================
 # Tags
-# =====================
+# =============================================================================
 tags:
+  project: "SOFS"
   environment: "production"
-  owner: "platform-team"
-
-# =====================
-# Ansible (used by configure/ansible only)
-# =====================
-ansible:
-  winrm_transport: "kerberos"                 # kerberos | ntlm | basic
-  cert_validation: "ignore"                   # ignore | validate
-  sofs_nodes:
-    - hostname: "node01.contoso.local"
-      ip: "192.168.1.11"
-    - hostname: "node02.contoso.local"
-      ip: "192.168.1.12"
-  avd_session_hosts:
-    - hostname: "avd-host-01.contoso.local"
-      ip: "192.168.2.11"
-    - hostname: "avd-host-02.contoso.local"
-      ip: "192.168.2.12"
+  workload: "FSLogix"
+  solution: "sofs-azure-local"

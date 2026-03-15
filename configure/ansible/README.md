@@ -1,53 +1,84 @@
-# Ansible – SOFS & FSLogix Configuration
+# SOFS on Azure Local — Ansible Deployment
 
-Ansible playbooks for Day-2 configuration of the SOFS cluster and FSLogix settings on Azure Local and AVD session hosts.
+## Overview
 
----
+Two-playbook approach for deploying and configuring the SOFS guest cluster:
 
-## Playbooks
-
-| Playbook | Description |
-|----------|-------------|
-| `playbooks/configure-sofs.yml` | Configures SMB share settings and optimisations on the SOFS cluster |
-| `playbooks/configure-fslogix.yml` | Applies FSLogix registry settings to AVD session hosts |
-
----
+| Playbook | Target | Purpose |
+|----------|--------|---------|
+| `deploy-azure-resources.yml` | `localhost` | Creates Azure resources via `az` CLI (VMs, NICs, disks, witness) |
+| `configure-sofs-cluster.yml` | `sofs_nodes` (WinRM) | Configures guest OS: clustering, S2D, SOFS role, SMB share |
 
 ## Prerequisites
 
-- **Ansible** >= 2.14
-- `azure.azcollection` collection:
+- Python packages: `pywinrm`, `requests-kerberos` (for WinRM/Kerberos)
+- Azure CLI authenticated (`az login`)
+- `ansible.windows` collection installed:
   ```bash
-  ansible-galaxy collection install azure.azcollection
-  ```
-- WinRM configured on Windows target hosts, or use `ansible_connection: psrp` (PowerShell Remoting).
-- Python `pywinrm` on the Ansible control node:
-  ```bash
-  pip install pywinrm
+  ansible-galaxy collection install ansible.windows
   ```
 
----
+## Files
 
-## Quick Start
+| File | Purpose |
+|------|---------|
+| `inventory.yml` | Host inventory + all SOFS variables |
+| `deploy-azure-resources.yml` | Playbook 1: Azure resource deployment (localhost) |
+| `configure-sofs-cluster.yml` | Playbook 2: Guest cluster config (WinRM to SOFS VMs) |
+| `README.md` | This file |
 
-1. Copy the example inventory file and fill in your hosts:
-   ```bash
-   cp inventory/hosts.example.yml inventory/hosts.yml
-   # Edit inventory/hosts.yml
-   ```
+## Usage
 
-2. Run the SOFS configuration playbook:
-   ```bash
-   ansible-playbook -i inventory/hosts.yml playbooks/configure-sofs.yml
-   ```
+### 1. Configure Inventory
 
-3. Run the FSLogix configuration playbook on session hosts:
-   ```bash
-   ansible-playbook -i inventory/hosts.yml playbooks/configure-fslogix.yml
-   ```
+Copy `inventory.yml` and update:
+- Azure subscription ID and resource IDs
+- VM IPs in the `sofs_nodes` group
+- WinRM credentials (use `ansible-vault` for passwords)
 
----
+### 2. Deploy Azure Resources
 
-## Inventory Reference
+```bash
+# Dry run
+ansible-playbook -i inventory.yml deploy-azure-resources.yml --check
 
-See `inventory/hosts.example.yml` for inventory structure and variable descriptions.
+# Deploy
+ansible-playbook -i inventory.yml deploy-azure-resources.yml \
+  --extra-vars "sofs_admin_password=<password>"
+```
+
+### 3. Configure Guest Cluster
+
+After VMs are deployed and domain-joined:
+
+```bash
+# Dry run
+ansible-playbook -i inventory.yml configure-sofs-cluster.yml --check
+
+# Configure
+ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
+  --extra-vars "sofs_witness_key=<witness-storage-key>"
+```
+
+### 4. End-to-End
+
+```bash
+# Full deployment (both playbooks)
+ansible-playbook -i inventory.yml deploy-azure-resources.yml \
+  --extra-vars "sofs_admin_password=<password>"
+
+# Wait for VMs to be domain-joined, then:
+ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
+  --extra-vars "sofs_witness_key=<witness-storage-key>"
+```
+
+## Variable Mapping
+
+All variables in `inventory.yml` correspond to `wsfc_sofs_*` entries in `configs/variables/assets/master-registry.yaml`.
+
+## References
+
+- [Bicep deployment](../bicep/) — Subscription-scope Bicep wrapper
+- [Terraform deployment](../terraform/) — azapi provider module
+- [PowerShell scripts](../powershell/) — Azure CLI deploy + guest OS configuration
+- [SOFS Deployment Guide](../SOFS-Deployment-Guide.md)

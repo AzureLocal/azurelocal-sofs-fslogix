@@ -35,8 +35,18 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Getting Started: getting-started.md
+  - Guides:
+      - SOFS Deployment: guides/sofs-deployment-guide.md
   - Reference:
       - Variables: reference/variables.md
+  - Standards:
+      - Overview: standards/index.md
+      - Scripts: standards/scripts.md
+      - Documentation: standards/documentation.md
+      - Solutions: standards/solutions.md
+      - Variables: standards/variables.md
+      - Examples: standards/examples.md
+  - Roadmap: roadmap.md
   - Contributing: contributing.md
 
 markdown_extensions:
