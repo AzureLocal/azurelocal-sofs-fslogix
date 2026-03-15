@@ -54,22 +54,22 @@ Every pipeline follows the same four-stage pattern:
 All examples are in `examples/pipelines/`:
 
 ### GitHub Actions
-- [Terraform](../../examples/pipelines/github-actions/deploy-terraform.yml.example)
-- [Bicep](../../examples/pipelines/github-actions/deploy-bicep.yml.example)
-- [Ansible](../../examples/pipelines/github-actions/deploy-ansible.yml.example)
-- [PowerShell](../../examples/pipelines/github-actions/deploy-powershell.yml.example)
+- [Terraform](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/github-actions/deploy-terraform.yml.example)
+- [Bicep](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/github-actions/deploy-bicep.yml.example)
+- [Ansible](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/github-actions/deploy-ansible.yml.example)
+- [PowerShell](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/github-actions/deploy-powershell.yml.example)
 
 ### GitLab CI
-- [Terraform](../../examples/pipelines/gitlab/deploy-terraform.gitlab-ci.yml.example)
-- [Bicep](../../examples/pipelines/gitlab/deploy-bicep.gitlab-ci.yml.example)
-- [Ansible](../../examples/pipelines/gitlab/deploy-ansible.gitlab-ci.yml.example)
-- [PowerShell](../../examples/pipelines/gitlab/deploy-powershell.gitlab-ci.yml.example)
+- [Terraform](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/gitlab/deploy-terraform.gitlab-ci.yml.example)
+- [Bicep](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/gitlab/deploy-bicep.gitlab-ci.yml.example)
+- [Ansible](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/gitlab/deploy-ansible.yml.example)
+- [PowerShell](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/gitlab/deploy-powershell.gitlab-ci.yml.example)
 
 ### Azure DevOps
-- [Terraform](../../examples/pipelines/azure-devops/deploy-terraform.yml.example)
-- [Bicep](../../examples/pipelines/azure-devops/deploy-bicep.yml.example)
-- [Ansible](../../examples/pipelines/azure-devops/deploy-ansible.yml.example)
-- [PowerShell](../../examples/pipelines/azure-devops/deploy-powershell.yml.example)
+- [Terraform](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/azure-devops/deploy-terraform.yml.example)
+- [Bicep](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/azure-devops/deploy-bicep.yml.example)
+- [Ansible](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/azure-devops/deploy-ansible.yml.example)
+- [PowerShell](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/pipelines/azure-devops/deploy-powershell.yml.example)
 
 ## Environment Promotion
 
@@ -80,7 +80,7 @@ staging → production
 - **Staging**: Auto-deploys on merge to `main` (or `develop` if using GitFlow)
 - **Production**: Requires manual approval via environment protection rules
 
-Use separate `config/variables.yml` per environment, or parameterize per the [example configs](../../examples/configs/).
+Use separate `config/variables.yml` per environment, or parameterize per the [example configs](https://github.com/AzureLocal/azurelocal-sofs-fslogix/tree/main/examples/configs/).
 
 ## Getting Started
 

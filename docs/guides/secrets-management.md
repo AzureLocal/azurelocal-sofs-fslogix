@@ -23,9 +23,9 @@ How to store and reference secrets for SOFS + FSLogix CI/CD pipelines.
 
 Detailed per-platform instructions:
 
-- [GitHub Secrets](../../examples/secrets/github-secrets.md) — Repo secrets, org secrets, OIDC setup
-- [GitLab Variables](../../examples/secrets/gitlab-variables.md) — Project/group variables, protected/masked flags
-- [Azure DevOps Variable Groups](../../examples/secrets/azure-devops-variable-groups.md) — Variable groups, service connections, Key Vault linking
+- [GitHub Secrets](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/secrets/github-secrets.md) — Repo secrets, org secrets, OIDC setup
+- [GitLab Variables](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/secrets/gitlab-variables.md) — Project/group variables, protected/masked flags
+- [Azure DevOps Variable Groups](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/secrets/azure-devops-variable-groups.md) — Variable groups, service connections, Key Vault linking
 
 ## Azure Key Vault Integration
 
@@ -39,7 +39,7 @@ domain:
   join_password: "keyvault://kv-platform-prod/domain-join-password"
 ```
 
-Each CI/CD platform can pull these at pipeline runtime. See [Key Vault Integration](../../examples/secrets/keyvault-integration.md) for per-platform details.
+Each CI/CD platform can pull these at pipeline runtime. See [Key Vault Integration](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/secrets/keyvault-integration.md) for per-platform details.
 
 ## OIDC / Workload Identity Federation (Recommended)
 
@@ -74,7 +74,7 @@ No `AZURE_CLIENT_SECRET` needed.
 
 ## Complete Variables Reference
 
-See [Variables Reference](../../examples/secrets/variables-reference.md) for a full table of every secret and variable name, which tools use it, and where to store it.
+See [Variables Reference](https://github.com/AzureLocal/azurelocal-sofs-fslogix/blob/main/examples/secrets/variables-reference.md) for a full table of every secret and variable name, which tools use it, and where to store it.
 
 ## Best Practices
 
