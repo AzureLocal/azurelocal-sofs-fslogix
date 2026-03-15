@@ -35,13 +35,13 @@ Pick the approach that best fits your team's workflow:
 
 | Tool | Phase | When to use |
 |------|-------|-------------|
-| Bicep | 1 — Infrastructure | Azure-native IaC, **recommended** for new deployments |
-| ARM | 1 — Infrastructure | Legacy IaC or tooling that requires JSON templates |
-| Terraform | 1 — Infrastructure | Multi-cloud IaC, GitOps workflows |
-| Azure CLI | 1 — Infrastructure | Cross-platform CLI, CI/CD pipelines |
-| PowerShell (deploy) | 2 — Deploy | SOFS cluster role creation |
-| PowerShell (configure) | 3 — Configure | Share permissions, SMB settings |
-| Ansible | 3 — Configure | Configuration management, Day-2 operations |
+| [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/) | 1 — Infrastructure | Azure-native IaC, **recommended** for new deployments |
+| [ARM templates](https://learn.microsoft.com/azure/azure-resource-manager/templates/overview) | 1 — Infrastructure | Legacy IaC or tooling that requires JSON templates |
+| [Terraform](https://developer.hashicorp.com/terraform/docs) | 1 — Infrastructure | Multi-cloud IaC, GitOps workflows |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) | 1 — Infrastructure | Cross-platform CLI, CI/CD pipelines |
+| [PowerShell (deploy)](https://learn.microsoft.com/powershell/) | 2 — Deploy | SOFS cluster role creation |
+| [PowerShell (configure)](https://learn.microsoft.com/powershell/) | 3 — Configure | Share permissions, SMB settings |
+| [Ansible](https://docs.ansible.com/) | 3 — Configure | Configuration management, Day-2 operations |
 
 ### 2. Configure Parameters
 
