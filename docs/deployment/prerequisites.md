@@ -173,17 +173,17 @@ The deployment follows 11 phases across two domains. This table shows what the *
 
 | Phase | Description | Domain | Terraform | Bicep | ARM | PowerShell | Ansible |
 |-------|-------------|--------|:---------:|:-----:|:---:|:----------:|:-------:|
-| 1 | Azure resource provisioning | Azure | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
-| 2 | VM creation (NICs, disks) | Azure | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
-| 3 | Anti-affinity rules | Guest | — | — | — | :material-check: | — |
-| 4 | Domain join (Arc extension) | Azure | —¹ | —¹ | —¹ | :material-check: | —¹ |
-| 5 | Roles and features | Guest | — | — | — | :material-check: | :material-check: |
-| 6 | Cluster creation + cloud witness | Guest | — | — | — | :material-check: | :material-check: |
-| 7 | S2D enable + tuning | Guest | — | — | — | :material-check: | :material-check: |
-| 8 | SOFS role + SMB shares | Guest | — | — | — | :material-check: | :material-check: |
-| 9 | NTFS permissions | Guest | — | — | — | :material-check: | :material-check: |
-| 10 | Antivirus exclusions | Guest | — | — | — | :material-check: | :material-check: |
-| 11 | Validation | Guest | — | — | — | :material-check: | :material-check: |
+| 1 | Azure resource provisioning | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2 | VM creation (NICs, disks) | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 3 | Anti-affinity rules | Guest | — | — | — | ✅ | — |
+| 4 | Domain join (Arc extension) | Azure | —¹ | —¹ | —¹ | ✅ | —¹ |
+| 5 | Roles and features | Guest | — | — | — | ✅ | ✅ |
+| 6 | Cluster creation + cloud witness | Guest | — | — | — | ✅ | ✅ |
+| 7 | S2D enable + tuning | Guest | — | — | — | ✅ | ✅ |
+| 8 | SOFS role + SMB shares | Guest | — | — | — | ✅ | ✅ |
+| 9 | NTFS permissions | Guest | — | — | — | ✅ | ✅ |
+| 10 | Antivirus exclusions | Guest | — | — | — | ✅ | ✅ |
+| 11 | Validation | Guest | — | — | — | ✅ | ✅ |
 
 ¹ Domain join is an Azure-side operation (deploying the `JsonADDomainExtension` Arc extension). All tools **can** do this — the current code only implements it in PowerShell. These are implementation TODOs, not tool limitations.
 

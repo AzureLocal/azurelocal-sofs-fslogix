@@ -12,8 +12,8 @@ After `terraform apply`, a fully-populated Ansible inventory is auto-generated �
 
 | Capability | Can Do? | Current Code |
 |-----------|:---:|:---:|
-| Azure resource provisioning | :material-check: | :material-check: Full |
-| Domain join (JsonADDomainExtension) | :material-check: via azapi | :material-close: Not yet implemented |
+| Azure resource provisioning | ✅ | ✅ Full |
+| Domain join (JsonADDomainExtension) | ✅ via azapi | ❌ Not yet implemented |
 | Guest OS configuration | Delegates to PS/Ansible | Delegates via `guest_config_engine` |
 
 !!! info "Domain join is a TODO, not a limitation"

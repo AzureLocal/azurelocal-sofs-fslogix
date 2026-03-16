@@ -10,8 +10,8 @@ Subscription-scope Bicep deployment that creates all Azure-side resources for th
 
 | Capability | Can Do? | Current Code |
 |-----------|:---:|:---:|
-| Azure resource provisioning | :material-check: | :material-check: Full |
-| Domain join (JsonADDomainExtension) | :material-check: natively | :material-close: Not yet implemented |
+| Azure resource provisioning | ✅ | ✅ Full |
+| Domain join (JsonADDomainExtension) | ✅ natively | ❌ Not yet implemented |
 | Guest OS configuration | Delegates to PS | Delegates |
 
 !!! info "Domain join is a TODO, not a limitation"

@@ -15,41 +15,12 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure Local. An anti-affinity rule keeps each VM on a separate physical node for host-level resiliency. The guest S2D cluster presents a **Scale-Out File Server** role with continuously available SMB shares that FSLogix uses to store user profile VHDXs.
 
-<div class="grid cards" markdown>
-
--   :material-vector-triangle:{ .lg .middle } __Architecture__
-
-    ---
-
-    Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios
-
-    [:octicons-arrow-right-24: Overview](architecture/overview.md)
-
--   :material-rocket-launch:{ .lg .middle } __Deployment__
-
-    ---
-
-    Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation
-
-    [:octicons-arrow-right-24: Get Started](deployment/prerequisites.md)
-
--   :material-wrench:{ .lg .middle } __Configuration__
-
-    ---
-
-    FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions
-
-    [:octicons-arrow-right-24: Configure](configuration/fslogix.md)
-
--   :material-tools:{ .lg .middle } __Operations__
-
-    ---
-
-    Troubleshooting, CI/CD pipelines, runner setup, and secrets management
-
-    [:octicons-arrow-right-24: Operate](operations/troubleshooting.md)
-
-</div>
+| Section | Description |
+|---------|-------------|
+| **[Architecture](architecture/overview.md)** | Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios |
+| **[Deployment](deployment/prerequisites.md)** | Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation |
+| **[Configuration](configuration/fslogix.md)** | FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions |
+| **[Operations](operations/troubleshooting.md)** | Troubleshooting, CI/CD pipelines, runner setup, and secrets management |
 
 ---
 
@@ -70,11 +41,11 @@ What each tool **can** do (technology capability):
 
 | Tool | Azure Resources | Domain Join | Guest Config | End-to-End |
 |------|:---:|:---:|:---:|:---:|
-| PowerShell | :material-check: | :material-check: | :material-check: | :material-check: |
-| Terraform | :material-check: | :material-check: | Delegates | — |
-| Bicep | :material-check: | :material-check: | Delegates | — |
-| ARM | :material-check: | :material-check: | Delegates | — |
-| Ansible | :material-check: | :material-check: | :material-check: | Partial |
+| PowerShell | ✅ | ✅ | ✅ | ✅ |
+| Terraform | ✅ | ✅ | Delegates | — |
+| Bicep | ✅ | ✅ | Delegates | — |
+| ARM | ✅ | ✅ | Delegates | — |
+| Ansible | ✅ | ✅ | ✅ | Partial |
 
 ### Current Code Status
 
@@ -82,7 +53,7 @@ What this repo's automation **does** today:
 
 | Tool | Azure | Domain Join | Guest Config | Status |
 |------|:---:|:---:|:---:|:---:|
-| [PowerShell](deployment/powershell.md) | Full | :material-check: | Full | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [PowerShell](deployment/powershell.md) | Full | ✅ | Full | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
 | [Terraform](deployment/terraform.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [Bicep](deployment/bicep.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [ARM](deployment/arm.md) | Partial | — | Delegates | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |

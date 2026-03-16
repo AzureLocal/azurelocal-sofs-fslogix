@@ -15,10 +15,10 @@ Two-playbook approach for deploying and configuring the SOFS guest cluster:
 
 | Capability | Can Do? | Current Code |
 |-----------|:---:|:---:|
-| Azure resource provisioning | :material-check: via az CLI | :material-check: Full |
-| Domain join (JsonADDomainExtension) | :material-check: via az CLI or azure module | :material-close: Not yet implemented |
-| Anti-affinity rules | :material-check: via az CLI | :material-close: Not yet implemented |
-| Guest OS configuration (WinRM) | :material-check: | :material-check: Phases 5–11 |
+| Azure resource provisioning | ✅ via az CLI | ✅ Full |
+| Domain join (JsonADDomainExtension) | ✅ via az CLI or azure module | ❌ Not yet implemented |
+| Anti-affinity rules | ✅ via az CLI | ❌ Not yet implemented |
+| Guest OS configuration (WinRM) | ✅ | ✅ Phases 5–11 |
 
 !!! note "Code gaps"
     The Ansible playbooks cover guest configuration Phases 5–11. **Anti-affinity rules** (Phase 3) and **domain join** are not yet implemented but can be added — both are Azure CLI operations that Ansible can run on `localhost`. Handle these with the [PowerShell](powershell.md) scripts or manually before running the Ansible playbook.

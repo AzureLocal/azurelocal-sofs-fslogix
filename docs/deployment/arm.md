@@ -13,8 +13,8 @@ ARM templates can deploy **all the same Azure-side resources as Bicep** — Bice
 
 | Capability | Can Do? | Current Code |
 |-----------|:---:|:---:|
-| Azure resource provisioning | :material-check: (same as Bicep) | :material-close: Partial — RG + witness only |
-| Domain join (JsonADDomainExtension) | :material-check: natively | :material-close: Not implemented |
+| Azure resource provisioning | ✅ (same as Bicep) | ❌ Partial — RG + witness only |
+| Domain join (JsonADDomainExtension) | ✅ natively | ❌ Not implemented |
 | Guest OS configuration | Delegates to PS | Delegates |
 
 !!! warning "Current template is incomplete"

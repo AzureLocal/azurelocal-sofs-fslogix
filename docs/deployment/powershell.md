@@ -17,10 +17,10 @@ Two main scripts:
 
 | Capability | Supported |
 |-----------|:---------:|
-| Azure resource provisioning | :material-check: |
-| Domain join (JsonADDomainExtension) | :material-check: |
-| Guest OS configuration (WinRM) | :material-check: |
-| End-to-end deployment | :material-check: |
+| Azure resource provisioning | ✅ |
+| Domain join (JsonADDomainExtension) | ✅ |
+| Guest OS configuration (WinRM) | ✅ |
+| End-to-end deployment | ✅ |
 
 ---
 

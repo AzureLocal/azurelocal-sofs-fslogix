@@ -386,18 +386,18 @@ admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
 
 Shows which variable groups are consumed by each deployment phase.
 
-| Variable Group | :material-cloud-outline: Phase 1 | :material-server: Phase 2 | :material-cog: Phases 3–4 | :material-wrench: Phases 5–8 | :material-shield-check: Phases 9–11 |
+| Variable Group | ☁️ Phase 1 | 🖥️ Phase 2 | ⚙️ Phases 3–4 | 🔧 Phases 5–8 | 🛡️ Phases 9–11 |
 |---------------|:---:|:---:|:---:|:---:|:---:|
-| Azure | :material-check: | | | | |
-| Key Vault | :material-check: | :material-check: | | | |
-| Azure Local | | :material-check: | | | |
-| Virtual Machines | | :material-check: | | | |
-| Data Disks | | :material-check: | | | |
-| Domain | | | :material-check: | :material-check: | |
-| DNS Servers | | | :material-check: | | |
-| SOFS Configuration | | | | :material-check: | :material-check: |
-| S2D | | | | :material-check: | |
-| Cloud Witness | :material-check: | | | :material-check: | |
-| Guest Config Engine | | | :material-check: | | |
-| Ansible Controller | | :material-check: | :material-check: | | |
-| Tags | :material-check: | | | | |
+| Azure | ✅ | | | | |
+| Key Vault | ✅ | ✅ | | | |
+| Azure Local | | ✅ | | | |
+| Virtual Machines | | ✅ | | | |
+| Data Disks | | ✅ | | | |
+| Domain | | | ✅ | ✅ | |
+| DNS Servers | | | ✅ | | |
+| SOFS Configuration | | | | ✅ | ✅ |
+| S2D | | | | ✅ | |
+| Cloud Witness | ✅ | | | ✅ | |
+| Guest Config Engine | | | ✅ | | |
+| Ansible Controller | | ✅ | ✅ | | |
+| Tags | ✅ | | | | |
