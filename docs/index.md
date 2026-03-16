@@ -15,41 +15,12 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure Local. An anti-affinity rule keeps each VM on a separate physical node for host-level resiliency. The guest S2D cluster presents a **Scale-Out File Server** role with continuously available SMB shares that FSLogix uses to store user profile VHDXs.
 
-<div class="grid cards" markdown>
-
--   :material-layers-outline: **Architecture**
-
-    ---
-
-    Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios.
-
-    [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
-
--   :material-rocket-launch: **Deployment**
-
-    ---
-
-    Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation.
-
-    [:octicons-arrow-right-24: Prerequisites](deployment/prerequisites.md)
-
--   :material-cog: **Configuration**
-
-    ---
-
-    FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions.
-
-    [:octicons-arrow-right-24: FSLogix Configuration](configuration/fslogix.md)
-
--   :material-wrench: **Operations**
-
-    ---
-
-    Troubleshooting, CI/CD pipelines, runner setup, and secrets management.
-
-    [:octicons-arrow-right-24: Troubleshooting](operations/troubleshooting.md)
-
-</div>
+| Section | Description |
+|---------|-------------|
+| **[Architecture](architecture/overview.md)** | Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios |
+| **[Deployment](deployment/prerequisites.md)** | Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation |
+| **[Configuration](configuration/fslogix.md)** | FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions |
+| **[Operations](operations/troubleshooting.md)** | Troubleshooting, CI/CD pipelines, runner setup, and secrets management |
 
 ---
 
