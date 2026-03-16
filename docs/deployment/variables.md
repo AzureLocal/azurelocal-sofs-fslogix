@@ -147,42 +147,93 @@ DNS servers for the SOFS VMs — typically your AD domain controllers.
 
 ### SOFS Configuration
 
-```yaml
-sofs:
-  name: "FSLogixSOFS"
-  cluster_name: "sofs-cluster"
-  cluster_ip: "192.168.1.204"
-  share_name: "FSLogix"
-  role_enabled: true
-  anti_affinity_rule_name: "SOFS-AntiAffinity"
-```
+=== "Option A — Single Share"
+
+    ```yaml
+    sofs:
+      name: "FSLogixSOFS"
+      cluster_name: "sofs-cluster"
+      cluster_ip: "192.168.1.204"
+      share_name: "Profiles"
+      role_enabled: true
+      anti_affinity_rule_name: "SOFS-AntiAffinity"
+    ```
+
+=== "Option B — Three Shares"
+
+    ```yaml
+    sofs:
+      name: "FSLogixSOFS"
+      cluster_name: "sofs-cluster"
+      cluster_ip: "192.168.1.204"
+      role_enabled: true
+      anti_affinity_rule_name: "SOFS-AntiAffinity"
+      shares:
+        - name: "Profiles"
+          volume: "Profiles"
+        - name: "ODFC"
+          volume: "ODFC"
+        - name: "AppData"
+          volume: "AppData"
+    ```
 
 | Variable | Description |
 |----------|-------------|
 | `name` | SOFS client access point name (the `\\name\share` prefix users connect to) |
 | `cluster_name` | Windows Failover Cluster name (the CNO in AD) |
 | `cluster_ip` | Static IP for the failover cluster |
-| `share_name` | SMB share name (Option A: single share; Option B: configure per-share in the tool) |
+| `share_name` | **(Option A only)** Single SMB share name |
+| `shares` | **(Option B only)** List of shares, each mapped to its own S2D volume |
+| `shares[].name` | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) |
+| `shares[].volume` | S2D volume that backs this share (must match an `s2d.volumes[].name`) |
 | `role_enabled` | Whether the SOFS Scale-Out File Server role is enabled |
 | `anti_affinity_rule_name` | Name of the anti-affinity rule in the host cluster |
 
+!!! tip "Which option?"
+    See [FSLogix Configuration — Single Share vs Three Shares](../configuration/fslogix.md#single-share-vs-three-shares-when-to-use-each) for guidance on when to use each model.
+
 ### Storage Spaces Direct (S2D)
 
-```yaml
-s2d:
-  volume_name: "FSLogixData"
-  volume_size_gb: 2560
-  data_copies: 2
-```
+=== "Option A — Single Volume"
+
+    ```yaml
+    s2d:
+      volume_name: "FSLogixData"
+      volume_size_gb: 2560
+      data_copies: 2
+    ```
+
+=== "Option B — Three Volumes"
+
+    ```yaml
+    s2d:
+      volumes:
+        - name: "Profiles"
+          size_gb: 33485       # 32.7 TB — profile containers
+          data_copies: 2
+        - name: "ODFC"
+          size_gb: 21299       # 20.8 TB — Outlook OST, Teams cache
+          data_copies: 2
+        - name: "AppData"
+          size_gb: 6144        # 6 TB — per-user AppData redirections
+          data_copies: 2
+    ```
 
 | Variable | Description |
 |----------|-------------|
-| `volume_name` | Guest S2D volume name (Option A: single name; Option B: configure per-volume) |
-| `volume_size_gb` | Guest S2D volume size — your usable FSLogix space target |
-| `data_copies` | `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way |
+| `volume_name` | **(Option A only)** Single guest S2D volume name |
+| `volume_size_gb` | **(Option A only)** Single guest S2D volume size — your usable FSLogix space target |
+| `data_copies` | **(Option A only)** `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way |
+| `volumes` | **(Option B only)** List of guest S2D volumes — one per FSLogix workload |
+| `volumes[].name` | Volume name (must match `sofs.shares[].volume` for the corresponding share) |
+| `volumes[].size_gb` | Volume size in GB — derived from [Capacity Planning](../architecture/capacity-planning.md) per-workload allocation |
+| `volumes[].data_copies` | Per-volume mirror level — can differ between volumes if needed (typically all match) |
 
 !!! danger "data_copies defaults matter"
     S2D defaults to three-way mirror on a 3-node cluster. You must explicitly set `data_copies: 2` for a two-way mirror. Getting this wrong silently consumes 50% more raw capacity.
+
+!!! note "Option B volume sizing"
+    A typical split for Option B is ~55% Profiles, ~35% ODFC, ~10% AppData. Adjust based on your user personas — heavy Outlook users need more ODFC space. See [Scenario C](../architecture/scenarios.md#scenario-c-enterprise-2000-users-high-density-pooled) for a worked example.
 
 ### Cloud Witness
 
@@ -233,10 +284,10 @@ Applied to all Azure resources created by the deployment tools.
 |----------------------|-------------------|
 | Three host volumes (fault isolation) | `azure_local.storage_path_ids` (populate all three) |
 | Single host volume | `azure_local.storage_path_id` (populate one) |
-| Two-way guest mirror | `s2d.data_copies: 2` |
+| Two-way guest mirror | `s2d.data_copies: 2` or `s2d.volumes[].data_copies: 2` |
 | Three-way guest mirror | `s2d.data_copies: 3`, increase `data_disks.size_gb` |
 | Option A (single share) | `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
-| Option B (three shares) | Configure per-share in tool-specific parameters |
+| Option B (three shares) | `sofs.shares[]`, `s2d.volumes[]` — one entry per workload |
 | Profile sizing | `data_disks.size_gb` (derived from capacity planning) |
 
 ---
