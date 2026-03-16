@@ -2,15 +2,28 @@
 
 > **⚠️ Under Active Development** — This repository is a work in progress. Scripts, templates, and automation are **not guaranteed to work** at this time. Use at your own risk and expect breaking changes.
 
-Scripts and automation for deploying a **Scale Out File Server (SOFS)** on **Azure Local** to host **FSLogix** profile containers for **Azure Virtual Desktop (AVD)** session hosts running on Azure Local.
+Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (SOFS)** on **Azure Local** to host **FSLogix** profile containers for **Azure Virtual Desktop (AVD)** session hosts.
 
 ---
 
 ## Overview
 
-This repository provides infrastructure-as-code and automation samples for standing up a highly available Scale Out File Server on Azure Local. The SOFS acts as the centralized, SMB-based file share used by FSLogix to store and serve user profile containers (VHD/VHDX) for AVD session hosts.
+Three Windows Server VMs form a guest Storage Spaces Direct cluster on Azure Local, presenting a Scale-Out File Server role with continuously available SMB shares for FSLogix profile containers. Anti-affinity rules keep each VM on a separate physical node for host-level resiliency.
 
 For the AVD session-host side of the deployment, see the sister repository: [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/aurelocal-avd).
+
+---
+
+## Documentation
+
+Full documentation is published via MkDocs:
+
+| Section | Description |
+|---------|-------------|
+| [Architecture](./docs/architecture/overview.md) | Design decisions, storage layout, capacity planning, AVD considerations, worked scenarios |
+| [Deployment](./docs/deployment/prerequisites.md) | Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), validation |
+| [Configuration](./docs/configuration/fslogix.md) | FSLogix registry settings, NTFS/SMB permissions, antivirus exclusions |
+| [Operations](./docs/operations/troubleshooting.md) | Troubleshooting, CI/CD pipelines, runner setup, secrets management |
 
 ---
 
@@ -18,31 +31,22 @@ For the AVD session-host side of the deployment, see the sister repository: [Azu
 
 ```
 azurelocal-sofs-fslogix/
-├── src/                       # All automation code, organised by tool
-│   ├── bicep/                 #   Azure Bicep templates
-│   ├── arm/                   #   ARM JSON templates
-│   ├── terraform/             #   Terraform configuration
-│   ├── ansible/               #   Ansible playbooks & inventory
-│   └── powershell/            #   PowerShell deploy & configure scripts
-├── config/                    # Central variables — single source of truth
-├── docs/                      # Architecture, getting-started, contributing guide
-├── tests/                     # Deployment validation
-├── scripts/                   # Standalone utilities (Arc extensions, prerequisites)
-├── examples/                  # Scenarios & walkthroughs (future)
-└── logs/                      # Runtime logs (gitignored)
-```
-
----
-
-## Deployment Workflow
-
-```
-1. config/              →  Set your variables (single source of truth)
-2. src/<tool>/          →  Deploy Azure resources — pick one IaC tool
-3. src/powershell/      →  Create SOFS cluster role + SMB share
-4. src/powershell/ or   →  Set permissions & FSLogix settings
-   src/ansible/
-5. tests/               →  Validate the deployment
+├── src/                       # Automation code by tool
+│   ├── terraform/             #   Terraform (azapi + azurerm) — Tested
+│   ├── bicep/                 #   Bicep (subscription-scope) — In Progress
+│   ├── arm/                   #   ARM JSON templates — Untested
+│   ├── powershell/            #   PowerShell scripts (all phases) — Tested
+│   └── ansible/               #   Ansible playbooks (WinRM/Kerberos) — Untested
+├── config/                    # Central variables.yml — single source of truth
+├── docs/                      # Documentation site (MkDocs Material)
+│   ├── architecture/          #   Design decisions & capacity planning
+│   ├── deployment/            #   Prerequisites, tool guides, validation
+│   ├── configuration/         #   FSLogix, permissions, antivirus
+│   ├── operations/            #   Troubleshooting, CI/CD, secrets
+│   └── reference/             #   Deployment guide, variables reference
+├── tests/                     # Deployment validation scripts
+├── scripts/                   # Standalone utilities
+└── examples/                  # Pipeline examples & sample configs
 ```
 
 ---
@@ -58,50 +62,35 @@ cp config/variables.example.yml config/variables.yml
 
 ### 2. Deploy Azure Infrastructure (choose one)
 
-| Tool | Location | Guide |
-|------|----------|-------|
-| Bicep _(recommended)_ | [`src/bicep/`](./src/bicep/) | [README](./src/bicep/README.md) |
-| ARM | [`src/arm/`](./src/arm/) | [README](./src/arm/README.md) |
-| Terraform | [`src/terraform/`](./src/terraform/) | [README](./src/terraform/README.md) |
+| Tool | Location | Status | Guide |
+|------|----------|--------|-------|
+| Terraform | [`src/terraform/`](./src/terraform/) | Tested | [Terraform Guide](./docs/deployment/terraform.md) |
+| Bicep | [`src/bicep/`](./src/bicep/) | In Progress | [Bicep Guide](./docs/deployment/bicep.md) |
+| ARM | [`src/arm/`](./src/arm/) | Untested | [ARM Guide](./docs/deployment/arm.md) |
+| PowerShell | [`src/powershell/`](./src/powershell/) | Tested | [PowerShell Guide](./docs/deployment/powershell.md) |
+| Ansible | [`src/ansible/`](./src/ansible/) | Untested | [Ansible Guide](./docs/deployment/ansible.md) |
 
-### 3. Deploy SOFS
+### 3. Configure Guest Cluster (Phases 3–11)
 
-| Tool | Location | Guide |
-|------|----------|-------|
-| PowerShell | [`src/powershell/`](./src/powershell/) | [README](./src/powershell/README.md) |
+```powershell
+.\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
+```
 
-### 4. Configure (choose one)
+### 4. Validate
 
-| Tool | Location | Guide |
-|------|----------|-------|
-| PowerShell | [`src/powershell/`](./src/powershell/) | [README](./src/powershell/README.md) |
-| Ansible | [`src/ansible/`](./src/ansible/) | [README](./src/ansible/README.md) |
-
-### 5. Validate
-
-| Tool | Location | Guide |
-|------|----------|-------|
-| PowerShell | [`tests/`](./tests/) | [README](./tests/README.md) |
-
----
-
-## Documentation
-
-- [Architecture Overview](./docs/architecture.md)
-- [Getting Started](./docs/getting-started.md)
-- [Contributing](./docs/contributing.md)
-- [Variable Reference](./config/README.md)
+```powershell
+.\tests\Test-SOFSDeployment.ps1 -SOFSAccessPoint "FSLogixSOFS" -ShareNames @("FSLogix")
+```
 
 ---
 
 ## Prerequisites
 
-- An existing **Azure Local** cluster (formerly Azure Stack HCI)
-- Azure subscription with appropriate RBAC permissions
-- For PowerShell: Az PowerShell module and RSAT-Clustering tools
-- For Bicep / ARM: Azure CLI >= 2.50 or Azure PowerShell >= 9.0
-- For Terraform: Terraform >= 1.5, AzureRM provider >= 3.75
-- For Ansible: Ansible >= 2.14, `azure.azcollection` collection
+- An existing **Azure Local** cluster registered with Azure Arc
+- Azure subscription with Contributor RBAC
+- Windows Server 2025 Datacenter: Azure Edition Core (Gen2) gallery image
+- AD domain with permissions to create computer objects
+- For full prerequisites, see [Prerequisites](./docs/deployment/prerequisites.md)
 
 ---
 

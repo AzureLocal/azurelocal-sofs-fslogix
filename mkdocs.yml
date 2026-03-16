@@ -33,12 +33,30 @@ theme:
 
 nav:
   - Home: index.md
-  - Architecture: architecture.md
-  - Getting Started: getting-started.md
-  - Guides:
-      - CI/CD Pipelines: guides/cicd-pipelines.md
-      - Runner & Agent Setup: guides/runner-setup.md
-      - Secrets Management: guides/secrets-management.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Storage Design: architecture/storage-design.md
+      - Capacity Planning: architecture/capacity-planning.md
+      - AVD Considerations: architecture/avd-considerations.md
+      - Scenarios: architecture/scenarios.md
+  - Deployment:
+      - Prerequisites: deployment/prerequisites.md
+      - Variables: deployment/variables.md
+      - Terraform: deployment/terraform.md
+      - Bicep: deployment/bicep.md
+      - ARM Templates: deployment/arm.md
+      - PowerShell: deployment/powershell.md
+      - Ansible: deployment/ansible.md
+      - Validation: deployment/validation.md
+  - Configuration:
+      - FSLogix: configuration/fslogix.md
+      - Permissions: configuration/permissions.md
+      - Antivirus Exclusions: configuration/antivirus.md
+  - Operations:
+      - Troubleshooting: operations/troubleshooting.md
+      - CI/CD Pipelines: operations/cicd-pipelines.md
+      - Runner & Agent Setup: operations/runner-setup.md
+      - Secrets Management: operations/secrets-management.md
   - Reference:
       - Variables: reference/variables.md
       - SOFS Deployment Guide: reference/sofs-deployment-guide.md

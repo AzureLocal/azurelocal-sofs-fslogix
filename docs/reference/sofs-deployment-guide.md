@@ -159,7 +159,7 @@ One large volume holds all three VMs:
 > - **Write-time allocation overhead.** Every write must find and allocate slabs from the pool. During a logon storm, that's an extra metadata operation per write. Fixed provisioning has pre-allocated extents — writes go straight to reserved space.
 > - **Misleading capacity reporting.** Volumes report large free space while the underlying pool may be nearly full. Admin tools, PerfMon, and FSRM all show the logical number, not the physical reality.
 >
-> Fixed provisioning: pre-calculate sizes from the [Storage Capacity Design](#storage-capacity-design), allocate up front, monitor each volume independently. The `New-Volume` commands in [Phase 1.1](#11--create-the-azure-local-two-way-mirror-volumes) use fixed provisioning intentionally.
+> Fixed provisioning: pre-calculate sizes from the [Storage Capacity Design](#storage-capacity-design), allocate up front, monitor each volume independently. The `New-Volume` commands in [Phase 1.1](#11-create-the-azure-local-two-way-mirror-volumes) use fixed provisioning intentionally.
 
 ---
 
