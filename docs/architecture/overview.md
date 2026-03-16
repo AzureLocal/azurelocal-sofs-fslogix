@@ -34,16 +34,16 @@ flowchart TD
     D3 -->|"Under 500 users"| OptA["<b>Option A</b><br/>Single S2D volume + single share"]
     D3 -->|"500+ users or<br/>high-density hosts"| OptB["<b>Option B</b><br/>Three S2D volumes + three shares"]
 
-    style Start fill:#f5f5f5,stroke:#999,color:#333
-    style D1 fill:#fff3e0,stroke:#e65100,color:#333
-    style D2 fill:#fff3e0,stroke:#e65100,color:#333
-    style D3 fill:#fff3e0,stroke:#e65100,color:#333
-    style ThreeVol fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
-    style OneVol fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
-    style TwoWay fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
-    style ThreeWay fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
-    style OptA fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
-    style OptB fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    style Start fill:#fff,stroke:#666,color:#000
+    style D1 fill:#fff,stroke:#e65100,color:#000,stroke-width:2px
+    style D2 fill:#fff,stroke:#e65100,color:#000,stroke-width:2px
+    style D3 fill:#fff,stroke:#e65100,color:#000,stroke-width:2px
+    style ThreeVol fill:#fff,stroke:#2e7d32,color:#000,stroke-width:2px
+    style OneVol fill:#fff,stroke:#1565c0,color:#000,stroke-width:2px
+    style TwoWay fill:#fff,stroke:#2e7d32,color:#000,stroke-width:2px
+    style ThreeWay fill:#fff,stroke:#1565c0,color:#000,stroke-width:2px
+    style OptA fill:#fff,stroke:#2e7d32,color:#000,stroke-width:2px
+    style OptB fill:#fff,stroke:#1565c0,color:#000,stroke-width:2px
 ```
 
 ### Three Host Volumes (Recommended)
