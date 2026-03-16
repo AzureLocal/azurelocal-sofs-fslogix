@@ -171,6 +171,8 @@ All approaches require:
 
 The deployment follows 11 phases across two domains. This table shows what the **current code** implements — see [Deployment Paths](paths.md) for full tool capabilities.
 
+![SOFS Deployment Phases — 11-Phase Model](../assets/images/sofs-deployment-phases.png)
+
 | Phase | Description | Domain | Terraform | Bicep | ARM | PowerShell | Ansible |
 |-------|-------------|--------|:---------:|:-----:|:---:|:----------:|:-------:|
 | 1 | Azure resource provisioning | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |

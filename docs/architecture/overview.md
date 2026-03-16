@@ -112,7 +112,9 @@ flowchart TD
 ```
 
 !!! tip "Full-resolution diagram"
-    A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing or high-resolution PNG export. See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
+    A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing. The exported PNG is at [sofs-deployment-phases.png](../assets/images/sofs-deployment-phases.png). See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
+
+![SOFS Deployment Phases — 11-Phase Model](../assets/images/sofs-deployment-phases.png)
 
 ---
 
