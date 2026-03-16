@@ -22,22 +22,28 @@ flowchart TD
     D1 -->|"Fault isolation<br/>(recommended)"| ThreeVol["<b>Three Volumes</b><br/>One CSV per SOFS VM"]
     D1 -->|"Limited drives<br/>or simplicity"| OneVol["<b>Single Volume</b><br/>All 3 VMs on one CSV"]
 
-    ThreeVol --> D2{"Share model?"}
+    ThreeVol --> D2{"Guest S2D<br/>mirror level?"}
     OneVol --> D2
 
-    D2 -->|"Under 500 users"| OptA["<b>Option A</b><br/>Single S2D volume + single share"]
-    D2 -->|"500+ users or<br/>high-density hosts"| OptB["<b>Option B</b><br/>Three S2D volumes + three shares"]
+    D2 -->|"Most environments"| TwoWay["<b>Two-way mirror</b><br/>Stacked resiliency is sufficient"]
+    D2 -->|"Maximum resiliency"| ThreeWay["<b>Three-way mirror</b><br/>Higher capacity cost"]
 
-    OptA --> D3{"Mirror level?"}
-    OptB --> D3
+    TwoWay --> D3{"Share model?"}
+    ThreeWay --> D3
 
-    D3 -->|"Most environments"| TwoWay["<b>Two-way mirror</b><br/>Stacked resiliency is sufficient"]
-    D3 -->|"Maximum resiliency"| ThreeWay["<b>Three-way mirror</b><br/>Higher capacity cost"]
+    D3 -->|"Under 500 users"| OptA["<b>Option A</b><br/>Single S2D volume + single share"]
+    D3 -->|"500+ users or<br/>high-density hosts"| OptB["<b>Option B</b><br/>Three S2D volumes + three shares"]
 
-    style ThreeVol fill:#d5e8d4,stroke:#82b366,color:#333
-    style TwoWay fill:#d5e8d4,stroke:#82b366,color:#333
-    style OptA fill:#dae8fc,stroke:#6c8ebf,color:#333
-    style OptB fill:#dae8fc,stroke:#6c8ebf,color:#333
+    style Start fill:#f5f5f5,stroke:#999,color:#333
+    style D1 fill:#fff3e0,stroke:#e65100,color:#333
+    style D2 fill:#fff3e0,stroke:#e65100,color:#333
+    style D3 fill:#fff3e0,stroke:#e65100,color:#333
+    style ThreeVol fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
+    style OneVol fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    style TwoWay fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
+    style ThreeWay fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    style OptA fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
+    style OptB fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
 ```
 
 ### Three Host Volumes (Recommended)
