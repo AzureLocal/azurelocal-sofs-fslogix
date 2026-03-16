@@ -32,7 +32,7 @@ Full documentation is published via MkDocs:
 ```
 azurelocal-sofs-fslogix/
 ├── src/                       # Automation code by tool
-│   ├── terraform/             #   Terraform (azapi + azurerm) — Tested
+│   ├── terraform/             #   Terraform (azapi + azurerm) — Untested
 │   ├── bicep/                 #   Bicep (subscription-scope) — In Progress
 │   ├── arm/                   #   ARM JSON templates — Untested
 │   ├── powershell/            #   PowerShell scripts (all phases) — Tested
@@ -64,7 +64,7 @@ cp config/variables.example.yml config/variables.yml
 
 | Tool | Location | Status | Guide |
 |------|----------|--------|-------|
-| Terraform | [`src/terraform/`](./src/terraform/) | Tested | [Terraform Guide](./docs/deployment/terraform.md) |
+| Terraform | [`src/terraform/`](./src/terraform/) | Untested | [Terraform Guide](./docs/deployment/terraform.md) |
 | Bicep | [`src/bicep/`](./src/bicep/) | In Progress | [Bicep Guide](./docs/deployment/bicep.md) |
 | ARM | [`src/arm/`](./src/arm/) | Untested | [ARM Guide](./docs/deployment/arm.md) |
 | PowerShell | [`src/powershell/`](./src/powershell/) | Tested | [PowerShell Guide](./docs/deployment/powershell.md) |

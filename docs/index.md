@@ -69,7 +69,7 @@ Choose one tool to create resource group, VMs, NICs, data disks, and cloud witne
 
 | Tool | Path | Status |
 |------|------|--------|
-| [Terraform](deployment/terraform.md) | `src/terraform/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Terraform](deployment/terraform.md) | `src/terraform/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 | [Bicep](deployment/bicep.md) | `src/bicep/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [ARM](deployment/arm.md) | `src/arm/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 | [PowerShell](deployment/powershell.md) | `src/powershell/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
