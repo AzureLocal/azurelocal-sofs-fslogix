@@ -132,6 +132,6 @@ See [Validation](deployment/validation.md) for the full checklist.
 - An existing **Azure Local** cluster registered with Azure Arc
 - Azure subscription with Contributor RBAC
 - Windows Server 2025 Datacenter: Azure Edition Core (Gen2) gallery image
-- PowerShell 5.1+ with RSAT-Clustering tools
+- PowerShell 7+ with RSAT-Clustering tools
 - AD domain with permissions to create computer objects
 - For full prerequisites, see [Prerequisites](deployment/prerequisites.md)

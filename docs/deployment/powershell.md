@@ -27,7 +27,7 @@ Two main scripts:
 ## Prerequisites
 
 - Azure CLI with `stack-hci-vm` extension
-- PowerShell 5.1+ or PowerShell 7+
+- PowerShell 7+ (`pwsh`) — see [Script Standards](../standards/scripts.md#runtime-requirement)
 - WinRM access from management workstation to SOFS VMs
 - RSAT Failover Clustering tools installed
 - All [general prerequisites](prerequisites.md) met
