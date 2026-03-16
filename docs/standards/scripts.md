@@ -6,6 +6,14 @@ Conventions for all scripts in this repository — PowerShell, Ansible playbooks
 
 ## PowerShell
 
+### Runtime Requirement
+
+All PowerShell scripts in this repository **must** target **PowerShell 7** (pwsh). Windows PowerShell 5.1 is not supported.
+
+- Use `pwsh` (not `powershell.exe`) to invoke scripts
+- Include `#Requires -Version 7.0` at the top of every `.ps1` file
+- CI/CD pipelines must use the `pwsh` shell
+
 ### Logging
 
 Every script **must** write logs. Use the standard `Write-Log` function:

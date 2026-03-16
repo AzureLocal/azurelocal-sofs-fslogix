@@ -8,19 +8,19 @@ This solution deploys a **3-node Scale-Out File Server (SOFS) guest cluster** ru
 
 The recommended architecture uses three separate Azure Local host volumes for fault isolation, with the SOFS guest cluster presenting highly available SMB shares to AVD session hosts.
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-base.png" alt="SOFS Architecture — Three Host Volumes (Base)" />
-  <br /><em>Figure 1: Three host volume layout — recommended</em>
-</div>
+<figure markdown="span">
+  ![SOFS Architecture — Three Host Volumes (Base)](../assets/images/sofs-arch-3vol-base.png)
+  <figcaption>Figure 1: Three host volume layout — recommended</figcaption>
+</figure>
 
 <br />
 
 For environments that cannot accommodate three host volumes, a single-volume layout is also supported:
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-1vol-base.png" alt="SOFS Architecture — Single Host Volume (Base)" />
-  <br /><em>Figure 2: Single host volume layout — simpler, less resilient</em>
-</div>
+<figure markdown="span">
+  ![SOFS Architecture — Single Host Volume (Base)](../assets/images/sofs-arch-1vol-base.png)
+  <figcaption>Figure 2: Single host volume layout — simpler, less resilient</figcaption>
+</figure>
 
 ---
 
@@ -63,6 +63,62 @@ The solution builds through a layered stack:
 5. **Guest S2D volume(s)** are carved from the pool as two-way mirrored ReFS volumes
 6. **SOFS role** presents a single, highly available SMB endpoint (`\\<sofs-access-point>\<share>`)
 7. **AVD session hosts** connect to the SOFS SMB share(s) for FSLogix profile containers
+
+---
+
+## Deployment Phases
+
+The solution begins with a **Phase 0 planning checkpoint** — finalize the host storage topology decision, populate `variables.yml`, and choose your deployment tool — then progresses through 11 execution phases spanning two layers: **Azure / Host** provisioning and **Guest OS** configuration. The handoff between layers happens after VM creation (Phase 2), with Domain Join (Phase 4) crossing back to the Azure layer briefly.
+
+```mermaid
+flowchart TD
+    P0["<b>Phase 0 — Planning & Prerequisites</b><br/>Host Storage Topology: single CSV or one-per-VM?<br/><i>Finalize variables.yml · Choose tool · Validate prereqs</i>"]
+
+    subgraph azure["Azure / Host Layer"]
+        P1["<b>Phase 1</b><br/>Prepare Azure Local Host Environment<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
+        P2["<b>Phase 2</b><br/>Create the 3 SOFS Node VMs<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
+        P4["<b>Phase 4</b><br/>Post-Deployment VM Config (Domain Join)<br/><i>All Tools — Azure-side Arc Extension</i>"]
+    end
+
+    subgraph guest["Guest OS Layer"]
+        P3["<b>Phase 3</b><br/>Configure Anti-Affinity Rules<br/><i>PowerShell</i>"]
+        P5["<b>Phase 5</b><br/>Install Required Roles and Features<br/><i>PowerShell · Ansible</i>"]
+        P6["<b>Phase 6</b><br/>Validate & Create Guest Failover Cluster<br/><i>PowerShell · Ansible</i>"]
+        P7["<b>Phase 7</b><br/>Enable Storage Spaces Direct (S2D)<br/><i>PowerShell · Ansible</i>"]
+        D{"Option A or B?"}
+        P8A["<b>Phase 8 — Option A</b><br/>Single Volume + Single Share"]
+        P8B["<b>Phase 8 — Option B</b><br/>Three Volumes + Three Shares"]
+        P9["<b>Phase 9</b><br/>Configure NTFS Permissions for FSLogix<br/><i>PowerShell · Ansible</i>"]
+        P10["<b>Phase 10</b><br/>Antivirus Exclusions<br/><i>PowerShell · Ansible</i>"]
+        P11["<b>Phase 11</b><br/>Validation and Testing<br/><i>PowerShell · Ansible</i>"]
+    end
+
+    P0 --> P1
+    P1 --> P2
+    P2 -.->|Handoff| P3
+    P3 --> P4
+    P4 --> P5
+    P5 --> P6
+    P6 --> P7
+    P7 --> D
+    D -->|Option A| P8A
+    D -->|Option B| P8B
+    P8A --> P9
+    P8B --> P9
+    P9 --> P10
+    P10 --> P11
+
+    style P0 fill:#f5f5f5,stroke:#666666,stroke-width:2px,color:#333
+    style azure fill:#dae8fc,stroke:#6c8ebf,color:#333
+    style guest fill:#d5e8d4,stroke:#82b366,color:#333
+    style P4 fill:#fff2cc,stroke:#d6b656,color:#333
+    style D fill:#e1d5e7,stroke:#9673a6,color:#333
+```
+
+!!! tip "Full-resolution diagram"
+    A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing. The exported PNG is at [sofs-deployment-phases.png](../assets/images/sofs-deployment-phases.png). See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
+
+![SOFS Deployment Phases — 11-Phase Model](../assets/images/sofs-deployment-phases.png)
 
 ---
 

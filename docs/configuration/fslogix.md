@@ -9,6 +9,59 @@ FSLogix Profile Containers redirect user profiles into VHD/VHDX files stored on 
 
 ---
 
+## Single Share vs Three Shares — When to Use Each
+
+The most important decision on this page is whether to put all FSLogix data on **one share** (Option A) or **three separate shares** (Option B). This choice is made during [storage design](../architecture/storage-design.md#decision-3-guest-volume-layout-share-model) and directly determines which registry keys you configure below.
+
+### Option A — Single Share
+
+| Attribute | Detail |
+|-----------|--------|
+| **Shares** | 1 — `Profiles` |
+| **Guest S2D volumes** | 1 — `FSLogixData` |
+| **Best for** | Under ~500 users, low-density session hosts (< 30 users/host) |
+
+**Why choose Option A:**
+
+- **Simplest to deploy** — one volume, one share, one FSLogix GPO path
+- **Shared free space** — no risk of one workload filling "its" volume while another has headroom
+- **Fewer monitoring targets** — one volume to watch, one backup job
+- **Lower operational overhead** — one set of NTFS permissions, one FSRM quota
+
+### Option B — Three Shares
+
+| Attribute | Detail |
+|-----------|--------|
+| **Shares** | 3 — `Profiles`, `ODFC`, `AppData` |
+| **Guest S2D volumes** | 3 — one per share |
+| **Best for** | 500+ users, high-density session hosts (50+ users/host), heavy Outlook/Teams |
+
+**Why choose Option B:**
+
+- **NTFS metadata isolation** — Each volume has its own MFT and change journal. Outlook OST write churn on the ODFC volume doesn't compete with profile writes for NTFS lock time on the Profiles volume.
+- **Logon storm resilience** — Heavy AppData syncs (Chrome profiles, specialized apps) only slow the AppData volume. Profiles stays responsive — Start Menu and Desktop load fast.
+- **Per-workload quotas** — FSRM can hard-cap ODFC so one user's 50 GB Outlook cache can't eat into profile space. Impossible with a single volume.
+- **Monitoring granularity** — Separate PerfMon counters per volume. "ODFC at 85%" is actionable. "FSLogixData at 60%" tells you nothing about what's growing.
+- **Future migration path** — Pre-separated data maps cleanly to different storage tiers if you move to Azure NetApp Files later.
+
+### Quick Decision Table
+
+| Factor | Option A | Option B |
+|--------|----------|----------|
+| User count | < 500 | 500+ |
+| Session host density | < 30 users/host | 50+ users/host |
+| Outlook/Teams usage | Light–moderate | Heavy (large mailboxes, Teams meetings) |
+| Logon storm risk | Low | High (shift-based, morning peak) |
+| Operational complexity | Lower | Higher (3× shares, permissions, backups) |
+| NTFS contention risk | Acceptable | Needs isolation |
+
+!!! tip "When in doubt, start with Option A"
+    You can always split later by adding ODFC and AppData volumes. Going from Option B back to Option A requires migrating all user data into a single volume — much harder.
+
+For worked examples of both options with real sizing, see [Deployment Scenarios](../architecture/scenarios.md).
+
+---
+
 ## Option A — Single Share
 
 All profile data (profile container, Office data, AppData) goes into one VHDX per user on a single share.
@@ -153,4 +206,4 @@ It sets `Enabled`, `VHDLocations`, `FlipFlopProfileDirectoryName`, container siz
 - [Permissions](permissions.md) — NTFS and SMB permissions on the SOFS shares
 - [AVD Considerations](../architecture/avd-considerations.md) — How FSLogix maps users to shares
 - [Antivirus Exclusions](antivirus.md) — Required AV exclusions on session hosts
-- [Variables Reference](../deployment/variables.md) — Central configuration that includes SOFS share names
+- [Variables Reference](../reference/variables.md) — Central configuration that includes SOFS share names

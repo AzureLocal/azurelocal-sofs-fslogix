@@ -91,23 +91,53 @@ dns_servers:
 
 # =============================================================================
 # SOFS (Scale-Out File Server)
+#
+# Option A (single share): use share_name
+# Option B (three shares): use shares list instead
 # =============================================================================
 sofs:
   name: "FSLogixSOFS"
   cluster_name: "sofs-cluster"
   cluster_ip: "192.168.1.204"
-  share_name: "FSLogix"
   role_enabled: true
   anti_affinity_rule_name: "SOFS-AntiAffinity"
+
+  # --- Option A: single share ---
+  share_name: "Profiles"
+
+  # --- Option B: three shares (uncomment and remove share_name above) ---
+  # shares:
+  #   - name: "Profiles"
+  #     volume: "Profiles"
+  #   - name: "ODFC"
+  #     volume: "ODFC"
+  #   - name: "AppData"
+  #     volume: "AppData"
 
 
 # =============================================================================
 # Storage Spaces Direct (S2D)
+#
+# Option A (single volume): use volume_name / volume_size_gb / data_copies
+# Option B (three volumes): use volumes list instead
 # =============================================================================
 s2d:
+  # --- Option A: single volume ---
   volume_name: "FSLogixData"
   volume_size_gb: 2560
   data_copies: 2
+
+  # --- Option B: three volumes (uncomment and remove the three keys above) ---
+  # volumes:
+  #   - name: "Profiles"
+  #     size_gb: 33485         # ~55% — profile containers
+  #     data_copies: 2
+  #   - name: "ODFC"
+  #     size_gb: 21299         # ~35% — Outlook OST, Teams cache
+  #     data_copies: 2
+  #   - name: "AppData"
+  #     size_gb: 6144          # ~10% — per-user AppData redirections
+  #     data_copies: 2
 
 
 # =============================================================================

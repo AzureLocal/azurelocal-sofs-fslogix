@@ -1,87 +1,403 @@
 # Variable Reference
 
-All deployment phases read from a single configuration file: `config/variables.yml`.
+All deployment tools read from a single central configuration file: `config/variables.yml`. This file is the **single source of truth** — your architecture decisions, sizing calculations, identity settings, and infrastructure IDs are all declared here and consumed by every automation tool.
 
-!!! tip
+!!! tip "Getting started"
     Copy the example and fill in your values:
-    ```bash
+    ```powershell
     cp config/variables.example.yml config/variables.yml
     ```
-    **Never commit** `variables.yml` — it is excluded by `.gitignore`.
+    **Never commit** `variables.yml` — it is excluded by `.gitignore` because it contains environment-specific values and Key Vault references.
 
 ---
 
-## Azure Subscription
+## Azure
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `subscription_id` | string | Azure subscription ID | — | Infrastructure |
-| `resource_group` | string | Target Azure resource group | `rg-azurelocal-prod` | Infrastructure |
-| `location` | string | Azure region | `eastus` | Infrastructure |
+```yaml
+azure:
+  subscription_id: "00000000-0000-0000-0000-000000000000"
+  resource_group: "rg-sofs-azl-eus-01"
+  location: "eastus"
+```
 
-## Azure Local Cluster
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `azure.subscription_id` | string | **Yes** | Azure subscription for all SOFS resources | — | 1 |
+| `azure.resource_group` | string | **Yes** | Resource group name — created by the deployment tool if it doesn't exist | `rg-sofs-azl-eus-01` | 1 |
+| `azure.location` | string | **Yes** | Azure region matching your Azure Local cluster registration | `eastus` | 1 |
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `cluster_name` | string | Failover cluster network name | `AZLHCI-CLUSTER` | Deploy, Configure |
-| `cluster_resource_group` | string | Resource group of the Arc-registered cluster | `rg-azurelocal-prod` | Infrastructure |
+---
+
+## Key Vault
+
+```yaml
+keyvault:
+  name: "kv-platform-prod"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `keyvault.name` | string | **Yes** | Key Vault name for secret resolution — all `keyvault://` URIs reference this | — | 1–2 |
+
+---
+
+## Azure Local
+
+```yaml
+azure_local:
+  cluster_name: "azl-cluster-01"
+  custom_location_id: "<resource ID>"
+  logical_network_id: "<resource ID>"
+  gallery_image_name: "<resource ID>"
+  storage_path_id: "<resource ID>"          # Single-volume deployments
+  storage_path_ids:                          # Three-volume deployments
+    "01": "<resource ID>"
+    "02": "<resource ID>"
+    "03": "<resource ID>"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `azure_local.cluster_name` | string | **Yes** | Azure Local cluster name | — | 1–2 |
+| `azure_local.custom_location_id` | string | **Yes** | Custom location resource ID for Arc VM placement | — | 2 |
+| `azure_local.logical_network_id` | string | **Yes** | Compute logical network resource ID for NIC creation | — | 2 |
+| `azure_local.gallery_image_name` | string | **Yes** | Gallery image resource ID (Windows Server 2025 DC Azure Edition Core Gen2) | — | 2 |
+| `azure_local.storage_path_id` | string | Option A | Storage path for single-volume deployments (all VMs on one volume) | — | 2 |
+| `azure_local.storage_path_ids` | map | Option B | Per-VM storage paths keyed by node number for three-volume deployments (fault isolation) | — | 2 |
+
+!!! tip "storage_path_id vs. storage_path_ids"
+    Use `storage_path_id` (singular) when all VMs share one host volume. Use `storage_path_ids` (plural, keyed by node number) when each VM has its own host volume for fault isolation. The deployment tools check which one is populated and behave accordingly.
+
+---
+
+## Virtual Machines
+
+```yaml
+vm:
+  prefix: "sofs"
+  count: 3
+  processors: 4
+  memory_mb: 8192
+  admin_username: "sofs_admin"
+  admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
+  ips:
+    "01": "192.168.1.201"
+    "02": "192.168.1.202"
+    "03": "192.168.1.203"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `vm.prefix` | string | **Yes** | VM name prefix — VMs are named `<prefix>-01`, `<prefix>-02`, etc. | `sofs` | 2 |
+| `vm.count` | integer | **Yes** | Number of SOFS VMs (always 3 for production) | `3` | 2 |
+| `vm.processors` | integer | **Yes** | vCPUs per VM (increase for high-density deployments) | `4` | 2 |
+| `vm.memory_mb` | integer | **Yes** | RAM per VM in MB (8192 = 8 GB; increase for large S2D pools) | `8192` | 2 |
+| `vm.admin_username` | string | **Yes** | Local admin username for the VMs | `sofs_admin` | 2 |
+| `vm.admin_password` | string | **Yes** | Key Vault URI — resolved at runtime, never stored in plaintext | — | 2 |
+| `vm.ips` | map | **Yes** | Static IP assignments per VM, keyed by node number | — | 2 |
+
+---
+
+## Data Disks
+
+```yaml
+data_disks:
+  count: 4
+  size_gb: 500
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `data_disks.count` | integer | **Yes** | Data disks per VM (feeds the S2D pool) | `4` | 2 |
+| `data_disks.size_gb` | integer | **Yes** | Size of each data disk in GB — derived from [Capacity Planning](../architecture/capacity-planning.md) | `500` | 2 |
+
+!!! important "Size drives everything"
+    `data_disks.size_gb` × `data_disks.count` × `vm.count` = total S2D pool. For the 5.5 TB usable example with two-way mirror: 4 × 1024 GB × 3 VMs = 12,288 GB total pool.
+
+---
+
+## Domain
+
+```yaml
+domain:
+  fqdn: "iic.local"
+  netbios: "IIC"
+  join_username: "svc.domainjoin"
+  join_password: "keyvault://kv-platform-prod/domain-join-password"
+  cluster_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+  nodes_ou_path: "OU=SOFS-Cluster,OU=Clusters,OU=Servers,DC=iic,DC=local"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `domain.fqdn` | string | **Yes** | Active Directory domain FQDN | `iic.local` | 3–4 |
+| `domain.netbios` | string | **Yes** | NetBIOS domain name (used in share permissions: `NETBIOS\Domain Users`) | `IIC` | 8, 10 |
+| `domain.join_username` | string | **Yes** | Service account for domain join operations | — | 4 |
+| `domain.join_password` | string | **Yes** | Key Vault URI for the domain join password | — | 4 |
+| `domain.cluster_ou_path` | string | **Yes** | AD OU for the cluster CNO (Computer Name Object) | — | 4–5 |
+| `domain.nodes_ou_path` | string | **Yes** | AD OU for the SOFS VM computer objects | — | 4 |
+
+---
+
+## DNS Servers
+
+```yaml
+dns_servers:
+  - "10.0.1.10"
+  - "10.0.1.11"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `dns_servers` | list | **Yes** | DNS servers for the SOFS VMs — typically your AD domain controllers | — | 3 |
+
+---
 
 ## SOFS Configuration
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `sofs_name` | string | SOFS cluster role name | `SOFS01` | Deploy, Configure, Tests |
-| `share_name` | string | SMB share name | `FSLogixProfiles` | Deploy, Configure, Tests |
-| `share_path` | string | Path on the CSV | `C:\ClusterStorage\Volume1\FSLogixProfiles` | Deploy, Configure |
+=== "Option A — Single Share"
 
-## Active Directory
+    ```yaml
+    sofs:
+      name: "FSLogixSOFS"
+      cluster_name: "sofs-cluster"
+      cluster_ip: "192.168.1.204"
+      share_name: "Profiles"
+      role_enabled: true
+      anti_affinity_rule_name: "SOFS-AntiAffinity"
+    ```
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `domain_fqdn` | string | AD domain FQDN | `iic.local` | Deploy, Configure |
-| `ou_path` | string | OU for the SOFS computer object | `OU=Servers,DC=iic,DC=local` | Deploy |
+=== "Option B — Three Shares"
 
-## FSLogix / AVD
+    ```yaml
+    sofs:
+      name: "FSLogixSOFS"
+      cluster_name: "sofs-cluster"
+      cluster_ip: "192.168.1.204"
+      role_enabled: true
+      anti_affinity_rule_name: "SOFS-AntiAffinity"
+      shares:
+        - name: "Profiles"
+          volume: "Profiles"
+        - name: "ODFC"
+          volume: "ODFC"
+        - name: "AppData"
+          volume: "AppData"
+    ```
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `avd_users_group` | string | AD group for FSLogix profile access | `AVD-Users` | Configure, Tests |
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `sofs.name` | string | **Yes** | SOFS client access point name (`\\name\share` prefix) | `FSLogixSOFS` | 8 |
+| `sofs.cluster_name` | string | **Yes** | Windows Failover Cluster name (the CNO in AD) | `sofs-cluster` | 5 |
+| `sofs.cluster_ip` | string | **Yes** | Static IP for the failover cluster | — | 5 |
+| `sofs.role_enabled` | boolean | No | Whether the SOFS Scale-Out File Server role is enabled | `true` | 8 |
+| `sofs.anti_affinity_rule_name` | string | No | Anti-affinity rule name in the host cluster | `SOFS-AntiAffinity` | 5 |
+| `sofs.share_name` | string | Option A | Single SMB share name | `Profiles` | 8 |
+| `sofs.shares` | list | Option B | List of shares, each mapped to its own S2D volume | — | 8 |
+| `sofs.shares[].name` | string | Option B | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
+| `sofs.shares[].volume` | string | Option B | S2D volume that backs this share (must match `s2d.volumes[].name`) | — | 8 |
 
-## Diagnostics
+!!! tip "Which option?"
+    See [FSLogix Configuration — Single Share vs Three Shares](../configuration/fslogix.md#single-share-vs-three-shares-when-to-use-each) for guidance on when to use each model.
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `diag_storage_account` | string | Diagnostic storage account (globally unique) | `stazlhcidiag001` | Infrastructure |
+---
+
+## Storage Spaces Direct (S2D)
+
+=== "Option A — Single Volume"
+
+    ```yaml
+    s2d:
+      volume_name: "FSLogixData"
+      volume_size_gb: 2560
+      data_copies: 2
+    ```
+
+=== "Option B — Three Volumes"
+
+    ```yaml
+    s2d:
+      volumes:
+        - name: "Profiles"
+          size_gb: 33485       # ~55% — profile containers
+          data_copies: 2
+        - name: "ODFC"
+          size_gb: 21299       # ~35% — Outlook OST, Teams cache
+          data_copies: 2
+        - name: "AppData"
+          size_gb: 6144        # ~10% — per-user AppData redirections
+          data_copies: 2
+    ```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `s2d.volume_name` | string | Option A | Single guest S2D volume name | `FSLogixData` | 7 |
+| `s2d.volume_size_gb` | integer | Option A | Single guest S2D volume size — your usable FSLogix space target | — | 7 |
+| `s2d.data_copies` | integer | Option A | `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way | `2` | 7 |
+| `s2d.volumes` | list | Option B | List of guest S2D volumes — one per FSLogix workload | — | 7 |
+| `s2d.volumes[].name` | string | Option B | Volume name (must match `sofs.shares[].volume`) | — | 7 |
+| `s2d.volumes[].size_gb` | integer | Option B | Volume size in GB per-workload — from [Capacity Planning](../architecture/capacity-planning.md) | — | 7 |
+| `s2d.volumes[].data_copies` | integer | Option B | Per-volume mirror level (typically all match) | `2` | 7 |
+
+!!! danger "data_copies defaults matter"
+    S2D defaults to three-way mirror on a 3-node cluster. You must explicitly set `data_copies: 2` for a two-way mirror. Getting this wrong silently consumes 50% more raw capacity.
+
+!!! note "Option B volume sizing"
+    A typical split for Option B is ~55% Profiles, ~35% ODFC, ~10% AppData. Adjust based on your user personas — heavy Outlook users need more ODFC space. See [Scenario C](../architecture/scenarios.md#scenario-c-enterprise-2000-users-high-density-pooled) for a worked example.
+
+---
+
+## Cloud Witness
+
+```yaml
+cloud_witness:
+  name: "stsofswitnessprod01"
+  key_uri: ""
+  key_secret: ""
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `cloud_witness.name` | string | **Yes** | Azure Storage Account name for the cluster quorum cloud witness | — | 1, 5 |
+| `cloud_witness.key_uri` | string | No | Key Vault URI for the storage account key | — | 5 |
+| `cloud_witness.key_secret` | string | No | Direct storage key value (less secure — use `key_uri` when possible) | — | 5 |
+
+---
+
+## Guest Configuration Engine
+
+```yaml
+guest_config_engine: "ansible_create"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `guest_config_engine` | string | **Yes** | Controls how guest OS configuration (Phases 3–11) is executed | `ansible_create` | 3–11 |
+
+| Value | Behavior |
+|-------|----------|
+| `ansible_create` | Deploy an Ansible controller VM and run playbooks automatically |
+| `ansible_existing` | Use an existing Ansible controller (specify in `ansible_controller`) |
+| `manual` | Skip guest configuration — the operator runs PowerShell scripts manually |
+
+---
+
+## Ansible Controller
+
+Used when `guest_config_engine` is `ansible_create` or `ansible_existing`.
+
+```yaml
+ansible_controller:
+  name: "vm-ansible-sofs-01"
+  size: "Standard_B2s"
+  admin_username: "ansibleadmin"
+  hub_subnet_id: "<resource ID>"
+  hub_rg: "rg-connectivity"
+  existing_controller_ip: ""
+  existing_controller_user: "ansibleadmin"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `ansible_controller.name` | string | ansible_create | VM name for the Ansible controller | `vm-ansible-sofs-01` | 2 |
+| `ansible_controller.size` | string | ansible_create | Azure VM size | `Standard_B2s` | 2 |
+| `ansible_controller.admin_username` | string | ansible_create | Admin username for the controller VM | `ansibleadmin` | 2 |
+| `ansible_controller.hub_subnet_id` | string | ansible_create | Subnet resource ID in the hub VNet | — | 2 |
+| `ansible_controller.hub_rg` | string | ansible_create | Resource group for the hub network | `rg-connectivity` | 2 |
+| `ansible_controller.existing_controller_ip` | string | ansible_existing | IP address of existing controller | — | 3 |
+| `ansible_controller.existing_controller_user` | string | ansible_existing | SSH user on existing controller | `ansibleadmin` | 3 |
+
+---
 
 ## Tags
 
-| Variable | Type | Description | Default | Phases |
-|----------|------|-------------|---------|--------|
-| `tags.environment` | string | Environment tag | `production` | Infrastructure |
-| `tags.owner` | string | Owner tag | `platform-team` | Infrastructure |
+```yaml
+tags:
+  project: "SOFS"
+  environment: "production"
+  workload: "FSLogix"
+  solution: "sofs-azure-local"
+```
 
-## Ansible Connection
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `tags.project` | string | No | Project tag | `SOFS` | 1 |
+| `tags.environment` | string | No | Environment tag | `production` | 1 |
+| `tags.workload` | string | No | Workload tag | `FSLogix` | 1 |
+| `tags.solution` | string | No | Solution tag | `sofs-azure-local` | 1 |
 
-These are only used by `src/ansible/` playbooks.
+---
 
-| Variable | Type | Description | Default |
-|----------|------|-------------|---------|
-| `ansible.winrm_transport` | string | WinRM transport | `kerberos` |
-| `ansible.cert_validation` | string | Certificate validation | `ignore` |
-| `ansible.sofs_nodes` | list | SOFS cluster node hostnames and IPs | — |
-| `ansible.avd_session_hosts` | list | AVD session host hostnames and IPs | — |
+## How Design Decisions Map to Variables
+
+| Architecture Decision | Variables Affected |
+|----------------------|-------------------|
+| Three host volumes (fault isolation) | `azure_local.storage_path_ids` (populate all three) |
+| Single host volume | `azure_local.storage_path_id` (populate one) |
+| Two-way guest mirror | `s2d.data_copies: 2` or `s2d.volumes[].data_copies: 2` |
+| Three-way guest mirror | `s2d.data_copies: 3`, increase `data_disks.size_gb` |
+| Option A (single share) | `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
+| Option B (three shares) | `sofs.shares[]`, `s2d.volumes[]` — one entry per workload |
+| Profile sizing | `data_disks.size_gb` (derived from capacity planning) |
+
+---
+
+## Tool-Specific Parameter Mapping
+
+Each automation tool reads from `config/variables.yml` and maps values to its own parameter format:
+
+| Tool | Parameter File | Mapping |
+|------|---------------|---------|
+| **Terraform** | `src/terraform/terraform.tfvars` | Copy `terraform.tfvars.example`, values map 1:1 to `variables.tf` |
+| **Bicep** | `src/bicep/main.bicepparam` | Copy `main.bicepparam.example`, parameter names match Bicep template |
+| **ARM** | `src/arm/azuredeploy.parameters.json` | Copy `azuredeploy.parameters.example.json` |
+| **PowerShell** | Reads `config/variables.yml` directly | Accepts `-ConfigPath` parameter |
+| **Ansible** | `src/ansible/inventory.yml` | Host inventory + all SOFS variables in group_vars |
+
+!!! tip "Central config, tool-specific params"
+    For Terraform, Bicep, and ARM, you maintain both `config/variables.yml` (your design decisions) and the tool-specific parameter file. The PowerShell and Ansible tools read the central config directly.
+
+---
+
+## Key Vault Secret Resolution
+
+Secrets are never stored in plaintext. The `keyvault://` URI format tells deployment tools to resolve the value at runtime:
+
+```yaml
+admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
+```
+
+**Resolution flow:**
+
+1. Tool parses the URI → vault name: `kv-platform-prod`, secret name: `sofs-vm-admin-password`
+2. Tool calls `az keyvault secret show --vault-name kv-platform-prod --name sofs-vm-admin-password`
+3. Secret value is passed directly to the deployment — never written to disk
+
+**Required secrets:**
+
+| Secret Name | Used By |
+|------------|---------|
+| `sofs-vm-admin-password` | Local admin password for SOFS VMs |
+| `domain-join-password` | Service account password for domain join |
 
 ---
 
 ## Phase Consumption Matrix
 
-| Variable Group | :material-cloud-outline: Infrastructure | :material-server: Deploy | :material-cog: Configure | :material-check-circle: Tests |
-|---------------|:---:|:---:|:---:|:---:|
-| Azure Subscription | :material-check: | | | |
-| Azure Local Cluster | | :material-check: | :material-check: | |
-| SOFS Configuration | | :material-check: | :material-check: | :material-check: |
-| Active Directory | | :material-check: | :material-check: | |
-| FSLogix / AVD | | | :material-check: | :material-check: |
-| Diagnostics | :material-check: | | | |
-| Tags | :material-check: | | | |
-| Ansible Connection | | | :material-check: | |
+Shows which variable groups are consumed by each deployment phase.
+
+| Variable Group | ☁️ Phase 1 | 🖥️ Phase 2 | ⚙️ Phases 3–4 | 🔧 Phases 5–8 | 🛡️ Phases 9–11 |
+|---------------|:---:|:---:|:---:|:---:|:---:|
+| Azure | ✅ | | | | |
+| Key Vault | ✅ | ✅ | | | |
+| Azure Local | | ✅ | | | |
+| Virtual Machines | | ✅ | | | |
+| Data Disks | | ✅ | | | |
+| Domain | | | ✅ | ✅ | |
+| DNS Servers | | | ✅ | | |
+| SOFS Configuration | | | | ✅ | ✅ |
+| S2D | | | | ✅ | |
+| Cloud Witness | ✅ | | | ✅ | |
+| Guest Config Engine | | | ✅ | | |
+| Ansible Controller | | ✅ | ✅ | | |
+| Tags | ✅ | | | | |

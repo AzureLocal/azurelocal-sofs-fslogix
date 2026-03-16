@@ -12,10 +12,10 @@ The first decision is how to lay out the Azure Local host-layer CSV volumes that
 
 Create three separate Azure Local CSV volumes — one per SOFS VM. Each volume holds one VM's OS disk and data disks.
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-base.png" alt="Three Host Volumes — Base Architecture" />
-  <br /><em>Three volumes: each SOFS VM on its own CSV volume</em>
-</div>
+<figure markdown="span">
+  ![Three Host Volumes — Base Architecture](../assets/images/sofs-arch-3vol-base.png)
+  <figcaption>Three volumes: each SOFS VM on its own CSV volume</figcaption>
+</figure>
 
 | Volume | Usable Size | Raw (2-way mirror) | Contents |
 |--------|-------------|---------------------|----------|
@@ -30,10 +30,10 @@ Create three separate Azure Local CSV volumes — one per SOFS VM. Each volume h
 
 One large volume holds all three VMs:
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-1vol-base.png" alt="Single Host Volume — Base Architecture" />
-  <br /><em>Single volume: all SOFS VMs share one CSV volume</em>
-</div>
+<figure markdown="span">
+  ![Single Host Volume — Base Architecture](../assets/images/sofs-arch-1vol-base.png)
+  <figcaption>Single volume: all SOFS VMs share one CSV volume</figcaption>
+</figure>
 
 | Volume | Usable Size | Raw (2-way mirror) | Contents |
 |--------|-------------|---------------------|----------|
@@ -105,10 +105,10 @@ One guest S2D volume holds all FSLogix data:
 |--------|------|-------|----------|
 | `FSLogixData` | 5,632 GB (5.5 TB) | `Profiles` | Profile containers, ODFC containers, AppData |
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-a.png" alt="Three Host Volumes + Option A" />
-  <br /><em>Three host volumes with Option A: single FSLogix share</em>
-</div>
+<figure markdown="span">
+  ![Three Host Volumes + Option A](../assets/images/sofs-arch-3vol-option-a.png)
+  <figcaption>Three host volumes with Option A: single FSLogix share</figcaption>
+</figure>
 
 **When to use Option A:**
 
@@ -128,10 +128,10 @@ Separate guest S2D volumes for each FSLogix workload:
 | `AppData` | 1,024 GB (1 TB) | `AppData` | Per-user AppData redirections |
 | **Total** | **5,632 GB (5.5 TB)** | | |
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-b.png" alt="Three Host Volumes + Option B" />
-  <br /><em>Three host volumes with Option B: three FSLogix shares</em>
-</div>
+<figure markdown="span">
+  ![Three Host Volumes + Option B](../assets/images/sofs-arch-3vol-option-b.png)
+  <figcaption>Three host volumes with Option B: three FSLogix shares</figcaption>
+</figure>
 
 **When to use Option B:**
 
@@ -154,17 +154,17 @@ The three decisions combine into a specific architecture. Here are the most comm
 
 ### All Combinations — Single Host Volume
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-1vol-option-a.png" alt="Single Host Volume + Option A" />
-  <br /><em>Single host volume + Option A: simplest deployment</em>
-</div>
+<figure markdown="span">
+  ![Single Host Volume + Option A](../assets/images/sofs-arch-1vol-option-a.png)
+  <figcaption>Single host volume + Option A: simplest deployment</figcaption>
+</figure>
 
 <br />
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-1vol-option-b.png" alt="Single Host Volume + Option B" />
-  <br /><em>Single host volume + Option B: share isolation without volume isolation</em>
-</div>
+<figure markdown="span">
+  ![Single Host Volume + Option B](../assets/images/sofs-arch-1vol-option-b.png)
+  <figcaption>Single host volume + Option B: share isolation without volume isolation</figcaption>
+</figure>
 
 ### Recommendation by Environment
 

@@ -15,41 +15,51 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure Local. An anti-affinity rule keeps each VM on a separate physical node for host-level resiliency. The guest S2D cluster presents a **Scale-Out File Server** role with continuously available SMB shares that FSLogix uses to store user profile VHDXs.
 
-<div class="grid cards" markdown>
+| Section | Description |
+|---------|-------------|
+| **[Architecture](architecture/overview.md)** | Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios |
+| **[Deployment](deployment/prerequisites.md)** | Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation |
+| **[Configuration](configuration/fslogix.md)** | FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions |
+| **[Operations](operations/troubleshooting.md)** | Troubleshooting, CI/CD pipelines, runner setup, and secrets management |
 
--   :material-layers-outline: **Architecture**
+---
 
-    ---
+## How Deployment Works
 
-    Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios.
+Deploying a SOFS on Azure Local spans **two domains** that require different tools:
 
-    [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
+| Domain | What It Does | Tools |
+|--------|-------------|-------|
+| **Azure-side provisioning** | Resource group, cloud witness, NICs, Arc VMs, data disks, domain join extension | All five tools |
+| **Guest OS configuration** | Anti-affinity, failover clustering, S2D, SOFS role, SMB shares, NTFS permissions | PowerShell or Ansible (via WinRM) |
 
--   :material-rocket-launch: **Deployment**
+Domain join is an Azure resource deployment (`JsonADDomainExtension` on `Microsoft.HybridCompute/machines/extensions`) — any tool that deploys Azure resources can do this.
 
-    ---
+### Tool Capabilities
 
-    Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation.
+What each tool **can** do (technology capability):
 
-    [:octicons-arrow-right-24: Prerequisites](deployment/prerequisites.md)
+| Tool | Azure Resources | Domain Join | Guest Config | End-to-End |
+|------|:---:|:---:|:---:|:---:|
+| PowerShell | ✅ | ✅ | ✅ | ✅ |
+| Terraform | ✅ | ✅ | Delegates | — |
+| Bicep | ✅ | ✅ | Delegates | — |
+| ARM | ✅ | ✅ | Delegates | — |
+| Ansible | ✅ | ✅ | ✅ | Partial |
 
--   :material-cog: **Configuration**
+### Current Code Status
 
-    ---
+What this repo's automation **does** today:
 
-    FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions.
+| Tool | Azure | Domain Join | Guest Config | Status |
+|------|:---:|:---:|:---:|:---:|
+| [PowerShell](deployment/powershell.md) | Full | ✅ | Full | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Terraform](deployment/terraform.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
+| [Bicep](deployment/bicep.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
+| [ARM](deployment/arm.md) | Partial | — | Delegates | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+| [Ansible](deployment/ansible.md) | Full | Not yet | Phases 5–11 | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 
-    [:octicons-arrow-right-24: FSLogix Configuration](configuration/fslogix.md)
-
--   :material-wrench: **Operations**
-
-    ---
-
-    Troubleshooting, CI/CD pipelines, runner setup, and secrets management.
-
-    [:octicons-arrow-right-24: Troubleshooting](operations/troubleshooting.md)
-
-</div>
+Domain join gaps are implementation TODOs, not tool limitations. See [Deployment Paths](deployment/paths.md) for valid combinations.
 
 ---
 
@@ -61,7 +71,7 @@ Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure
 cp config/variables.example.yml config/variables.yml
 ```
 
-See [Variables Reference](deployment/variables.md) for every parameter.
+See [Variables Reference](reference/variables.md) for every parameter.
 
 ### 2. Deploy Azure Infrastructure
 
@@ -69,7 +79,7 @@ Choose one tool to create resource group, VMs, NICs, data disks, and cloud witne
 
 | Tool | Path | Status |
 |------|------|--------|
-| [Terraform](deployment/terraform.md) | `src/terraform/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Terraform](deployment/terraform.md) | `src/terraform/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [Bicep](deployment/bicep.md) | `src/bicep/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [ARM](deployment/arm.md) | `src/arm/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 | [PowerShell](deployment/powershell.md) | `src/powershell/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
@@ -77,20 +87,11 @@ Choose one tool to create resource group, VMs, NICs, data disks, and cloud witne
 
 ### 3. Configure Guest Cluster (Phases 3–11)
 
-PowerShell covers all phases; Ansible covers phases 5–11:
+```powershell
+.\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
+```
 
-=== "PowerShell"
-
-    ```powershell
-    .\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
-    ```
-
-=== "Ansible"
-
-    ```bash
-    ansible-playbook -i inventory/hosts.yml \
-        src/ansible/playbooks/configure-sofs-cluster.yml
-    ```
+See [PowerShell Deployment](deployment/powershell.md) for the full walkthrough.
 
 ### 4. Validate
 
@@ -131,6 +132,6 @@ See [Validation](deployment/validation.md) for the full checklist.
 - An existing **Azure Local** cluster registered with Azure Arc
 - Azure subscription with Contributor RBAC
 - Windows Server 2025 Datacenter: Azure Edition Core (Gen2) gallery image
-- PowerShell 5.1+ with RSAT-Clustering tools
+- PowerShell 7+ with RSAT-Clustering tools
 - AD domain with permissions to create computer objects
 - For full prerequisites, see [Prerequisites](deployment/prerequisites.md)

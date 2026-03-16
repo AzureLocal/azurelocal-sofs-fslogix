@@ -117,9 +117,9 @@ The identity running the deployment (user, service principal, or managed identit
 
 ## Tooling
 
-Different deployment phases require different tools. Choose your automation tool for Azure resource provisioning (Phase 1) and guest configuration (Phases 3–11).
+Different deployment domains require different tools. Choose your automation tool for Azure resource provisioning and guest configuration. See [Deployment Paths](paths.md) for valid combinations.
 
-### Phase 1: Azure Resource Provisioning
+### Azure-Side Provisioning
 
 Pick one:
 
@@ -131,7 +131,7 @@ Pick one:
 | **PowerShell** | Azure CLI with `stack-hci-vm` extension |
 | **Ansible** | Python 3.9+, Azure CLI, `azure.azcollection` |
 
-### Phases 3–11: Guest Cluster Configuration
+### Guest OS Configuration
 
 Pick one:
 
@@ -169,24 +169,28 @@ All approaches require:
 
 ## Deployment Phases Overview
 
-The deployment follows 11 phases. Automation tools cover different phases:
+The deployment follows 11 phases across two domains. This table shows what the **current code** implements — see [Deployment Paths](paths.md) for full tool capabilities.
 
-| Phase | Description | Terraform | Bicep | ARM | PowerShell | Ansible |
-|-------|-------------|:---------:|:-----:|:---:|:----------:|:-------:|
-| 1 | Azure resource provisioning | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
-| 2 | VM creation (NICs, disks) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
-| 3 | Anti-affinity rules | — | — | — | :material-check: | — |
-| 4 | Domain join + post-deploy config | — | — | — | :material-check: | :material-check: |
-| 5 | Roles and features | — | — | — | :material-check: | :material-check: |
-| 6 | Cluster creation + cloud witness | — | — | — | :material-check: | :material-check: |
-| 7 | S2D enable + tuning | — | — | — | :material-check: | :material-check: |
-| 8 | SOFS role + SMB shares | — | — | — | :material-check: | :material-check: |
-| 9 | NTFS permissions | — | — | — | :material-check: | :material-check: |
-| 10 | Antivirus exclusions | — | — | — | :material-check: | :material-check: |
-| 11 | Validation | — | — | — | :material-check: | :material-check: |
+![SOFS Deployment Phases — 11-Phase Model](../assets/images/sofs-deployment-phases.png)
+
+| Phase | Description | Domain | Terraform | Bicep | ARM | PowerShell | Ansible |
+|-------|-------------|--------|:---------:|:-----:|:---:|:----------:|:-------:|
+| 1 | Azure resource provisioning | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2 | VM creation (NICs, disks) | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 3 | Anti-affinity rules | Guest | — | — | — | ✅ | — |
+| 4 | Domain join (Arc extension) | Azure | —¹ | —¹ | —¹ | ✅ | —¹ |
+| 5 | Roles and features | Guest | — | — | — | ✅ | ✅ |
+| 6 | Cluster creation + cloud witness | Guest | — | — | — | ✅ | ✅ |
+| 7 | S2D enable + tuning | Guest | — | — | — | ✅ | ✅ |
+| 8 | SOFS role + SMB shares | Guest | — | — | — | ✅ | ✅ |
+| 9 | NTFS permissions | Guest | — | — | — | ✅ | ✅ |
+| 10 | Antivirus exclusions | Guest | — | — | — | ✅ | ✅ |
+| 11 | Validation | Guest | — | — | — | ✅ | ✅ |
+
+¹ Domain join is an Azure-side operation (deploying the `JsonADDomainExtension` Arc extension). All tools **can** do this — the current code only implements it in PowerShell. These are implementation TODOs, not tool limitations.
 
 !!! note
-    Terraform, Bicep, and ARM handle **Azure resource provisioning only** (Phases 1–2). Guest OS configuration (Phases 3–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
+    Terraform, Bicep, and ARM handle **Azure resource provisioning** (Phases 1–2, and potentially Phase 4). Guest OS configuration (Phases 3, 5–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
 
 ---
 
@@ -210,5 +214,6 @@ The deployment follows 11 phases. Automation tools cover different phases:
 
 ## Next Steps
 
-- [Variables](variables.md) — Configure the central variable file that drives all deployment tools
+- [Variables](../reference/variables.md) — Configure the central variable file that drives all deployment tools
+- [Deployment Paths](paths.md) — Choose your tool combination
 - Choose your deployment tool: [Terraform](terraform.md) | [Bicep](bicep.md) | [ARM](arm.md) | [PowerShell](powershell.md) | [Ansible](ansible.md)

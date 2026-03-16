@@ -27,10 +27,10 @@ Each scenario references its matching architecture diagram so you can see exactl
 
 ### Architecture
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-1vol-option-a.png" alt="Scenario A — Single host volume, Option A single share" />
-  <br><em>Single host volume with Option A — recommended for small environments</em>
-</div>
+<figure markdown="span">
+  ![Scenario A — Single host volume, Option A single share](../assets/images/sofs-arch-1vol-option-a.png)
+  <figcaption>Single host volume with Option A — recommended for small environments</figcaption>
+</figure>
 
 ### Capacity Math
 
@@ -96,10 +96,10 @@ sofs:
 
 ### Architecture
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-a.png" alt="Scenario B — Three host volumes, Option A single share" />
-  <br><em>Three host volumes with Option A — fault isolation without share complexity</em>
-</div>
+<figure markdown="span">
+  ![Scenario B — Three host volumes, Option A single share](../assets/images/sofs-arch-3vol-option-a.png)
+  <figcaption>Three host volumes with Option A — fault isolation without share complexity</figcaption>
+</figure>
 
 ### Capacity Math
 
@@ -163,10 +163,10 @@ sofs:
 
 ### Architecture
 
-<div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-b.png" alt="Scenario C — Three host volumes, Option B three shares" />
-  <br><em>Three host volumes with Option B — maximum fault isolation and workload separation</em>
-</div>
+<figure markdown="span">
+  ![Scenario C — Three host volumes, Option B three shares](../assets/images/sofs-arch-3vol-option-b.png)
+  <figcaption>Three host volumes with Option B — maximum fault isolation and workload separation</figcaption>
+</figure>
 
 ### Capacity Math
 
@@ -259,5 +259,5 @@ sofs:
 ## Next Steps
 
 - [Prerequisites](../deployment/prerequisites.md) — Infrastructure and licensing requirements before deployment
-- [Variables](../deployment/variables.md) — How these scenario values map to the configuration file
+- [Variables](../reference/variables.md) — How these scenario values map to the configuration file
 - [Capacity Planning](capacity-planning.md) — Detailed calculation methodology
