@@ -1,6 +1,6 @@
 # Terraform Deployment
 
-![Terraform](https://img.shields.io/badge/-Terraform-844FBA?logo=terraform&logoColor=white) ![Status: Untested](https://img.shields.io/badge/status-untested-red) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d)
+![Terraform](https://img.shields.io/badge/-Terraform-844FBA?logo=terraform&logoColor=white) ![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d)
 
 ## Overview
 
@@ -8,9 +8,18 @@ Deploys all Azure-side resources for the SOFS guest cluster using Terraform with
 
 After `terraform apply`, a fully-populated Ansible inventory is auto-generated — feeding directly into the guest configuration phase.
 
-**Phases covered:** 1–2 (Azure resource provisioning and VM creation)
+### Capability vs Code Status
 
-**What happens after Terraform:** Guest OS configuration (Phases 3–11) requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
+| Capability | Can Do? | Current Code |
+|-----------|:---:|:---:|
+| Azure resource provisioning | :material-check: | :material-check: Full |
+| Domain join (JsonADDomainExtension) | :material-check: via azapi | :material-close: Not yet implemented |
+| Guest OS configuration | Delegates to PS/Ansible | Delegates via `guest_config_engine` |
+
+!!! info "Domain join is a TODO, not a limitation"
+    Terraform can deploy the `JsonADDomainExtension` Arc extension using the `azapi` provider. The [aurelocal-avd](https://github.com/AzureLocal/aurelocal-avd) repo has a working example in `src/terraform/session-hosts.tf`. This repo's Terraform code does not implement it yet.
+
+**What happens after Terraform:** Guest OS configuration requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
 
 ---
 
@@ -170,8 +179,22 @@ This eliminates manual inventory creation when using the Terraform → Ansible d
 After Terraform completes:
 
 1. **Verify VMs** are running in Azure portal or via `az stack-hci-vm list`
-2. **Domain join** the VMs (if not automated)
+2. **Domain join** the VMs (manual or via Arc extension — not yet automated in this repo's Terraform)
 3. **Run guest configuration** using [PowerShell](powershell.md) or [Ansible](ansible.md)
+
+---
+
+## Guest Configuration Engine
+
+Terraform delegates guest OS configuration to either PowerShell or Ansible via the `guest_config_engine` variable:
+
+| Value | Behavior |
+|-------|----------|
+| `powershell` (default) | After `terraform apply`, run `Configure-SOFS-Cluster.ps1` manually |
+| `ansible_create` | Deploy a Linux Ansible controller VM, then run playbooks automatically |
+| `ansible_existing` | Use an existing Ansible controller to run playbooks |
+
+When using the Ansible path, Terraform auto-generates `../ansible/inventory-generated.yml` with all values populated from Terraform outputs.
 
 ---
 

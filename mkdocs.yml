@@ -42,6 +42,7 @@ nav:
   - Deployment:
       - Prerequisites: deployment/prerequisites.md
       - Variables: deployment/variables.md
+      - Deployment Paths: deployment/paths.md
       - Terraform: deployment/terraform.md
       - Bicep: deployment/bicep.md
       - ARM Templates: deployment/arm.md

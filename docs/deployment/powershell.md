@@ -4,14 +4,23 @@
 
 ## Overview
 
-PowerShell scripts handle **both** Azure resource provisioning (Phase 1) and guest OS configuration (Phases 3–11). This is the only tool that covers the entire deployment end-to-end without requiring a second tool.
+PowerShell is the **only tool that covers the entire deployment end-to-end** — both Azure resource provisioning and guest OS configuration — without requiring a second tool.
 
 Two main scripts:
 
-| Script | Phases | Description |
+| Script | Domain | Description |
 |--------|--------|-------------|
-| `Deploy-SOFS-Azure.ps1` | 1–2 | Azure CLI wrapper — creates resource group, cloud witness, NICs, VMs, data disks |
-| `Configure-SOFS-Cluster.ps1` | 3–11 | WinRM/PSRemoting — anti-affinity, clustering, S2D, SOFS, shares, permissions, validation |
+| `Deploy-SOFS-Azure.ps1` | Azure-side | Azure CLI wrapper — creates resource group, cloud witness, NICs, VMs, data disks, domain join extension |
+| `Configure-SOFS-Cluster.ps1` | Guest OS | WinRM/PSRemoting — anti-affinity, clustering, S2D, SOFS, shares, permissions, validation |
+
+### Capability
+
+| Capability | Supported |
+|-----------|:---------:|
+| Azure resource provisioning | :material-check: |
+| Domain join (JsonADDomainExtension) | :material-check: |
+| Guest OS configuration (WinRM) | :material-check: |
+| End-to-end deployment | :material-check: |
 
 ---
 
@@ -36,11 +45,11 @@ Two main scripts:
 
 ---
 
-## Phase 1: Azure Resource Provisioning
+## Azure Provisioning
 
 ### Deploy-SOFS-Azure.ps1
 
-Creates all Azure-side resources using Azure CLI commands:
+Creates all Azure-side resources using Azure CLI commands, including domain join via the `JsonADDomainExtension` Arc extension:
 
 ```powershell
 cd src/powershell
@@ -70,12 +79,13 @@ cd src/powershell
 - 3 NICs on the compute logical network (with optional static IPs)
 - 3 Arc VMs (4 vCPU, 8 GB RAM each)
 - 12 data disks (4 per VM, dynamically provisioned)
+- Domain join via `JsonADDomainExtension` (Arc extension, parallel execution)
 
 Passwords are resolved from Key Vault at runtime — never passed as plaintext parameters.
 
 ---
 
-## Phases 3–11: Guest OS Configuration
+## Guest Cluster Configuration
 
 ### Configure-SOFS-Cluster.ps1
 
@@ -97,19 +107,19 @@ Comprehensive WinRM/PSRemoting-based script run from a management workstation. *
     -WitnessStorageKey "<key>"
 ```
 
-**Phases executed:**
+**Actions executed:**
 
-| Phase | Action |
+| # | Action |
 |-------|--------|
-| 3 | Create anti-affinity rule on Azure Local host cluster |
-| 4 | Verify domain join and post-deployment VM configuration |
-| 5 | Install Failover-Clustering, FS-FileServer, RSAT tools |
-| 6 | Validate cluster prerequisites, create failover cluster, configure cloud witness |
-| 7 | Clean data disks, enable S2D, apply guest tuning (HwTimeout, auto-replace disable), create S2D volume(s) |
-| 8 | Add SOFS Scale-Out File Server role, create SMB share(s) with CA + ABE |
-| 9 | Apply NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
-| 10 | Configure antivirus exclusions (ClusterStorage, VHD/VHDX, cluster processes) |
-| 11 | Run validation checks |
+| 1 | Create anti-affinity rule on Azure Local host cluster |
+| 2 | Verify domain join and post-deployment VM configuration |
+| 3 | Install Failover-Clustering, FS-FileServer, RSAT tools |
+| 4 | Validate cluster prerequisites, create failover cluster, configure cloud witness |
+| 5 | Clean data disks, enable S2D, apply guest tuning (HwTimeout, auto-replace disable), create S2D volume(s) |
+| 6 | Add SOFS Scale-Out File Server role, create SMB share(s) with CA + ABE |
+| 7 | Apply NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
+| 8 | Configure antivirus exclusions (ClusterStorage, VHD/VHDX, cluster processes) |
+| 9 | Run validation checks |
 
 ---
 

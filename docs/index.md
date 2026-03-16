@@ -53,6 +53,45 @@ Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure
 
 ---
 
+## How Deployment Works
+
+Deploying a SOFS on Azure Local spans **two domains** that require different tools:
+
+| Domain | What It Does | Tools |
+|--------|-------------|-------|
+| **Azure-side provisioning** | Resource group, cloud witness, NICs, Arc VMs, data disks, domain join extension | All five tools |
+| **Guest OS configuration** | Anti-affinity, failover clustering, S2D, SOFS role, SMB shares, NTFS permissions | PowerShell or Ansible (via WinRM) |
+
+Domain join is an Azure resource deployment (`JsonADDomainExtension` on `Microsoft.HybridCompute/machines/extensions`) — any tool that deploys Azure resources can do this.
+
+### Tool Capabilities
+
+What each tool **can** do (technology capability):
+
+| Tool | Azure Resources | Domain Join | Guest Config | End-to-End |
+|------|:---:|:---:|:---:|:---:|
+| PowerShell | :material-check: | :material-check: | :material-check: | :material-check: |
+| Terraform | :material-check: | :material-check: | Delegates | — |
+| Bicep | :material-check: | :material-check: | Delegates | — |
+| ARM | :material-check: | :material-check: | Delegates | — |
+| Ansible | :material-check: | :material-check: | :material-check: | Partial |
+
+### Current Code Status
+
+What this repo's automation **does** today:
+
+| Tool | Azure | Domain Join | Guest Config | Status |
+|------|:---:|:---:|:---:|:---:|
+| [PowerShell](deployment/powershell.md) | Full | :material-check: | Full | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Terraform](deployment/terraform.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
+| [Bicep](deployment/bicep.md) | Full | Not yet | Delegates | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
+| [ARM](deployment/arm.md) | Partial | — | Delegates | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+| [Ansible](deployment/ansible.md) | Full | Not yet | Phases 5–11 | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+
+Domain join gaps are implementation TODOs, not tool limitations. See [Deployment Paths](deployment/paths.md) for valid combinations.
+
+---
+
 ## Quick Start
 
 ### 1. Configure Variables
@@ -69,7 +108,7 @@ Choose one tool to create resource group, VMs, NICs, data disks, and cloud witne
 
 | Tool | Path | Status |
 |------|------|--------|
-| [Terraform](deployment/terraform.md) | `src/terraform/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+| [Terraform](deployment/terraform.md) | `src/terraform/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [Bicep](deployment/bicep.md) | `src/bicep/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
 | [ARM](deployment/arm.md) | `src/arm/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 | [PowerShell](deployment/powershell.md) | `src/powershell/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |

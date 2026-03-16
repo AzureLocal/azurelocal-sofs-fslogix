@@ -6,9 +6,18 @@
 
 Subscription-scope Bicep deployment that creates all Azure-side resources for the SOFS guest cluster. Bicep compiles to ARM JSON but is significantly more readable and maintainable.
 
-**Phases covered:** 1–2 (Azure resource provisioning and VM creation)
+### Capability vs Code Status
 
-**What happens after Bicep:** Guest OS configuration (Phases 3–11) requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
+| Capability | Can Do? | Current Code |
+|-----------|:---:|:---:|
+| Azure resource provisioning | :material-check: | :material-check: Full |
+| Domain join (JsonADDomainExtension) | :material-check: natively | :material-close: Not yet implemented |
+| Guest OS configuration | Delegates to PS | Delegates |
+
+!!! info "Domain join is a TODO, not a limitation"
+    Bicep can natively deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines`. This is a standard Azure resource deployment. The current Bicep code does not implement it yet.
+
+**What happens after Bicep:** Guest OS configuration requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
 
 ---
 
@@ -123,7 +132,7 @@ New-AzSubscriptionDeployment `
 After Bicep deploys the Azure resources:
 
 1. **Verify VMs** are running in Azure portal
-2. **Domain join** the VMs
+2. **Domain join** the VMs (manual or via Arc extension — not yet automated in this repo's Bicep)
 3. **Run guest configuration:**
 
 ```powershell

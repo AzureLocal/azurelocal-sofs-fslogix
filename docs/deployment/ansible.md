@@ -6,13 +6,22 @@
 
 Two-playbook approach for deploying and configuring the SOFS guest cluster:
 
-| Playbook | Target | Phases | Description |
-|----------|--------|--------|-------------|
-| `deploy-azure-resources.yml` | `localhost` | 1–2 | Creates Azure resources via Azure CLI |
-| `configure-sofs-cluster.yml` | `sofs_nodes` (WinRM) | 5–11 | Configures guest OS: clustering, S2D, SOFS, shares, permissions |
+| Playbook | Target | Description |
+|----------|--------|-------------|
+| `deploy-azure-resources.yml` | `localhost` | Creates Azure resources via Azure CLI |
+| `configure-sofs-cluster.yml` | `sofs_nodes` (WinRM) | Configures guest OS: clustering, S2D, SOFS, shares, permissions |
 
-!!! note "Anti-affinity gap"
-    The Ansible playbooks cover Phases 5–11 of guest configuration. **Phases 3–4** (anti-affinity rules and domain join verification) run against the Azure Local host cluster, not the guest VMs — handle these with the [PowerShell](powershell.md) scripts or manually before running the Ansible playbook.
+### Capability vs Code Status
+
+| Capability | Can Do? | Current Code |
+|-----------|:---:|:---:|
+| Azure resource provisioning | :material-check: via az CLI | :material-check: Full |
+| Domain join (JsonADDomainExtension) | :material-check: via az CLI or azure module | :material-close: Not yet implemented |
+| Anti-affinity rules | :material-check: via az CLI | :material-close: Not yet implemented |
+| Guest OS configuration (WinRM) | :material-check: | :material-check: Phases 5–11 |
+
+!!! note "Code gaps"
+    The Ansible playbooks cover guest configuration Phases 5–11. **Anti-affinity rules** (Phase 3) and **domain join** are not yet implemented but can be added — both are Azure CLI operations that Ansible can run on `localhost`. Handle these with the [PowerShell](powershell.md) scripts or manually before running the Ansible playbook.
 
 ---
 
@@ -71,7 +80,7 @@ Terraform auto-generates `inventory-generated.yml` with all values populated fro
 
 ---
 
-## Phase 1: Azure Resource Deployment
+## Azure Resource Deployment
 
 ```bash
 # Dry run
@@ -86,7 +95,7 @@ This runs Azure CLI commands on `localhost` to create the resource group, cloud 
 
 ---
 
-## Phases 5–11: Guest Cluster Configuration
+## Guest Cluster Configuration
 
 After VMs are deployed, domain-joined, and anti-affinity rules are set:
 
@@ -99,30 +108,31 @@ ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
   --extra-vars "sofs_witness_key=$(az storage account keys list --account-name stsofswitnessprod01 --query '[0].value' -o tsv)"
 ```
 
-**Phases executed:**
+**Actions executed:**
 
-| Phase | Action |
+| # | Action |
 |-------|--------|
-| 5 | Install Failover-Clustering and FS-FileServer roles |
-| 6 | Create failover cluster, configure cloud witness |
-| 7 | Enable S2D, apply guest tuning, create S2D volume(s) |
-| 8 | Add SOFS role, create SMB shares (CA + ABE) |
-| 9 | Set NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
-| 10 | Configure antivirus exclusions |
-| 11 | Run validation checks |
+| 1 | Install Failover-Clustering and FS-FileServer roles |
+| 2 | Create failover cluster, configure cloud witness |
+| 3 | Enable S2D, apply guest tuning, create S2D volume(s) |
+| 4 | Add SOFS role, create SMB shares (CA + ABE) |
+| 5 | Set NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
+| 6 | Configure antivirus exclusions |
+| 7 | Run validation checks |
 
 ---
 
 ## End-to-End Deployment
 
 ```bash
-# Phase 1: Azure resources
+# Azure resources
 ansible-playbook -i inventory.yml deploy-azure-resources.yml \
   --extra-vars "sofs_admin_password=<password>"
 
 # Wait for VMs to be domain-joined and anti-affinity rules set
+# (manual — not yet automated in Ansible)
 
-# Phases 5–11: Guest configuration
+# Guest configuration
 ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
   --extra-vars "sofs_witness_key=<key>"
 ```
