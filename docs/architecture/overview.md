@@ -17,6 +17,7 @@ Each decision is independent — pick one option from each row and deploy the ma
 ### Decision Flowchart
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#fff', 'primaryTextColor': '#000', 'lineColor': '#666', 'primaryBorderColor': '#666'}}}%%
 flowchart TD
     Start(["Choose your topology"]) --> D1{"How many<br/>host CSV volumes?"}
     D1 -->|"Fault isolation<br/>(recommended)"| ThreeVol["<b>Three Volumes</b><br/>One CSV per SOFS VM"]
