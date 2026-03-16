@@ -259,5 +259,5 @@ sofs:
 ## Next Steps
 
 - [Prerequisites](../deployment/prerequisites.md) — Infrastructure and licensing requirements before deployment
-- [Variables](../deployment/variables.md) — How these scenario values map to the configuration file
+- [Variables](../reference/variables.md) — How these scenario values map to the configuration file
 - [Capacity Planning](capacity-planning.md) — Detailed calculation methodology

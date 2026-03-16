@@ -206,4 +206,4 @@ It sets `Enabled`, `VHDLocations`, `FlipFlopProfileDirectoryName`, container siz
 - [Permissions](permissions.md) — NTFS and SMB permissions on the SOFS shares
 - [AVD Considerations](../architecture/avd-considerations.md) — How FSLogix maps users to shares
 - [Antivirus Exclusions](antivirus.md) — Required AV exclusions on session hosts
-- [Variables Reference](../deployment/variables.md) — Central configuration that includes SOFS share names
+- [Variables Reference](../reference/variables.md) — Central configuration that includes SOFS share names

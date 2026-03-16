@@ -66,6 +66,56 @@ The solution builds through a layered stack:
 
 ---
 
+## Deployment Phases
+
+The solution is deployed through 11 phases spanning two layers — **Azure / Host** provisioning and **Guest OS** configuration. The handoff between layers happens after VM creation (Phase 2), with Domain Join (Phase 4) crossing back to the Azure layer briefly.
+
+```mermaid
+flowchart TD
+    subgraph azure["Azure / Host Layer"]
+        P1["<b>Phase 1</b><br/>Prepare Azure Local Host Environment<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
+        P2["<b>Phase 2</b><br/>Create the 3 SOFS Node VMs<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
+        P4["<b>Phase 4</b><br/>Post-Deployment VM Config (Domain Join)<br/><i>All Tools — Azure-side Arc Extension</i>"]
+    end
+
+    subgraph guest["Guest OS Layer"]
+        P3["<b>Phase 3</b><br/>Configure Anti-Affinity Rules<br/><i>PowerShell</i>"]
+        P5["<b>Phase 5</b><br/>Install Required Roles and Features<br/><i>PowerShell · Ansible</i>"]
+        P6["<b>Phase 6</b><br/>Validate & Create Guest Failover Cluster<br/><i>PowerShell · Ansible</i>"]
+        P7["<b>Phase 7</b><br/>Enable Storage Spaces Direct (S2D)<br/><i>PowerShell · Ansible</i>"]
+        D{"Option A or B?"}
+        P8A["<b>Phase 8 — Option A</b><br/>Single Volume + Single Share"]
+        P8B["<b>Phase 8 — Option B</b><br/>Three Volumes + Three Shares"]
+        P9["<b>Phase 9</b><br/>Configure NTFS Permissions for FSLogix<br/><i>PowerShell · Ansible</i>"]
+        P10["<b>Phase 10</b><br/>Antivirus Exclusions<br/><i>PowerShell · Ansible</i>"]
+        P11["<b>Phase 11</b><br/>Validation and Testing<br/><i>PowerShell · Ansible</i>"]
+    end
+
+    P1 --> P2
+    P2 -.->|Handoff| P3
+    P3 --> P4
+    P4 --> P5
+    P5 --> P6
+    P6 --> P7
+    P7 --> D
+    D -->|Option A| P8A
+    D -->|Option B| P8B
+    P8A --> P9
+    P8B --> P9
+    P9 --> P10
+    P10 --> P11
+
+    style azure fill:#dae8fc,stroke:#6c8ebf,color:#333
+    style guest fill:#d5e8d4,stroke:#82b366,color:#333
+    style P4 fill:#fff2cc,stroke:#d6b656,color:#333
+    style D fill:#e1d5e7,stroke:#9673a6,color:#333
+```
+
+!!! tip "Full-resolution diagram"
+    A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing or high-resolution PNG export. See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
+
+---
+
 ## Why a Guest Cluster
 
 This design uses a guest cluster (S2D running inside VMs on Azure Local) rather than hosting FSLogix shares directly on the Azure Local cluster's own SOFS. The separation provides:

@@ -212,6 +212,6 @@ The deployment follows 11 phases across two domains. This table shows what the *
 
 ## Next Steps
 
-- [Variables](variables.md) — Configure the central variable file that drives all deployment tools
+- [Variables](../reference/variables.md) — Configure the central variable file that drives all deployment tools
 - [Deployment Paths](paths.md) — Choose your tool combination
 - Choose your deployment tool: [Terraform](terraform.md) | [Bicep](bicep.md) | [ARM](arm.md) | [PowerShell](powershell.md) | [Ansible](ansible.md)

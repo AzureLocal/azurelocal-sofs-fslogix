@@ -100,7 +100,7 @@ Domain join gaps are implementation TODOs, not tool limitations. See [Deployment
 cp config/variables.example.yml config/variables.yml
 ```
 
-See [Variables Reference](deployment/variables.md) for every parameter.
+See [Variables Reference](reference/variables.md) for every parameter.
 
 ### 2. Deploy Azure Infrastructure
 
