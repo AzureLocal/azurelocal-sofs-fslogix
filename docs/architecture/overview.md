@@ -8,19 +8,19 @@ This solution deploys a **3-node Scale-Out File Server (SOFS) guest cluster** ru
 
 The recommended architecture uses three separate Azure Local host volumes for fault isolation, with the SOFS guest cluster presenting highly available SMB shares to AVD session hosts.
 
-<div align="center">
-  <img src="../../assets/images/sofs-arch-3vol-base.png" alt="SOFS Architecture — Three Host Volumes (Base)" />
-  <br /><em>Figure 1: Three host volume layout — recommended</em>
-</div>
+<figure markdown="span">
+  ![SOFS Architecture — Three Host Volumes (Base)](../assets/images/sofs-arch-3vol-base.png)
+  <figcaption>Figure 1: Three host volume layout — recommended</figcaption>
+</figure>
 
 <br />
 
 For environments that cannot accommodate three host volumes, a single-volume layout is also supported:
 
-<div align="center">
-  <img src="../../assets/images/sofs-arch-1vol-base.png" alt="SOFS Architecture — Single Host Volume (Base)" />
-  <br /><em>Figure 2: Single host volume layout — simpler, less resilient</em>
-</div>
+<figure markdown="span">
+  ![SOFS Architecture — Single Host Volume (Base)](../assets/images/sofs-arch-1vol-base.png)
+  <figcaption>Figure 2: Single host volume layout — simpler, less resilient</figcaption>
+</figure>
 
 ---
 
