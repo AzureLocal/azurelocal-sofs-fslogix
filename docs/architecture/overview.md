@@ -6,21 +6,84 @@ This solution deploys a **3-node Scale-Out File Server (SOFS) guest cluster** ru
 
 ## Solution Architecture
 
-The recommended architecture uses three separate Azure Local host volumes for fault isolation, with the SOFS guest cluster presenting highly available SMB shares to AVD session hosts.
+Three independent design decisions determine the storage topology:
 
-<figure markdown="span">
-  ![SOFS Architecture — Three Host Volumes (Base)](../assets/images/sofs-arch-3vol-base.png)
-  <figcaption>Figure 1: Three host volume layout — recommended</figcaption>
-</figure>
+1. **Host volume layout** — Place all 3 SOFS VMs on one CSV volume, or one VM per CSV for fault isolation?
+2. **Guest S2D mirror level** — Two-way mirror (recommended) or three-way mirror?
+3. **Guest share model** — Option A (one S2D volume, one share) or Option B (three S2D volumes, three shares)?
 
-<br />
+Each decision is independent — pick one option from each row and deploy the matching combination. See [Storage Design](storage-design.md) for the full rationale, capacity impact, thin-provisioning warnings, and S2D tuning.
 
-For environments that cannot accommodate three host volumes, a single-volume layout is also supported:
+### Decision Flowchart
 
-<figure markdown="span">
-  ![SOFS Architecture — Single Host Volume (Base)](../assets/images/sofs-arch-1vol-base.png)
-  <figcaption>Figure 2: Single host volume layout — simpler, less resilient</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Start(["Choose your topology"]) --> D1{"How many<br/>host CSV volumes?"}
+    D1 -->|"Fault isolation<br/>(recommended)"| ThreeVol["<b>Three Volumes</b><br/>One CSV per SOFS VM"]
+    D1 -->|"Limited drives<br/>or simplicity"| OneVol["<b>Single Volume</b><br/>All 3 VMs on one CSV"]
+
+    ThreeVol --> D2{"Share model?"}
+    OneVol --> D2
+
+    D2 -->|"Under 500 users"| OptA["<b>Option A</b><br/>Single S2D volume + single share"]
+    D2 -->|"500+ users or<br/>high-density hosts"| OptB["<b>Option B</b><br/>Three S2D volumes + three shares"]
+
+    OptA --> D3{"Mirror level?"}
+    OptB --> D3
+
+    D3 -->|"Most environments"| TwoWay["<b>Two-way mirror</b><br/>Stacked resiliency is sufficient"]
+    D3 -->|"Maximum resiliency"| ThreeWay["<b>Three-way mirror</b><br/>Higher capacity cost"]
+
+    style ThreeVol fill:#d5e8d4,stroke:#82b366,color:#333
+    style TwoWay fill:#d5e8d4,stroke:#82b366,color:#333
+    style OptA fill:#dae8fc,stroke:#6c8ebf,color:#333
+    style OptB fill:#dae8fc,stroke:#6c8ebf,color:#333
+```
+
+### Three Host Volumes (Recommended)
+
+Each SOFS VM resides on its own Azure Local CSV volume. A volume-level failure affects only one VM — the guest S2D cluster survives on the remaining two nodes with zero interruption.
+
+![Three host volumes — base layout](../assets/images/sofs-arch-3vol-base.png)
+
+=== "Option A — Single Share"
+
+    One guest S2D volume and one SMB share hold all FSLogix data (profiles, ODFC, AppData). Simplest deployment — best for environments under 500 users.
+
+    ![Three host volumes + Option A — single share](../assets/images/sofs-arch-3vol-option-a.png)
+
+=== "Option B — Three Shares"
+
+    Three separate guest S2D volumes (Profiles, ODFC, AppData) with dedicated SMB shares for each. NTFS metadata isolation and independent monitoring — best for 500+ users or high-density session hosts.
+
+    ![Three host volumes + Option B — three shares](../assets/images/sofs-arch-3vol-option-b.png)
+
+### Single Host Volume
+
+All three SOFS VMs share one Azure Local CSV volume. Simpler but without host-layer fault isolation — use only when the cluster cannot accommodate three separate volumes.
+
+![Single host volume — base layout](../assets/images/sofs-arch-1vol-base.png)
+
+=== "Option A — Single Share"
+
+    One guest S2D volume and one SMB share — the simplest possible deployment.
+
+    ![Single host volume + Option A — single share](../assets/images/sofs-arch-1vol-option-a.png)
+
+=== "Option B — Three Shares"
+
+    Three volumes and three shares for workload isolation, even without host-layer fault isolation.
+
+    ![Single host volume + Option B — three shares](../assets/images/sofs-arch-1vol-option-b.png)
+
+### Recommended Combination by Environment
+
+| Environment | Host Volumes | Mirror | Share Model |
+|-------------|-------------|--------|-------------|
+| Under 50 users, personal desktops | Single or Three | Two-way | Option A |
+| 50–500 users, mixed workloads | Three | Two-way | Option A |
+| 500+ users, pooled session hosts | Three | Two-way | Option B |
+| Maximum resiliency required | Three | Three-way | Option B |
 
 ---
 
