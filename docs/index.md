@@ -77,20 +77,11 @@ Choose one tool to create resource group, VMs, NICs, data disks, and cloud witne
 
 ### 3. Configure Guest Cluster (Phases 3–11)
 
-PowerShell covers all phases; Ansible covers phases 5–11:
+```powershell
+.\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
+```
 
-=== "PowerShell"
-
-    ```powershell
-    .\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
-    ```
-
-=== "Ansible"
-
-    ```bash
-    ansible-playbook -i inventory/hosts.yml \
-        src/ansible/playbooks/configure-sofs-cluster.yml
-    ```
+See [PowerShell Deployment](deployment/powershell.md) for the full walkthrough.
 
 ### 4. Validate
 
