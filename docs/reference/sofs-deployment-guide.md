@@ -116,7 +116,7 @@ This guide deploys a **3-node Windows Server guest cluster** running Storage Spa
 **Architecture diagram:** Three host volumes (fault isolation) with Option B guest volumes (workload isolation).
 
 <div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-b.png" alt="SOFS Architecture — Three Host Volumes + Option B" />
+  <img src="../../assets/images/sofs-arch-3vol-option-b.png" alt="SOFS Architecture — Three Host Volumes + Option B" />
 </div>
 
 > **Why three separate host volumes?** If all three SOFS VMs sit on a single Azure Local volume, that volume is a shared-fate dependency — a volume-level issue takes out the entire guest cluster. With three volumes, a single volume failure only affects one SOFS node. The guest S2D two-way mirror continues operating on the remaining two nodes with no data loss and no interruption to AVD sessions.

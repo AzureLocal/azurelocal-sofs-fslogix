@@ -28,7 +28,7 @@ Each scenario references its matching architecture diagram so you can see exactl
 ### Architecture
 
 <div align="center">
-  <img src="../assets/images/sofs-arch-1vol-option-a.png" alt="Scenario A — Single host volume, Option A single share" />
+  <img src="../../assets/images/sofs-arch-1vol-option-a.png" alt="Scenario A — Single host volume, Option A single share" />
   <br><em>Single host volume with Option A — recommended for small environments</em>
 </div>
 
@@ -97,7 +97,7 @@ sofs:
 ### Architecture
 
 <div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-a.png" alt="Scenario B — Three host volumes, Option A single share" />
+  <img src="../../assets/images/sofs-arch-3vol-option-a.png" alt="Scenario B — Three host volumes, Option A single share" />
   <br><em>Three host volumes with Option A — fault isolation without share complexity</em>
 </div>
 
@@ -164,7 +164,7 @@ sofs:
 ### Architecture
 
 <div align="center">
-  <img src="../assets/images/sofs-arch-3vol-option-b.png" alt="Scenario C — Three host volumes, Option B three shares" />
+  <img src="../../assets/images/sofs-arch-3vol-option-b.png" alt="Scenario C — Three host volumes, Option B three shares" />
   <br><em>Three host volumes with Option B — maximum fault isolation and workload separation</em>
 </div>
 
