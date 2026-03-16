@@ -9,108 +9,128 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 ---
 
-## What This Repo Provides
+## Architecture at a Glance
 
-A highly available, SMB-based file share on Azure Local that FSLogix uses to store and serve user profile containers (VHD/VHDX) for AVD session hosts — deployed and configured entirely through code.
+![SOFS Architecture — Three Volume Option B](assets/images/sofs-arch-3vol-option-b.png)
 
-## Deployment Workflow
+Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure Local. An anti-affinity rule keeps each VM on a separate physical node for host-level resiliency. The guest S2D cluster presents a **Scale-Out File Server** role with continuously available SMB shares that FSLogix uses to store user profile VHDXs.
 
-```mermaid
-graph LR
-    A[1. Configure] --> B[2. Infrastructure]
-    B --> C[3. Deploy]
-    C --> D[4. Configure]
-    D --> E[5. Validate]
+<div class="grid cards" markdown>
 
-    click A "#1-configure-variables"
-    click B "#2-deploy-azure-infrastructure"
-    click C "#3-deploy-sofs"
-    click D "#4-configure-share--fslogix"
-    click E "#5-validate"
-```
+-   :material-layers-outline: **Architecture**
+
+    ---
+
+    Design decisions, storage layout, capacity planning, AVD considerations, and worked scenarios.
+
+    [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
+
+-   :material-rocket-launch: **Deployment**
+
+    ---
+
+    Prerequisites, variables, tool-specific guides (Terraform, Bicep, ARM, PowerShell, Ansible), and validation.
+
+    [:octicons-arrow-right-24: Prerequisites](deployment/prerequisites.md)
+
+-   :material-cog: **Configuration**
+
+    ---
+
+    FSLogix registry settings, NTFS/SMB permissions, and antivirus exclusions.
+
+    [:octicons-arrow-right-24: FSLogix Configuration](configuration/fslogix.md)
+
+-   :material-wrench: **Operations**
+
+    ---
+
+    Troubleshooting, CI/CD pipelines, runner setup, and secrets management.
+
+    [:octicons-arrow-right-24: Troubleshooting](operations/troubleshooting.md)
+
+</div>
+
+---
+
+## Quick Start
 
 ### 1. Configure Variables
-
-Set your environment values in a single file that feeds every phase:
 
 ```bash
 cp config/variables.example.yml config/variables.yml
 ```
 
-See the [Variable Reference](reference/variables.md) for every parameter.
+See [Variables Reference](deployment/variables.md) for every parameter.
 
 ### 2. Deploy Azure Infrastructure
 
-Choose one IaC tool to create the Azure resource group and diagnostic storage:
+Choose one tool to create resource group, VMs, NICs, data disks, and cloud witness:
 
-| Tool | Path | Recommended |
-|------|------|:-----------:|
-| Bicep | `src/bicep/` | :material-check: |
-| ARM | `src/arm/` | |
-| Terraform | `src/terraform/` | |
+| Tool | Path | Status |
+|------|------|--------|
+| [Terraform](deployment/terraform.md) | `src/terraform/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Bicep](deployment/bicep.md) | `src/bicep/` | ![In Progress](https://img.shields.io/badge/-In_Progress-ffc107) |
+| [ARM](deployment/arm.md) | `src/arm/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+| [PowerShell](deployment/powershell.md) | `src/powershell/` | ![Tested](https://img.shields.io/badge/-Tested-28a745) |
+| [Ansible](deployment/ansible.md) | `src/ansible/` | ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
 
-### 3. Deploy SOFS
+### 3. Configure Guest Cluster (Phases 3–11)
 
-Create the SOFS cluster role and SMB share on the Azure Local failover cluster:
-
-```powershell
-.\src\powershell\New-SOFSDeployment.ps1 -ParametersFile .\src\powershell\parameters.example.ps1
-```
-
-### 4. Configure Share & FSLogix
-
-Choose PowerShell or Ansible to set share permissions and FSLogix registry settings:
+PowerShell covers all phases; Ansible covers phases 5–11:
 
 === "PowerShell"
 
     ```powershell
-    .\src\powershell\Set-FSLogixShare.ps1 `
-      -SOFSName "SOFS01" `
-      -ShareName "FSLogixProfiles" `
-      -SharePath "C:\ClusterStorage\Volume1\FSLogixProfiles" `
-      -AVDUsersGroup "AVD-Users" `
-      -ClusterName "AZLHCI-CLUSTER"
+    .\src\powershell\Configure-SOFS-Cluster.ps1 -ConfigFile .\config\variables.yml
     ```
 
 === "Ansible"
 
     ```bash
-    ansible-playbook -i src/ansible/inventory/hosts.yml \
-      src/ansible/playbooks/configure-sofs.yml
-
-    ansible-playbook -i src/ansible/inventory/hosts.yml \
-      src/ansible/playbooks/configure-fslogix.yml
+    ansible-playbook -i inventory/hosts.yml \
+        src/ansible/playbooks/configure-sofs-cluster.yml
     ```
 
-### 5. Validate
+### 4. Validate
 
 ```powershell
-.\tests\Test-SOFSDeployment.ps1 -SOFSName "SOFS01" -ShareName "FSLogixProfiles"
+.\tests\Test-SOFSDeployment.ps1 `
+    -SOFSAccessPoint "FSLogixSOFS" `
+    -ShareNames @("FSLogix") `
+    -ClusterName "sofs-cluster"
 ```
+
+See [Validation](deployment/validation.md) for the full checklist.
 
 ---
 
 ## Repository Structure
 
 ```
-├── src/                   # All automation code, organised by tool
-│   ├── bicep/             #   Azure Bicep templates
+├── src/                   # Automation code by tool
+│   ├── terraform/         #   Terraform (azapi + azurerm)
+│   ├── bicep/             #   Bicep (subscription-scope)
 │   ├── arm/               #   ARM JSON templates
-│   ├── terraform/         #   Terraform configuration
-│   ├── ansible/           #   Ansible playbooks & inventory
-│   └── powershell/        #   PowerShell deploy & configure scripts
-├── config/                # Central variables — single source of truth
+│   ├── powershell/        #   PowerShell scripts (all phases)
+│   └── ansible/           #   Ansible playbooks (WinRM/Kerberos)
+├── config/                # Central variables.yml — single source of truth
 ├── docs/                  # This documentation site (MkDocs)
-├── tests/                 # Phase 4 — Deployment validation
+│   ├── architecture/      #   Design decisions & capacity planning
+│   ├── deployment/        #   Prerequisites, tool guides, validation
+│   ├── configuration/     #   FSLogix, permissions, antivirus
+│   ├── operations/        #   Troubleshooting, CI/CD, secrets
+│   └── reference/         #   Deployment guide, variables reference
+├── tests/                 # Deployment validation scripts
 ├── scripts/               # Standalone utilities
-└── examples/              # Scenarios & walkthroughs
+└── examples/              # Pipeline examples & sample configs
 ```
 
 ## Prerequisites
 
 - An existing **Azure Local** cluster registered with Azure Arc
 - Azure subscription with Contributor RBAC
+- Windows Server 2025 Datacenter: Azure Edition Core (Gen2) gallery image
 - PowerShell 5.1+ with RSAT-Clustering tools
-- For Bicep/ARM: Azure CLI >= 2.50
-- For Terraform: >= 1.5, AzureRM provider >= 3.75
-- For Ansible: >= 2.14, `azure.azcollection` collection
+- AD domain with permissions to create computer objects
+- For full prerequisites, see [Prerequisites](deployment/prerequisites.md)
