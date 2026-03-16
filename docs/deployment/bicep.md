@@ -1,6 +1,6 @@
 # Bicep Deployment
 
-![Bicep](https://img.shields.io/badge/-Bicep-0078D4?logo=microsoftazure&logoColor=white) ![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d)
+![Bicep](https://img.shields.io/badge/-Bicep-0078D4?logo=microsoftazure&logoColor=white) ![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
 
 ## Overview
 
