@@ -68,10 +68,12 @@ The solution builds through a layered stack:
 
 ## Deployment Phases
 
-The solution is deployed through 11 phases spanning two layers — **Azure / Host** provisioning and **Guest OS** configuration. The handoff between layers happens after VM creation (Phase 2), with Domain Join (Phase 4) crossing back to the Azure layer briefly.
+The solution begins with a **Phase 0 planning checkpoint** — finalize the host storage topology decision, populate `variables.yml`, and choose your deployment tool — then progresses through 11 execution phases spanning two layers: **Azure / Host** provisioning and **Guest OS** configuration. The handoff between layers happens after VM creation (Phase 2), with Domain Join (Phase 4) crossing back to the Azure layer briefly.
 
 ```mermaid
 flowchart TD
+    P0["<b>Phase 0 — Planning & Prerequisites</b><br/>Host Storage Topology: single CSV or one-per-VM?<br/><i>Finalize variables.yml · Choose tool · Validate prereqs</i>"]
+
     subgraph azure["Azure / Host Layer"]
         P1["<b>Phase 1</b><br/>Prepare Azure Local Host Environment<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
         P2["<b>Phase 2</b><br/>Create the 3 SOFS Node VMs<br/><i>Terraform · Bicep · ARM · PowerShell · Ansible</i>"]
@@ -91,6 +93,7 @@ flowchart TD
         P11["<b>Phase 11</b><br/>Validation and Testing<br/><i>PowerShell · Ansible</i>"]
     end
 
+    P0 --> P1
     P1 --> P2
     P2 -.->|Handoff| P3
     P3 --> P4
@@ -105,6 +108,7 @@ flowchart TD
     P9 --> P10
     P10 --> P11
 
+    style P0 fill:#f5f5f5,stroke:#666666,stroke-width:2px,color:#333
     style azure fill:#dae8fc,stroke:#6c8ebf,color:#333
     style guest fill:#d5e8d4,stroke:#82b366,color:#333
     style P4 fill:#fff2cc,stroke:#d6b656,color:#333
