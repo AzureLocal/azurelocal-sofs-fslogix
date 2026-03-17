@@ -11,6 +11,30 @@ All deployment tools read from a single central configuration file: `config/vari
 
 ---
 
+## Naming Rules
+
+| Scope | Convention | Example |
+|-------|-----------|---------|
+| Top-level sections | `snake_case` | `azure_local`, `data_disks` |
+| Keys within sections | `snake_case` | `subscription_id`, `volume_size_gb` |
+| Per-VM maps | Zero-padded string keys | `"01"`, `"02"`, `"03"` |
+| Booleans | Descriptive name | `role_enabled: true` |
+| Secrets | `keyvault://` URI | `keyvault://kv-name/secret-name` |
+| Example values | IIC fictional identity | `iic.local`, `rg-iic-sofs-01`, `kv-iic-platform` |
+
+---
+
+## Compatibility
+
+The PowerShell scripts include a **compatibility shim** that maps the new sectioned config into the legacy `compute_wsfc` / `wsfc_sofs_*` flat key format. This means:
+
+- New `config/variables.yml` → works with all scripts
+- Legacy `solution-sofs.yml` → also works (auto-detected)
+
+The shim is transparent — downstream script logic is unchanged.
+
+---
+
 ## Azure
 
 ```yaml
