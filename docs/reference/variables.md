@@ -11,6 +11,49 @@ All deployment tools read from a single central configuration file: `config/vari
 
 ---
 
+## Deployment Architecture Choices
+
+```yaml
+deployment:
+  host_volume_layout: "three_volumes"
+  guest_volume_layout: "option_b"
+```
+
+| Variable | Type | Required | Description | Default | Valid Values | Phases |
+|----------|------|:--------:|-------------|---------|-------------|--------|
+| `deployment.host_volume_layout` | string | **Yes** | Host CSV layout — three volumes for fault isolation or one shared volume | `three_volumes` | `three_volumes`, `single_volume` | 1 |
+| `deployment.guest_volume_layout` | string | **Yes** | Guest S2D + share model — Option B (three) or Option A (single) | `option_b` | `option_a`, `option_b` | 7–8 |
+
+### Deployment Path Decision Tree
+
+```mermaid
+flowchart TD
+    A[Start] --> B{host_volume_layout?}
+    B -->|three_volumes| C[Use storage_path_ids — one VM per CSV]
+    B -->|single_volume| D[Use storage_path_id — all VMs on one CSV]
+    C --> E{guest_volume_layout?}
+    D --> E
+    E -->|option_a| F[Read: s2d.volume_name, s2d.volume_size_gb, sofs.share_name]
+    E -->|option_b| G[Read: s2d.volumes list, sofs.shares list]
+    F --> H{s2d.data_copies?}
+    G --> H
+    H -->|2| I[Two-way mirror — 2× raw]
+    H -->|3| J[Three-way mirror — 3× raw]
+```
+
+**Variable activation by path:**
+
+| Variable | `option_a` | `option_b` |
+|----------|:----------:|:----------:|
+| `s2d.volume_name` | ✅ Active | — Ignored |
+| `s2d.volume_size_gb` | ✅ Active | — Ignored |
+| `s2d.data_copies` | ✅ Active | — Ignored |
+| `s2d.volumes[]` | — Ignored | ✅ Active |
+| `sofs.share_name` | ✅ Active | — Ignored |
+| `sofs.shares[]` | — Ignored | ✅ Active |
+
+---
+
 ## Naming Rules
 
 | Scope | Convention | Example |
@@ -116,6 +159,7 @@ vm:
 | `vm.count` | integer | **Yes** | Number of SOFS VMs (always 3 for production) | `3` | 2 |
 | `vm.processors` | integer | **Yes** | vCPUs per VM (increase for high-density deployments) | `4` | 2 |
 | `vm.memory_mb` | integer | **Yes** | RAM per VM in MB (8192 = 8 GB; increase for large S2D pools) | `8192` | 2 |
+| `vm.os_disk_size_gb` | integer | No | OS disk size in GB | `127` | 2 |
 | `vm.admin_username` | string | **Yes** | Local admin username for the VMs | `sofs_admin` | 2 |
 | `vm.admin_password` | string | **Yes** | Key Vault URI — resolved at runtime, never stored in plaintext | — | 2 |
 | `vm.ips` | map | **Yes** | Static IP assignments per VM, keyed by node number | — | 2 |
@@ -134,6 +178,7 @@ data_disks:
 |----------|------|:--------:|-------------|---------|--------|
 | `data_disks.count` | integer | **Yes** | Data disks per VM (feeds the S2D pool) | `4` | 2 |
 | `data_disks.size_gb` | integer | **Yes** | Size of each data disk in GB — derived from [Capacity Planning](../architecture/capacity-planning.md) | `500` | 2 |
+| `data_disks.dynamic` | boolean | No | Reserved for future dynamic disk provisioning | `false` | — |
 
 !!! important "Size drives everything"
     `data_disks.size_gb` × `data_disks.count` × `vm.count` = total S2D pool. For the 5.5 TB usable example with two-way mirror: 4 × 1024 GB × 3 VMs = 12,288 GB total pool.
@@ -216,6 +261,8 @@ dns_servers:
 | `sofs.cluster_ip` | string | **Yes** | Static IP for the failover cluster | — | 5 |
 | `sofs.role_enabled` | boolean | No | Whether the SOFS Scale-Out File Server role is enabled | `true` | 8 |
 | `sofs.anti_affinity_rule_name` | string | No | Anti-affinity rule name in the host cluster | `SOFS-AntiAffinity` | 5 |
+| `sofs.smb_encryption` | boolean | No | Enable SMB encryption on shares | `true` | 8 |
+| `sofs.caching_mode` | string | No | BranchCache caching mode for shares | `None` | 8 |
 | `sofs.share_name` | string | Option A | Single SMB share name | `Profiles` | 8 |
 | `sofs.shares` | list | Option B | List of shares, each mapped to its own S2D volume | — | 8 |
 | `sofs.shares[].name` | string | Option B | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
@@ -255,6 +302,7 @@ dns_servers:
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
+| `s2d.pool_name` | string | No | S2D storage pool friendly name | `S2D on sofs-cluster` | 7 |
 | `s2d.volume_name` | string | Option A | Single guest S2D volume name | `FSLogixData` | 7 |
 | `s2d.volume_size_gb` | integer | Option A | Single guest S2D volume size — your usable FSLogix space target | — | 7 |
 | `s2d.data_copies` | integer | Option A | `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way | `2` | 7 |
@@ -425,3 +473,74 @@ Shows which variable groups are consumed by each deployment phase.
 | Guest Config Engine | | | ✅ | | |
 | Ansible Controller | | ✅ | ✅ | | |
 | Tags | ✅ | | | | |
+| Deployment Choices | ✅ | ✅ | | ✅ | |
+| Host Volumes | | | | | |
+| Permissions | | | | ✅ | ✅ |
+| FSLogix | | | | | ✅ |
+
+---
+
+## Host Volumes
+
+```yaml
+host_volumes:
+  prefix: "SOFS-CSV"
+  resiliency: "two_way"
+  count: 3
+  size_tb: 4.0
+  storage_pool_name: "S2D on azl-cluster-01"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `host_volumes.prefix` | string | No | CSV volume name prefix | `SOFS-CSV` | Reference |
+| `host_volumes.resiliency` | string | No | Host mirror level | `two_way` | Reference |
+| `host_volumes.count` | integer | No | Number of host CSV volumes | `3` | Reference |
+| `host_volumes.size_tb` | number | No | Size per host volume in TB | `4.0` | Reference |
+| `host_volumes.storage_pool_name` | string | No | Host S2D pool name (for validation) | — | Reference |
+
+!!! note "Reference only"
+    Host volumes are provisioned directly on the Azure Local cluster as a prerequisite. These variables exist for documentation, validation, and reporting — automation tools do not create host volumes.
+
+---
+
+## Permissions
+
+```yaml
+permissions:
+  admin_group: "Domain Admins"
+  users_group: "AVD-Users"
+  avd_users_group: "AVD-Users"
+```
+
+| Variable | Type | Required | Description | Default | Phases |
+|----------|------|:--------:|-------------|---------|--------|
+| `permissions.admin_group` | string | **Yes** | AD group with full control on SMB shares and NTFS | `Domain Admins` | 8–9 |
+| `permissions.users_group` | string | **Yes** | AD group for SMB change access and NTFS modify-this-folder-only | `AVD-Users` | 8–9 |
+| `permissions.avd_users_group` | string | No | AVD user group (may differ from `users_group` for scoping) | `AVD-Users` | 9 |
+
+---
+
+## FSLogix
+
+```yaml
+fslogix:
+  enabled: true
+  profile_size_mb: 30000
+  volume_type: "VHDX"
+  flip_flop_name: true
+  delete_local_profile: true
+  cloud_cache:
+    enabled: false
+    azure_provider: ""
+```
+
+| Variable | Type | Required | Description | Default | Valid Values | Phases |
+|----------|------|:--------:|-------------|---------|-------------|--------|
+| `fslogix.enabled` | boolean | No | Whether FSLogix profile containers are configured | `true` | — | 9–11 |
+| `fslogix.profile_size_mb` | integer | No | Maximum profile VHD(X) size in MB | `30000` | — | 9 |
+| `fslogix.volume_type` | string | No | Profile container disk format | `VHDX` | `VHDX`, `VHD` | 9 |
+| `fslogix.flip_flop_name` | boolean | No | Use `%USERNAME%_%SID%` instead of `%SID%_%USERNAME%` | `true` | — | 9 |
+| `fslogix.delete_local_profile` | boolean | No | Delete local profile on logoff when FSLogix is active | `true` | — | 9 |
+| `fslogix.cloud_cache.enabled` | boolean | No | Enable Cloud Cache (dual-write to SOFS + Azure Blob) | `false` | — | 9 |
+| `fslogix.cloud_cache.azure_provider` | string | No | Azure Blob Storage connection string for Cloud Cache | — | — | 9 |

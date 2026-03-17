@@ -33,6 +33,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
   - Architecture:
       - Overview: architecture/overview.md
       - Storage Design: architecture/storage-design.md
@@ -59,14 +60,17 @@ nav:
       - Secrets Management: operations/secrets-management.md
   - Reference:
       - Variables: reference/variables.md
-      - SOFS Deployment Guide: reference/sofs-deployment-guide.md
+      - SOFS Design & Deployment Guide: reference/sofs-design-and-deployment-guide.md
   - Standards:
       - Overview: standards/index.md
-      - Scripts: standards/scripts.md
       - Documentation: standards/documentation.md
-      - Solutions: standards/solutions.md
+      - Scripting: standards/scripting.md
       - Variables: standards/variables.md
-      - Examples: standards/examples.md
+      - Naming Conventions: standards/naming.md
+      - Solutions: standards/solutions.md
+      - Infrastructure: standards/infrastructure.md
+      - Automation: standards/automation.md
+      - Examples & IIC: standards/examples.md
   - Roadmap: roadmap.md
   - Contributing: contributing.md
 

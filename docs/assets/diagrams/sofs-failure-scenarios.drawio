@@ -1,0 +1,158 @@
+<mxfile host="draw.io" type="device">
+  <diagram name="Failure Scenarios" id="fail1">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="750">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="IIC — Failure Scenario Analysis (Dual-Layer Resiliency)" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="1000" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ════════ SCENARIO A: Host Node Failure ════════ -->
+        <mxCell id="scA_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;strokeWidth=2;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="20" y="55" width="660" height="640" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_title" value="&lt;b&gt;Scenario A: One Azure Local Host Node Fails&lt;/b&gt;" style="text;html=1;fontSize=13;fontColor=#c62828;align=center;" vertex="1" parent="1">
+          <mxGeometry x="120" y="60" width="460" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;Physical node iic-01-n02 fails. Anti-affinity ensures only iic-sofs-02 is affected.&lt;br&gt;Guest S2D continues on 2 of 3 nodes — full two-way mirror resiliency maintained.&lt;/font&gt;" style="text;html=1;align=center;fontColor=#555;" vertex="1" parent="1">
+          <mxGeometry x="60" y="88" width="580" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Physical nodes - Scenario A -->
+        <mxCell id="scA_n1" value="&lt;b&gt;iic-01-n01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ HEALTHY&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_n2" value="&lt;b&gt;iic-01-n02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#c62828&quot;&gt;❌ FAILED&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="250" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_n3" value="&lt;b&gt;iic-01-n03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ HEALTHY&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- SOFS VMs - Scenario A -->
+        <mxCell id="scA_vm1" value="&lt;b&gt;iic-sofs-01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ Running on n01&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_vm2" value="&lt;b&gt;iic-sofs-02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#c62828&quot;&gt;❌ Down with host&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="250" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_vm3" value="&lt;b&gt;iic-sofs-03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ Running on n03&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Guest cluster state A -->
+        <mxCell id="scA_cluster" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="275" width="605" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_clabel" value="&lt;b&gt;Guest SOFS Cluster (iic-sofs)&lt;/b&gt; — &lt;font color=&quot;#2e7d32&quot;&gt;Quorum: 2 nodes + cloud witness = ONLINE&lt;/font&gt;" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="278" width="480" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scA_s2d" value="&lt;b&gt;S2D Pool&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Two-way mirror intact on 2 nodes&lt;br&gt;All data has at least 1 copy on each surviving node&lt;br&gt;&lt;font color=&quot;#2e7d32&quot;&gt;✅ No data loss · No rebuild needed&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="305" width="260" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="scA_shares" value="&lt;b&gt;SMB Shares&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;\\iic-fslogix\Profiles&lt;br&gt;\\iic-fslogix\ODFC&lt;br&gt;\\iic-fslogix\AppData&lt;br&gt;&lt;font color=&quot;#2e7d32&quot;&gt;✅ Continuously available — zero interruption&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="305" width="270" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scA_avd" value="&lt;b&gt;AVD Sessions&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;30 session hosts continue uninterrupted&lt;br&gt;FSLogix profiles remain mounted&lt;br&gt;&lt;font color=&quot;#2e7d32&quot;&gt;✅ Users notice nothing&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="385" width="560" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Recovery A -->
+        <mxCell id="scA_recovery" value="&lt;b&gt;Recovery:&lt;/b&gt; Host node recovers → VM restarts → S2D resyncs (minutes on NVMe) → full 3-node resiliency restored" style="text;html=1;fontSize=10;fontColor=#555;align=center;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="560" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ════════ SCENARIO B: SOFS VM Failure ════════ -->
+        <mxCell id="scB_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;strokeWidth=2;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="710" y="55" width="660" height="640" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_title" value="&lt;b&gt;Scenario B: One SOFS VM Crashes (Host Node Healthy)&lt;/b&gt;" style="text;html=1;fontSize=13;fontColor=#e65100;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="60" width="460" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;iic-sofs-03 OS crash or BSOD. Physical host iic-01-n03 is fine.&lt;br&gt;Cluster restarts the VM automatically. S2D continues on remaining 2 nodes.&lt;/font&gt;" style="text;html=1;align=center;fontColor=#555;" vertex="1" parent="1">
+          <mxGeometry x="750" y="88" width="580" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Physical nodes - Scenario B -->
+        <mxCell id="scB_n1" value="&lt;b&gt;iic-01-n01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ HEALTHY&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_n2" value="&lt;b&gt;iic-01-n02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ HEALTHY&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_n3" value="&lt;b&gt;iic-01-n03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ HEALTHY&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="130" width="185" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- SOFS VMs - Scenario B -->
+        <mxCell id="scB_vm1" value="&lt;b&gt;iic-sofs-01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ Running&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_vm2" value="&lt;b&gt;iic-sofs-02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ Running&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_vm3" value="&lt;b&gt;iic-sofs-03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#e65100&quot;&gt;⚠ Crashed / Restarting&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontSize=10;shadow=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="205" width="185" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Guest cluster state B -->
+        <mxCell id="scB_cluster" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="730" y="275" width="605" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_clabel" value="&lt;b&gt;Guest SOFS Cluster (iic-sofs)&lt;/b&gt; — &lt;font color=&quot;#2e7d32&quot;&gt;Quorum: 2 nodes + cloud witness = ONLINE&lt;/font&gt;" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="790" y="278" width="480" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scB_s2d" value="&lt;b&gt;S2D Pool&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Two-way mirror intact — both copies live on vm-01 + vm-02&lt;br&gt;vm-03's data copies are stale until it rejoins&lt;br&gt;&lt;font color=&quot;#2e7d32&quot;&gt;✅ No data loss · Resync on rejoin&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="305" width="260" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="scB_shares" value="&lt;b&gt;SMB Shares&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Connections on vm-03 transparently move to vm-01/vm-02&lt;br&gt;SMB CA handles redirection automatically&lt;br&gt;&lt;font color=&quot;#2e7d32&quot;&gt;✅ Brief pause (&amp;lt;30s) then full service&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="305" width="270" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scB_avd" value="&lt;b&gt;AVD Sessions&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Sessions with profiles on vm-03 experience brief I/O pause (&amp;lt;30 seconds)&lt;br&gt;SMB Continuously Available handles reconnection transparently&lt;br&gt;&lt;font color=&quot;#e65100&quot;&gt;⚠ Momentary pause for affected sessions, then normal&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="385" width="560" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Recovery B -->
+        <mxCell id="scB_recovery" value="&lt;b&gt;Recovery:&lt;/b&gt; VM auto-restarts → rejoins cluster → S2D resyncs (minutes on NVMe) → full 3-node resiliency restored" style="text;html=1;fontSize=10;fontColor=#555;align=center;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="750" y="450" width="560" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ════════ BOTTOM: Worst Case ════════ -->
+        <mxCell id="worst_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#b71c1c;strokeWidth=2;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="20" y="500" width="1350" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="worst_title" value="&lt;b&gt;&lt;font color=&quot;#b71c1c&quot;&gt;Scenario C: Two SOFS VMs Down Simultaneously (Catastrophic)&lt;/font&gt;&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="505" width="700" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worst_vm1" value="&lt;b&gt;iic-sofs-01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#2e7d32&quot;&gt;✅ Running&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="545" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="worst_vm2" value="&lt;b&gt;iic-sofs-02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#c62828&quot;&gt;❌ Down&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="545" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="worst_vm3" value="&lt;b&gt;iic-sofs-03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#c62828&quot;&gt;❌ Down&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="545" width="160" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worst_result" value="&lt;b&gt;Quorum lost (1 node + cloud witness &amp;lt; majority)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;S2D pool OFFLINE · SMB shares UNAVAILABLE · FSLogix profile mounts FAIL&lt;br&gt;&lt;b&gt;AVD sessions cannot create new profiles. Existing mounted profiles go read-only / disconnect.&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#b71c1c;fontSize=11;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="535" width="720" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worst_mitigation" value="&lt;b&gt;Mitigation:&lt;/b&gt; This scenario requires two simultaneous failures — extremely unlikely with anti-affinity across separate hosts/volumes. Optional: configure &lt;b&gt;Cloud Cache&lt;/b&gt; (Appendix A) to maintain local profile copies on session hosts as a DR failover." style="text;html=1;fontSize=10;fontColor=#555;align=center;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="615" width="1000" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Footer -->
+        <mxCell id="footer" value="✓ Anti-affinity across 3 host nodes + 3 host volumes eliminates single-point-of-failure · guest two-way mirror adds defense in depth" style="text;html=1;fontSize=9;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="700" width="900" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

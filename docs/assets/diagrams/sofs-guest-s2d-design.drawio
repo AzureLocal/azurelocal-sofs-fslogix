@@ -1,0 +1,82 @@
+<mxfile host="65bd71144e">
+    <diagram name="Guest S2D Design" id="gs2d">
+        <mxGraphModel dx="788" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="620" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="IIC — Guest S2D Storage Design" style="text;html=1;fontSize=16;fontStyle=1;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="125" y="10" width="600" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="gc" value="SOFS Guest Cluster — iic-sofs (3 VMs: iic-sofs-01, 02, 03)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;fontSize=12;container=1;collapsible=0;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="25" y="50" width="800" height="510" as="geometry"/>
+                </mxCell>
+                <mxCell id="pool_hdr" value="&lt;b&gt;S2D Storage Pool&lt;/b&gt; — Two-Way Mirror" style="text;html=1;fontSize=11;fontColor=#333;align=left;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="32" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="disk_row" value="&lt;b&gt;Physical Disks&lt;/b&gt;: 12 × 1,140 GB (4 per VM) = &lt;b&gt;13,680 GB raw pool&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;shadow=1;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="60" width="760" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="reserve" value="&lt;font style=&quot;font-size:10px&quot;&gt;S2D Capacity Reserve: 1 × 1,140 GB × 3 nodes = &lt;b&gt;3,420 GB&lt;/b&gt; (auto-reserved for rebuild)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;fontSize=10;dashed=1;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="105" width="760" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="alloc" value="&lt;b&gt;Allocatable Capacity&lt;/b&gt;: 13,680 − 3,420 = &lt;b&gt;10,260 GB&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;shadow=1;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="145" width="760" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="vol_label" value="&lt;b&gt;Three S2D Volumes (workload isolation)&lt;/b&gt;" style="text;html=1;fontSize=11;fontColor=#333;align=left;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="195" width="400" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="v_profiles" value="&lt;b&gt;Profiles&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;1,710 GB usable&lt;br&gt;3,420 GB pool consumed&lt;br&gt;Two-way mirror&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=11;shadow=1;verticalAlign=top;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="222" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="share_p" value="&lt;font style=&quot;font-size:10px&quot;&gt;\\\\iic-fslogix\\Profiles&lt;br&gt;FSLogix profile containers&lt;/font&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#666;" parent="gc" vertex="1">
+                    <mxGeometry x="40" y="290" width="200" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="v_odfc" value="&lt;b&gt;ODFC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;1,710 GB usable&lt;br&gt;3,420 GB pool consumed&lt;br&gt;Two-way mirror&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=11;shadow=1;verticalAlign=top;" parent="gc" vertex="1">
+                    <mxGeometry x="280" y="222" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="share_o" value="&lt;font style=&quot;font-size:10px&quot;&gt;\\\\iic-fslogix\\ODFC&lt;br&gt;Outlook OST, Teams cache&lt;/font&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#666;" parent="gc" vertex="1">
+                    <mxGeometry x="300" y="290" width="200" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="v_appdata" value="&lt;b&gt;AppData&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;1,710 GB usable&lt;br&gt;3,420 GB pool consumed&lt;br&gt;Two-way mirror&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=11;shadow=1;verticalAlign=top;" parent="gc" vertex="1">
+                    <mxGeometry x="540" y="222" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="share_a" value="&lt;font style=&quot;font-size:10px&quot;&gt;\\\\iic-fslogix\\AppData&lt;br&gt;Per-user AppData&lt;/font&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#666;" parent="gc" vertex="1">
+                    <mxGeometry x="560" y="290" width="200" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="total_bar" value="&lt;b&gt;Total&lt;/b&gt;: 5,130 GB usable · 10,260 GB pool consumed · 10,260 / 10,260 = &lt;b&gt;100% allocatable used&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;dashed=1;shadow=1;" parent="gc" vertex="1">
+                    <mxGeometry x="80" y="345" width="640" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="cw" value="☁ Cloud Witness&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;stsofswitnessiic01&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#deecf9;strokeColor=#6c8ebf;fontSize=10;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="400" width="150" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="ep" value="&lt;b&gt;\\\\iic-fslogix\\&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;SOFS Access Point — Continuously Available&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;shadow=1;" parent="gc" vertex="1">
+                    <mxGeometry x="220" y="395" width="370" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="avd_arrow" value="&lt;font style=&quot;font-size:10px&quot;&gt;AVD Session Hosts&lt;br&gt;(30 VMs)&lt;/font&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#666;" parent="gc" vertex="1">
+                    <mxGeometry x="630" y="400" width="140" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;fontSize=10;fontStyle=1;align=left;" parent="gc" vertex="1">
+                    <mxGeometry x="20" y="460" width="50" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_disk" value="Physical Disks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" parent="gc" vertex="1">
+                    <mxGeometry x="80" y="458" width="90" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_alloc" value="Allocatable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" parent="gc" vertex="1">
+                    <mxGeometry x="180" y="458" width="80" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_vol" value="S2D Volume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=9;" parent="gc" vertex="1">
+                    <mxGeometry x="270" y="458" width="80" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_reserve" value="Reserve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;fontSize=9;dashed=1;" parent="gc" vertex="1">
+                    <mxGeometry x="360" y="458" width="70" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg_total" value="Pool Total" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;dashed=1;" parent="gc" vertex="1">
+                    <mxGeometry x="440" y="458" width="80" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_ep_avd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;" parent="gc" source="ep" target="avd_arrow" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

@@ -15,6 +15,17 @@
 
 
 # =============================================================================
+# Deployment Architecture Choices
+#
+# These high-level decisions determine which deployment path the tools follow.
+# See docs/standards/automation.md for the Deployment Path Matrix.
+# =============================================================================
+deployment:
+  host_volume_layout: "three_volumes"      # three_volumes | single_volume
+  guest_volume_layout: "option_b"          # option_a (single volume) | option_b (three volumes)
+
+
+# =============================================================================
 # Azure
 # =============================================================================
 azure:
@@ -53,6 +64,7 @@ vm:
   count: 3
   processors: 4
   memory_mb: 8192
+  os_disk_size_gb: 127
   admin_username: "sofs_admin"
   admin_password: "keyvault://kv-platform-prod/sofs-vm-admin-password"
   ips:
@@ -67,6 +79,7 @@ vm:
 data_disks:
   count: 4
   size_gb: 500
+  dynamic: false                           # true = dynamic provisioning (future)
 
 
 # =============================================================================
@@ -101,6 +114,8 @@ sofs:
   cluster_ip: "192.168.1.204"
   role_enabled: true
   anti_affinity_rule_name: "SOFS-AntiAffinity"
+  smb_encryption: true
+  caching_mode: "None"                     # None | Manual | Documents | Programs
 
   # --- Option A: single share ---
   share_name: "Profiles"
@@ -122,6 +137,8 @@ sofs:
 # Option B (three volumes): use volumes list instead
 # =============================================================================
 s2d:
+  pool_name: "S2D on sofs-cluster"
+
   # --- Option A: single volume ---
   volume_name: "FSLogixData"
   volume_size_gb: 2560
@@ -166,6 +183,43 @@ ansible_controller:
   hub_rg: "rg-connectivity"
   existing_controller_ip: ""
   existing_controller_user: "ansibleadmin"
+
+
+# =============================================================================
+# Host Volumes (reference only — actual provisioning is a prerequisite)
+#
+# These values document the host storage layout for validation and reporting.
+# Host volumes are created directly on the Azure Local cluster before Phase 1.
+# =============================================================================
+host_volumes:
+  prefix: "SOFS-CSV"
+  resiliency: "two_way"                    # two_way | three_way
+  count: 3
+  size_tb: 4.0
+  storage_pool_name: "S2D on azl-cluster-01"
+
+
+# =============================================================================
+# Permissions
+# =============================================================================
+permissions:
+  admin_group: "Domain Admins"
+  users_group: "AVD-Users"
+  avd_users_group: "AVD-Users"
+
+
+# =============================================================================
+# FSLogix
+# =============================================================================
+fslogix:
+  enabled: true
+  profile_size_mb: 30000
+  volume_type: "VHDX"                      # VHDX | VHD
+  flip_flop_name: true
+  delete_local_profile: true
+  cloud_cache:
+    enabled: false
+    azure_provider: ""                     # Azure Blob connection string (if Cloud Cache enabled)
 
 
 # =============================================================================
