@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/AzureLocal/azurelocal-sofs-fslogix/config/schema/variables.schema.json",
+  "title": "SOFS FSLogix Variables",
+  "description": "Schema for config/variables.example.yml — validates required sections and key structure.",
+  "type": "object",
+  "required": ["azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
+  "properties": {
+    "azure": {
+      "type": "object",
+      "required": ["subscription_id", "resource_group", "location"],
+      "properties": {
+        "subscription_id": { "type": "string" },
+        "resource_group": { "type": "string" },
+        "location": { "type": "string" }
+      }
+    },
+    "keyvault": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" }
+      }
+    },
+    "azure_local": {
+      "type": "object",
+      "required": ["cluster_name", "custom_location_id", "logical_network_id", "gallery_image_name"],
+      "properties": {
+        "cluster_name": { "type": "string" },
+        "custom_location_id": { "type": "string" },
+        "logical_network_id": { "type": "string" },
+        "gallery_image_name": { "type": "string" },
+        "storage_path_id": { "type": "string" },
+        "storage_path_ids": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "vm": {
+      "type": "object",
+      "required": ["prefix", "count", "processors", "memory_mb", "admin_username", "admin_password", "ips"],
+      "properties": {
+        "prefix": { "type": "string" },
+        "count": { "type": "integer", "minimum": 1 },
+        "processors": { "type": "integer", "minimum": 1 },
+        "memory_mb": { "type": "integer", "minimum": 1024 },
+        "admin_username": { "type": "string" },
+        "admin_password": { "type": "string" },
+        "ips": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "data_disks": {
+      "type": "object",
+      "required": ["count", "size_gb"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "size_gb": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "required": ["fqdn", "netbios", "join_username", "join_password"],
+      "properties": {
+        "fqdn": { "type": "string" },
+        "netbios": { "type": "string" },
+        "join_username": { "type": "string" },
+        "join_password": { "type": "string" },
+        "cluster_ou_path": { "type": "string" },
+        "nodes_ou_path": { "type": "string" }
+      }
+    },
+    "dns_servers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "sofs": {
+      "type": "object",
+      "required": ["name", "cluster_name", "cluster_ip"],
+      "properties": {
+        "name": { "type": "string" },
+        "cluster_name": { "type": "string" },
+        "cluster_ip": { "type": "string" },
+        "role_enabled": { "type": "boolean" },
+        "anti_affinity_rule_name": { "type": "string" },
+        "share_name": { "type": "string" },
+        "shares": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "volume"],
+            "properties": {
+              "name": { "type": "string" },
+              "volume": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "s2d": {
+      "type": "object",
+      "properties": {
+        "volume_name": { "type": "string" },
+        "volume_size_gb": { "type": "integer" },
+        "data_copies": { "type": "integer", "enum": [2, 3] },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "size_gb", "data_copies"],
+            "properties": {
+              "name": { "type": "string" },
+              "size_gb": { "type": "integer" },
+              "data_copies": { "type": "integer", "enum": [2, 3] }
+            }
+          }
+        }
+      }
+    },
+    "cloud_witness": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "key_uri": { "type": "string" },
+        "key_secret": { "type": "string" }
+      }
+    },
+    "guest_config_engine": {
+      "type": "string",
+      "enum": ["ansible_create", "ansible_existing", "manual"]
+    },
+    "ansible_controller": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "size": { "type": "string" },
+        "admin_username": { "type": "string" },
+        "hub_subnet_id": { "type": "string" },
+        "hub_rg": { "type": "string" },
+        "existing_controller_ip": { "type": "string" },
+        "existing_controller_user": { "type": "string" }
+      }
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}
