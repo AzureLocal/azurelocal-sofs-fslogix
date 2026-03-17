@@ -1,0 +1,167 @@
+<mxfile host="draw.io" type="device">
+  <diagram name="FSLogix Data Flow" id="fslogix1">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="680">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Keller — FSLogix Profile Data Flow: User Login → Disk Write" style="text;html=1;fontSize=15;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="900" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══ Step 1: User logs into AVD ═══ -->
+        <mxCell id="user" value="&lt;b&gt;AVD User&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Logs in via&lt;br&gt;RDP / AVD client&lt;/font&gt;" style="shape=mxgraph.azure.user;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="100" width="70" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_user_host" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1565C0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="135" as="sourcePoint"/>
+            <mxPoint x="160" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 2: AVD Session Host -->
+        <mxCell id="session_host" value="&lt;b&gt;AVD Session Host&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;e.g. vm-klr-avd-01&lt;br&gt;Windows 11 Multi-Session&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="105" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="step2_label" value="&lt;b style=&quot;font-size:9px&quot;&gt;1. FSLogix agent starts&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;Reads VHDLocations from GPO&lt;br&gt;Target: \\klr-fslogix\Profiles&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="170" y="170" width="160" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_host_ap" value="&lt;font style=&quot;font-size:8px;color:#ef6c00&quot;&gt;&lt;b&gt;SMB 445/TCP&lt;/b&gt;&lt;/font&gt;" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#ef6c00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="135" as="sourcePoint"/>
+            <mxPoint x="420" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 3: SOFS Access Point -->
+        <mxCell id="sofs_ap" value="&lt;b&gt;SOFS Access Point&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;font-family:monospace&quot;&gt;klr-fslogix&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;DNS A record points to&lt;br&gt;cluster CNO (klr-sofs)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="430" y="95" width="160" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="step3_label" value="&lt;b style=&quot;font-size:9px&quot;&gt;2. SMB CA connection&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;SMB Continuous Availability&lt;br&gt;handles node failover transparently&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="430" y="180" width="170" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_ap_owner" value="&lt;font style=&quot;font-size:8px;color:#7B1FA2&quot;&gt;&lt;b&gt;Routed to owner node&lt;/b&gt;&lt;/font&gt;" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#7B1FA2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="135" as="sourcePoint"/>
+            <mxPoint x="690" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Step 4: SOFS Node (owner) -->
+        <mxCell id="sofs_owner" value="&lt;b&gt;SOFS VM (owner)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;font-family:monospace&quot;&gt;vm-klr-sofs-01&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;Owns the share at&lt;br&gt;this moment&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=10;shadow=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="95" width="150" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="step4_label" value="&lt;b style=&quot;font-size:9px&quot;&gt;3. Attaches user VHDX&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;\\klr-fslogix\Profiles\&lt;br&gt;  jdoe\Profile_jdoe.VHDX&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="700" y="180" width="170" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══ Lower section: S2D write path ═══ -->
+        <mxCell id="s2d_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999;strokeWidth=1;strokeDashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="30" y="260" width="1040" height="250" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2d_title" value="&lt;b&gt;Guest S2D Layer — Two-Way Mirror Write&lt;/b&gt;" style="text;html=1;fontSize=12;fontColor=#333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="265" width="400" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- VHDX on volume -->
+        <mxCell id="vhdx" value="&lt;b&gt;Profile_jdoe.VHDX&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;On S2D volume: &lt;b&gt;Profiles&lt;/b&gt;&lt;br&gt;(ReFS, 1,710 GB)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="300" width="150" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="step5_label" value="&lt;b style=&quot;font-size:9px&quot;&gt;4. Write enters S2D stack&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;ReFS → S2D → Two-Way Mirror&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="375" width="190" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Mirror splits -->
+        <mxCell id="arr_to_c1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="290" y="330" as="sourcePoint"/>
+            <mxPoint x="420" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_to_c2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="290" y="345" as="sourcePoint"/>
+            <mxPoint x="420" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="split_label" value="&lt;font style=&quot;font-size:8px;color:#2e7d32&quot;&gt;S2D writes&lt;br&gt;2 copies&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="320" y="325" width="70" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Copy 1: Local data disk -->
+        <mxCell id="disk_local" value="&lt;b&gt;Copy 1 — Local&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Data VHDX on vm-klr-sofs-01&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;(4 × 1,140 GB data disks)&lt;/font&gt;&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="290" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Copy 2: Remote data disk -->
+        <mxCell id="disk_remote" value="&lt;b&gt;Copy 2 — Remote&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Data VHDX on vm-klr-sofs-02&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;(4 × 1,140 GB data disks)&lt;/font&gt;&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="365" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="repl_arrow" value="&lt;font style=&quot;font-size:8px;color:#2e7d32&quot;&gt;S2D replication over SMB 445&lt;/font&gt;" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#2e7d32;strokeWidth=2;dashed=1;" edge="1" parent="1" source="disk_local" target="disk_remote">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══ Host layer ═══ -->
+        <mxCell id="arr_host_layer" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="330" as="sourcePoint"/>
+            <mxPoint x="700" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_host_layer2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="395" as="sourcePoint"/>
+            <mxPoint x="700" y="415" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="host_label" value="&lt;font style=&quot;font-size:8px;color:#c62828&quot;&gt;Host S2D mirrors&lt;br&gt;each VHDX sector&lt;br&gt;across 2 physical&lt;br&gt;NVMe drives&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="340" width="80" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Physical NVMe host 1 -->
+        <mxCell id="nvme_host1" value="&lt;b&gt;azl-klr-bal-n01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;NVMe (host mirror)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=8;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="290" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="nvme_host2" value="&lt;b&gt;azl-klr-bal-n02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;NVMe (host mirror)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=8;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="350" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="nvme_host3" value="&lt;b&gt;azl-klr-bal-n03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;NVMe (host mirror)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;size=8;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="410" width="130" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Result summary -->
+        <mxCell id="result_box" value="&lt;b&gt;5. Write acknowledged&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;User's profile change persisted across:&lt;br&gt;• 2 SOFS VMs (guest S2D)&lt;br&gt;• 2+ physical NVMe drives per copy (host S2D)&lt;br&gt;= &lt;b&gt;4 physical copies&lt;/b&gt; before ACK to FSLogix&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#283593;fontSize=10;shadow=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="870" y="300" width="180" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══ Three shares ═══ -->
+        <mxCell id="shares_title" value="&lt;b&gt;SOFS File Shares (3 volumes, 3 shares)&lt;/b&gt;" style="text;html=1;fontSize=11;fontColor=#333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="530" width="700" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="share_profiles" value="&lt;b&gt;\\klr-fslogix\Profiles&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;1,710 GB — Profile VHDXs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565C0;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="560" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="share_odfc" value="&lt;b&gt;\\klr-fslogix\ODFC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;1,710 GB — Outlook caches&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="560" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="share_appdata" value="&lt;b&gt;\\klr-fslogix\AppData&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;1,710 GB — AppData redirects&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7B1FA2;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="560" width="200" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;font color=&quot;#ef6c00&quot;&gt;━&lt;/font&gt; SMB 445 (client→SOFS)&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#7B1FA2&quot;&gt;━&lt;/font&gt; Cluster routing&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#2e7d32&quot;&gt;━&lt;/font&gt; Guest S2D replication&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#c62828&quot;&gt;━&lt;/font&gt; Host S2D mirror&lt;/font&gt;" style="text;html=1;align=center;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="625" width="700" height="15" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

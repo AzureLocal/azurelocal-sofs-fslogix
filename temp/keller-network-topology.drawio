@@ -1,0 +1,183 @@
+<mxfile host="draw.io" type="device">
+  <diagram name="Network Topology" id="net1">
+    <mxGraphModel dx="1422" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Keller — SOFS Network Topology" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="700" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Azure Cloud -->
+        <mxCell id="azure_cloud" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0288d1;strokeWidth=2;dashed=1;opacity=40;" vertex="1" parent="1">
+          <mxGeometry x="900" y="50" width="260" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="azure_label" value="&lt;b&gt;Azure Cloud&lt;/b&gt;" style="text;html=1;fontSize=12;fontColor=#0277BD;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="55" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="cw" value="☁ &lt;b&gt;Cloud Witness&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;stsofswitnessklr01&lt;br&gt;Azure Blob Storage&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#deecf9;strokeColor=#6c8ebf;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="930" y="85" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="arc" value="&lt;b&gt;Azure Arc&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;rg-klr-sofs-eastus&lt;br&gt;Arc VM management&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#deecf9;strokeColor=#6c8ebf;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="930" y="155" width="200" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Compute Network -->
+        <mxCell id="net_compute" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="30" y="270" width="840" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="net_compute_label" value="&lt;b&gt;Compute Logical Network&lt;/b&gt;&amp;nbsp; · &amp;nbsp;10.x.x.0/24 &amp;nbsp;·&amp;nbsp; VLAN xxx" style="text;html=1;fontSize=11;fontColor=#333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="272" width="500" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- SOFS VMs on compute network -->
+        <mxCell id="sofs1_net" value="&lt;b&gt;vm-klr-sofs-01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;10.x.x.21&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="300" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sofs2_net" value="&lt;b&gt;vm-klr-sofs-02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;10.x.x.22&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="210" y="300" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sofs3_net" value="&lt;b&gt;vm-klr-sofs-03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;10.x.x.23&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="300" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="cno_net" value="&lt;b&gt;klr-sofs&lt;/b&gt; (CNO)&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;10.x.x.25&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;strokeDasharray=3;" vertex="1" parent="1">
+          <mxGeometry x="540" y="300" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="fslogix_ap" value="&lt;b&gt;klr-fslogix&lt;/b&gt; (SOFS AP)&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;DNS: \\klr-fslogix&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;shadow=1;strokeDasharray=3;" vertex="1" parent="1">
+          <mxGeometry x="700" y="300" width="150" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- AVD Session Hosts -->
+        <mxCell id="avd_block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f9a825;strokeWidth=2;opacity=40;" vertex="1" parent="1">
+          <mxGeometry x="30" y="420" width="840" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd_label" value="&lt;b&gt;AVD Session Hosts&lt;/b&gt;&amp;nbsp; ·&amp;nbsp; 30 VMs on Workload-CSV01 / Workload-CSV02" style="text;html=1;fontSize=11;fontColor=#333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="425" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd1" value="&lt;font style=&quot;font-size:9px&quot;&gt;Session Host 01&lt;br&gt;10.x.x.101&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="455" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd2" value="&lt;font style=&quot;font-size:9px&quot;&gt;Session Host 02&lt;br&gt;10.x.x.102&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="175" y="455" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd3" value="&lt;font style=&quot;font-size:9px&quot;&gt;Session Host 03&lt;br&gt;10.x.x.103&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="455" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd_dots" value="&lt;font style=&quot;font-size:14px;color:#999&quot;&gt;· · ·&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="460" width="50" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="avd30" value="&lt;font style=&quot;font-size:9px&quot;&gt;Session Host 30&lt;br&gt;10.x.x.130&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="455" width="110" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Physical Nodes -->
+        <mxCell id="phys_block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="30" y="560" width="840" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="phys_label" value="&lt;b&gt;Azure Local Cluster&lt;/b&gt;&amp;nbsp; ·&amp;nbsp; azl-klr-bal-01 &amp;nbsp;·&amp;nbsp; 3 Physical Nodes" style="text;html=1;fontSize=11;fontColor=#333;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="565" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="node1" value="&lt;b&gt;azl-klr-bal-n01&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;3 × 7.68 TB NVMe&lt;br&gt;Hosts vm-klr-sofs-01&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="595" width="240" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="node2" value="&lt;b&gt;azl-klr-bal-n02&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;3 × 7.68 TB NVMe&lt;br&gt;Hosts vm-klr-sofs-02&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="595" width="240" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="node3" value="&lt;b&gt;azl-klr-bal-n03&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;3 × 7.68 TB NVMe&lt;br&gt;Hosts vm-klr-sofs-03&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="595" width="240" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Traffic flow arrows -->
+        <!-- SMB between SOFS VMs (S2D replication) -->
+        <mxCell id="s2d_12" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="sofs1_net" target="sofs2_net">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2d_23" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="sofs2_net" target="sofs3_net">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2d_13" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;curved=1;" edge="1" parent="1" source="sofs1_net" target="sofs3_net">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="355"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s2d_legend" value="&lt;font style=&quot;font-size:9px;color:#82b366&quot;&gt;← S2D replication (TCP 445) →&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="120" y="355" width="200" height="15" as="geometry"/>
+        </mxCell>
+
+        <!-- AVD to SOFS AP (SMB client traffic) -->
+        <mxCell id="smb_avd1" value="" style="endArrow=classic;html=1;strokeColor=#f9a825;strokeWidth=2;" edge="1" parent="1" source="avd1" target="fslogix_ap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="smb_avd2" value="" style="endArrow=classic;html=1;strokeColor=#f9a825;strokeWidth=2;" edge="1" parent="1" source="avd2" target="fslogix_ap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="smb_avd3" value="" style="endArrow=classic;html=1;strokeColor=#f9a825;strokeWidth=2;" edge="1" parent="1" source="avd3" target="fslogix_ap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="smb_avd30" value="" style="endArrow=classic;html=1;strokeColor=#f9a825;strokeWidth=2;" edge="1" parent="1" source="avd30" target="fslogix_ap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="smb_legend" value="&lt;font style=&quot;font-size:9px;color:#f9a825&quot;&gt;FSLogix SMB (TCP 445) →&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="390" width="200" height="15" as="geometry"/>
+        </mxCell>
+
+        <!-- Cloud witness connection -->
+        <mxCell id="cw_conn" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#0288d1;strokeWidth=2;dashed=1;" edge="1" parent="1" source="cno_net" target="cw">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="300"/>
+              <mxPoint x="900" y="200"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cw_legend" value="&lt;font style=&quot;font-size:9px;color:#0288d1&quot;&gt;Cloud Witness (HTTPS 443)&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="880" y="250" width="170" height="15" as="geometry"/>
+        </mxCell>
+
+        <!-- VM to node pinning -->
+        <mxCell id="pin1" value="" style="endArrow=classic;html=1;strokeColor=#c62828;strokeWidth=1;dashed=1;dashPattern=3 3;" edge="1" parent="1" source="sofs1_net" target="node1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pin2" value="" style="endArrow=classic;html=1;strokeColor=#c62828;strokeWidth=1;dashed=1;dashPattern=3 3;" edge="1" parent="1" source="sofs2_net" target="node2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pin3" value="" style="endArrow=classic;html=1;strokeColor=#c62828;strokeWidth=1;dashed=1;dashPattern=3 3;" edge="1" parent="1" source="sofs3_net" target="node3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pin_legend" value="&lt;font style=&quot;font-size:9px;color:#c62828&quot;&gt;Anti-affinity pinning&lt;/font&gt;" style="text;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="540" width="150" height="15" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="420" width="260" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="425" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="&lt;font style=&quot;font-size:9px&quot;&gt;── &lt;font color=&quot;#82b366&quot;&gt;S2D inter-node replication (TCP 445)&lt;/font&gt;&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="450" width="240" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="&lt;font style=&quot;font-size:9px&quot;&gt;── &lt;font color=&quot;#f9a825&quot;&gt;FSLogix client SMB (TCP 445)&lt;/font&gt;&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="470" width="240" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="&lt;font style=&quot;font-size:9px&quot;&gt;┄ &lt;font color=&quot;#0288d1&quot;&gt;Cloud Witness quorum (HTTPS 443)&lt;/font&gt;&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="490" width="240" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="&lt;font style=&quot;font-size:9px&quot;&gt;┄ &lt;font color=&quot;#c62828&quot;&gt;Anti-affinity (VM → physical node)&lt;/font&gt;&lt;/font&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="510" width="240" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="&lt;font style=&quot;font-size:9px&quot;&gt;All traffic on single compute logical network&lt;br&gt;(S2D ↔ SMB client ↔ management)&lt;/font&gt;" style="text;html=1;align=left;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="910" y="530" width="240" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Footer -->
+        <mxCell id="footer" value="✓ Single NIC per SOFS VM · all traffic shares one compute network · Cloud Witness requires outbound HTTPS to Azure" style="text;html=1;fontSize=9;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="175" y="690" width="700" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
