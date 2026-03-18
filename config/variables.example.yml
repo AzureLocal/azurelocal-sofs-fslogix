@@ -22,7 +22,7 @@
 # =============================================================================
 deployment:
   host_volume_layout: "three_volumes"      # three_volumes | single_volume
-  guest_volume_layout: "option_b"          # option_a (single volume) | option_b (three volumes)
+  guest_volume_layout: "option_a"          # option_a (single volume) | option_b (three volumes)
 
 
 # =============================================================================
@@ -116,6 +116,7 @@ sofs:
   anti_affinity_rule_name: "SOFS-AntiAffinity"
   smb_encryption: true
   caching_mode: "None"                     # None | Manual | Documents | Programs
+  continuous_availability: true            # CA flag on SMB shares (required for FSLogix)
 
   # --- Option A: single share ---
   share_name: "Profiles"

@@ -4,10 +4,11 @@
   "title": "SOFS FSLogix Variables",
   "description": "Schema for config/variables.example.yml — validates required sections and key structure.",
   "type": "object",
-  "required": ["azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
+  "required": ["deployment", "azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
   "properties": {
     "deployment": {
       "type": "object",
+      "required": ["host_volume_layout", "guest_volume_layout"],
       "properties": {
         "host_volume_layout": { "type": "string", "enum": ["three_volumes", "single_volume"] },
         "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] }
@@ -46,7 +47,7 @@
       "required": ["prefix", "count", "processors", "memory_mb", "admin_username", "admin_password", "ips"],
       "properties": {
         "prefix": { "type": "string" },
-        "count": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 2, "maximum": 16 },
         "processors": { "type": "integer", "minimum": 1 },
         "memory_mb": { "type": "integer", "minimum": 1024 },
         "os_disk_size_gb": { "type": "integer", "minimum": 1 },
@@ -92,6 +93,7 @@
         "anti_affinity_rule_name": { "type": "string" },
         "smb_encryption": { "type": "boolean" },
         "caching_mode": { "type": "string", "enum": ["None", "Manual", "Documents", "Programs"] },
+        "continuous_availability": { "type": "boolean" },
         "share_name": { "type": "string" },
         "shares": {
           "type": "array",
@@ -108,6 +110,7 @@
     },
     "s2d": {
       "type": "object",
+      "required": ["pool_name"],
       "properties": {
         "pool_name": { "type": "string" },
         "volume_name": { "type": "string" },
@@ -164,6 +167,7 @@
     },
     "permissions": {
       "type": "object",
+      "required": ["admin_group", "users_group"],
       "properties": {
         "admin_group": { "type": "string" },
         "users_group": { "type": "string" },
@@ -172,6 +176,7 @@
     },
     "fslogix": {
       "type": "object",
+      "required": ["enabled"],
       "properties": {
         "enabled": { "type": "boolean" },
         "profile_size_mb": { "type": "integer" },
@@ -192,5 +197,41 @@
       "additionalProperties": { "type": "string" }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_volume_layout": { "const": "option_a" } },
+            "required": ["guest_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volume_name", "volume_size_gb", "data_copies"] },
+          "sofs": { "required": ["name", "cluster_name", "cluster_ip", "share_name"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_volume_layout": { "const": "option_b" } },
+            "required": ["guest_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volumes"] },
+          "sofs": { "required": ["name", "cluster_name", "cluster_ip", "shares"] }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }
