@@ -4,19 +4,23 @@
   "title": "SOFS FSLogix Variables",
   "description": "Schema for config/variables.example.yml — validates required sections and key structure.",
   "type": "object",
-  "required": ["azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
+  "required": ["deployment", "azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
   "properties": {
     "deployment": {
       "type": "object",
+      "required": ["host_volume_layout", "host_resiliency", "guest_volume_layout", "guest_resiliency"],
       "properties": {
         "host_volume_layout": { "type": "string", "enum": ["three_volumes", "single_volume"] },
-        "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] }
+        "host_resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
+        "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] },
+        "guest_resiliency": { "type": "string", "enum": ["two_way", "three_way"] }
       }
     },
     "azure": {
       "type": "object",
-      "required": ["subscription_id", "resource_group", "location"],
+      "required": ["tenant_id", "subscription_id", "resource_group", "location"],
       "properties": {
+        "tenant_id": { "type": "string" },
         "subscription_id": { "type": "string" },
         "resource_group": { "type": "string" },
         "location": { "type": "string" }
@@ -24,9 +28,12 @@
     },
     "keyvault": {
       "type": "object",
-      "required": ["name"],
+      "required": ["name", "tenant_id", "subscription_id", "resource_group"],
       "properties": {
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "subscription_id": { "type": "string" },
+        "resource_group": { "type": "string" }
       }
     },
     "azure_local": {
@@ -46,7 +53,7 @@
       "required": ["prefix", "count", "processors", "memory_mb", "admin_username", "admin_password", "ips"],
       "properties": {
         "prefix": { "type": "string" },
-        "count": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 2, "maximum": 16 },
         "processors": { "type": "integer", "minimum": 1 },
         "memory_mb": { "type": "integer", "minimum": 1024 },
         "os_disk_size_gb": { "type": "integer", "minimum": 1 },
@@ -83,15 +90,18 @@
     },
     "sofs": {
       "type": "object",
-      "required": ["name", "cluster_name", "cluster_ip"],
+      "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip"],
       "properties": {
-        "name": { "type": "string" },
+        "role_name": { "type": "string" },
         "cluster_name": { "type": "string" },
         "cluster_ip": { "type": "string" },
+        "access_point_ip": { "type": "string" },
         "role_enabled": { "type": "boolean" },
         "anti_affinity_rule_name": { "type": "string" },
         "smb_encryption": { "type": "boolean" },
         "caching_mode": { "type": "string", "enum": ["None", "Manual", "Documents", "Programs"] },
+        "continuous_availability": { "type": "boolean" },
+        "folder_enumeration_mode": { "type": "string", "enum": ["AccessBased", "Unrestricted"] },
         "share_name": { "type": "string" },
         "shares": {
           "type": "array",
@@ -108,6 +118,7 @@
     },
     "s2d": {
       "type": "object",
+      "required": ["pool_name"],
       "properties": {
         "pool_name": { "type": "string" },
         "volume_name": { "type": "string" },
@@ -132,6 +143,7 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
+        "endpoint": { "type": "string" },
         "key_uri": { "type": "string" },
         "key_secret": { "type": "string" }
       }
@@ -146,6 +158,8 @@
         "name": { "type": "string" },
         "size": { "type": "string" },
         "admin_username": { "type": "string" },
+        "ssh_public_key_path": { "type": "string" },
+        "private_ip": { "type": "string" },
         "hub_subnet_id": { "type": "string" },
         "hub_rg": { "type": "string" },
         "existing_controller_ip": { "type": "string" },
@@ -154,16 +168,27 @@
     },
     "host_volumes": {
       "type": "object",
+      "required": ["storage_pool_name"],
       "properties": {
-        "prefix": { "type": "string" },
-        "resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
-        "count": { "type": "integer", "minimum": 1 },
+        "storage_pool_name": { "type": "string" },
+        "name": { "type": "string" },
         "size_tb": { "type": "number" },
-        "storage_pool_name": { "type": "string" }
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "size_tb"],
+            "properties": {
+              "name": { "type": "string" },
+              "size_tb": { "type": "number" }
+            }
+          }
+        }
       }
     },
     "permissions": {
       "type": "object",
+      "required": ["admin_group", "users_group"],
       "properties": {
         "admin_group": { "type": "string" },
         "users_group": { "type": "string" },
@@ -172,6 +197,7 @@
     },
     "fslogix": {
       "type": "object",
+      "required": ["enabled"],
       "properties": {
         "enabled": { "type": "boolean" },
         "profile_size_mb": { "type": "integer" },
@@ -190,7 +216,116 @@
     "tags": {
       "type": "object",
       "additionalProperties": { "type": "string" }
+    },
+    "winrm": {
+      "type": "object",
+      "properties": {
+        "transport": { "type": "string", "enum": ["kerberos", "ntlm", "basic"] },
+        "port": { "type": "integer", "enum": [5985, 5986] },
+        "use_ssl": { "type": "boolean" },
+        "cert_validation": { "type": "string", "enum": ["ignore", "validate"] }
+      }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_volume_layout": { "const": "option_a" } },
+            "required": ["guest_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volume_name", "volume_size_gb", "data_copies"] },
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "share_name"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_volume_layout": { "const": "option_b" } },
+            "required": ["guest_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volumes"] },
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "shares"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_volume_layout": { "const": "single_volume" } },
+            "required": ["host_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "host_volumes": { "required": ["storage_pool_name", "name", "size_tb"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_volume_layout": { "const": "three_volumes" } },
+            "required": ["host_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "host_volumes": { "required": ["storage_pool_name", "volumes"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_resiliency": { "const": "three_way" } },
+            "required": ["host_resiliency"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "vm": { "properties": { "count": { "minimum": 3 } } }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_resiliency": { "const": "three_way" } },
+            "required": ["guest_resiliency"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "vm": { "properties": { "count": { "minimum": 3 } } }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }

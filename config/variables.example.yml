@@ -22,13 +22,16 @@
 # =============================================================================
 deployment:
   host_volume_layout: "three_volumes"      # three_volumes | single_volume
-  guest_volume_layout: "option_b"          # option_a (single volume) | option_b (three volumes)
+  host_resiliency: "two_way"               # two_way | three_way (host CSV mirror)
+  guest_volume_layout: "option_a"          # option_a (single volume) | option_b (three volumes)
+  guest_resiliency: "two_way"              # two_way | three_way (S2D data copies in guest cluster)
 
 
 # =============================================================================
 # Azure
 # =============================================================================
 azure:
+  tenant_id: "00000000-0000-0000-0000-000000000000"
   subscription_id: "00000000-0000-0000-0000-000000000000"
   resource_group: "rg-sofs-azl-eus-01"
   location: "eastus"
@@ -39,6 +42,9 @@ azure:
 # =============================================================================
 keyvault:
   name: "kv-platform-prod"
+  tenant_id: "00000000-0000-0000-0000-000000000000"
+  subscription_id: "00000000-0000-0000-0000-000000000000"   # may differ from azure.subscription_id
+  resource_group: "rg-keyvault-prod"                         # may differ from azure.resource_group
 
 
 # =============================================================================
@@ -109,13 +115,16 @@ dns_servers:
 # Option B (three shares): use shares list instead
 # =============================================================================
 sofs:
-  name: "FSLogixSOFS"
-  cluster_name: "sofs-cluster"
-  cluster_ip: "192.168.1.204"
+  role_name: "FSLogixSOFS"                  # SOFS cluster role name (Add-ClusterScaleOutFileServerRole)
+  cluster_name: "sofs-cluster"              # guest failover cluster name (CNO in AD)
+  cluster_ip: "192.168.1.204"               # static IP for the guest failover cluster
+  access_point_ip: "192.168.1.205"          # static IP for the SOFS client access point (\\role_name)
   role_enabled: true
   anti_affinity_rule_name: "SOFS-AntiAffinity"
   smb_encryption: true
   caching_mode: "None"                     # None | Manual | Documents | Programs
+  continuous_availability: true            # CA flag on SMB shares (required for FSLogix)
+  folder_enumeration_mode: "AccessBased"   # AccessBased | Unrestricted
 
   # --- Option A: single share ---
   share_name: "Profiles"
@@ -162,6 +171,7 @@ s2d:
 # =============================================================================
 cloud_witness:
   name: "stsofswitnessprod01"
+  endpoint: "core.windows.net"              # storage endpoint (sovereign: core.chinacloudapi.cn, etc.)
   key_uri: ""
   key_secret: ""
 
@@ -179,6 +189,8 @@ ansible_controller:
   name: "vm-ansible-sofs-01"
   size: "Standard_B2s"
   admin_username: "ansibleadmin"
+  ssh_public_key_path: "~/.ssh/id_rsa.pub"  # path to SSH public key for controller VM
+  private_ip: "10.250.1.41"                 # static IP for the Ansible controller
   hub_subnet_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-connectivity/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-mgmt"
   hub_rg: "rg-connectivity"
   existing_controller_ip: ""
@@ -192,11 +204,20 @@ ansible_controller:
 # Host volumes are created directly on the Azure Local cluster before Phase 1.
 # =============================================================================
 host_volumes:
-  prefix: "SOFS-CSV"
-  resiliency: "two_way"                    # two_way | three_way
-  count: 3
-  size_tb: 4.0
   storage_pool_name: "S2D on azl-cluster-01"
+
+  # --- single_volume layout ---
+  # name: "SOFS-CSV-01"
+  # size_tb: 12.0
+
+  # --- three_volumes layout ---
+  volumes:
+    - name: "SOFS-CSV-01"
+      size_tb: 4.0
+    - name: "SOFS-CSV-02"
+      size_tb: 4.0
+    - name: "SOFS-CSV-03"
+      size_tb: 4.0
 
 
 # =============================================================================
@@ -230,3 +251,16 @@ tags:
   environment: "production"
   workload: "FSLogix"
   solution: "sofs-azure-local"
+
+
+# =============================================================================
+# WinRM (guest OS configuration transport)
+#
+# Used by PowerShell (Configure-SOFS-Cluster.ps1) and Ansible for
+# remote management of the SOFS VMs. Kerberos requires domain join.
+# =============================================================================
+winrm:
+  transport: "kerberos"                    # kerberos | ntlm | basic
+  port: 5986                               # 5985 (HTTP) | 5986 (HTTPS)
+  use_ssl: true                            # false for port 5985, true for 5986
+  cert_validation: "ignore"                # ignore | validate (self-signed certs on new VMs)

@@ -232,84 +232,11 @@ try {
 }
 
 # ===========================================================================
-# COMPATIBILITY SHIM — map new sectioned config to legacy compute_wsfc keys
-# ===========================================================================
-# If the config already has a compute_wsfc section (legacy format), use it as-is.
-# If it has the new sectioned format (azure, vm, sofs, ...), map to legacy keys
-# so all downstream code works unchanged.
+# VALIDATE CONFIG FORMAT
 # ===========================================================================
 
-if (-not $sol.compute_wsfc -and $sol.azure) {
-    Write-Log "Detected new config format — applying compatibility shim..." "INFO"
-    $mapped = @{}
-    # azure
-    $mapped['wsfc_sofs_subscription_id']    = $sol.azure.subscription_id
-    $mapped['wsfc_sofs_resource_group']     = $sol.azure.resource_group
-    $mapped['wsfc_sofs_location']           = $sol.azure.location
-    # azure_local
-    $mapped['wsfc_sofs_custom_location_id'] = $sol.azure_local.custom_location_id
-    $mapped['wsfc_sofs_logical_network_id'] = $sol.azure_local.logical_network_id
-    $mapped['wsfc_sofs_gallery_image_name'] = $sol.azure_local.gallery_image_name
-    $mapped['wsfc_sofs_storage_path_id']    = $sol.azure_local.storage_path_id
-    $mapped['wsfc_sofs_storage_path_ids']   = $sol.azure_local.storage_path_ids
-    $mapped['wsfc_sofs_azl_cluster_name']   = $sol.azure_local.cluster_name
-    # vm
-    $mapped['wsfc_sofs_vm_prefix']          = $sol.vm.prefix
-    $mapped['wsfc_sofs_vm_count']           = $sol.vm.count
-    $mapped['wsfc_sofs_vm_processors']      = $sol.vm.processors
-    $mapped['wsfc_sofs_vm_memory_mb']       = $sol.vm.memory_mb
-    $mapped['wsfc_sofs_vm_admin_username']  = $sol.vm.admin_username
-    $mapped['wsfc_sofs_vm_admin_password']  = $sol.vm.admin_password
-    $mapped['wsfc_sofs_vm_ips']             = $sol.vm.ips
-    # data_disks
-    $mapped['wsfc_sofs_data_disk_count']    = $sol.data_disks.count
-    $mapped['wsfc_sofs_data_disk_size_gb']  = $sol.data_disks.size_gb
-    # domain
-    $mapped['wsfc_sofs_domain_fqdn']        = $sol.domain.fqdn
-    $mapped['wsfc_domain_fqdn']             = $sol.domain.fqdn
-    $mapped['wsfc_sofs_domain_netbios']     = $sol.domain.netbios
-    $mapped['wsfc_sofs_domain_join_username'] = $sol.domain.join_username
-    $mapped['wsfc_sofs_domain_join_password'] = $sol.domain.join_password
-    $mapped['wsfc_sofs_cluster_ou_path']    = $sol.domain.cluster_ou_path
-    $mapped['wsfc_sofs_nodes_ou_path']      = $sol.domain.nodes_ou_path
-    # dns
-    $mapped['wsfc_sofs_dns_servers']        = $sol.dns_servers
-    # sofs
-    $mapped['wsfc_sofs_name']               = $sol.sofs.name
-    $mapped['wsfc_sofs_cluster_name']       = $sol.sofs.cluster_name
-    $mapped['wsfc_sofs_cluster_ip']         = $sol.sofs.cluster_ip
-    $mapped['wsfc_sofs_share_name']         = $sol.sofs.share_name
-    $mapped['wsfc_sofs_role_enabled']       = $sol.sofs.role_enabled
-    $mapped['wsfc_sofs_anti_affinity_rule_name'] = $sol.sofs.anti_affinity_rule_name
-    # s2d
-    $mapped['wsfc_sofs_s2d_volume_name']    = $sol.s2d.volume_name
-    $mapped['wsfc_sofs_s2d_volume_size_gb'] = $sol.s2d.volume_size_gb
-    $mapped['wsfc_sofs_s2d_data_copies']    = $sol.s2d.data_copies
-    # cloud_witness
-    $mapped['wsfc_sofs_cloud_witness_name'] = $sol.cloud_witness.name
-    $mapped['wsfc_sofs_cloud_witness_key_uri']    = $sol.cloud_witness.key_uri
-    $mapped['wsfc_sofs_cloud_witness_key_secret'] = $sol.cloud_witness.key_secret
-    # guest config
-    $mapped['wsfc_sofs_guest_config_engine'] = $sol.guest_config_engine
-    # ansible controller
-    if ($sol.ansible_controller) {
-        $mapped['wsfc_sofs_ansible_controller_name']           = $sol.ansible_controller.name
-        $mapped['wsfc_sofs_ansible_controller_size']           = $sol.ansible_controller.size
-        $mapped['wsfc_sofs_ansible_controller_admin_username'] = $sol.ansible_controller.admin_username
-        $mapped['wsfc_sofs_ansible_controller_hub_subnet_id']  = $sol.ansible_controller.hub_subnet_id
-        $mapped['wsfc_sofs_ansible_controller_hub_rg']         = $sol.ansible_controller.hub_rg
-        $mapped['wsfc_sofs_ansible_existing_controller_ip']    = $sol.ansible_controller.existing_controller_ip
-        $mapped['wsfc_sofs_ansible_existing_controller_user']  = $sol.ansible_controller.existing_controller_user
-    }
-
-    $sol['compute_wsfc'] = $mapped
-    Write-Log "Compatibility shim applied — mapped new config sections to legacy keys." "PASS"
-}
-
-$cfg = $sol.compute_wsfc                                                 # compute.wsfc section
-
-if (-not $cfg) {
-    Write-Log "Solution config missing 'compute_wsfc' section." "FAIL"
+if (-not $sol.azure) {
+    Write-Log "Config must use the sectioned format (azure, vm, sofs, ...). See config/variables.example.yml." "FAIL"
     exit 1
 }
 
@@ -328,35 +255,55 @@ function Resolve-Param {
     return $null
 }
 
-$VMPrefix               = Resolve-Param $VMPrefix               $cfg.wsfc_sofs_vm_prefix          "VMPrefix"                  # compute.wsfc.wsfc_sofs_vm_prefix
-$GuestClusterName       = Resolve-Param $GuestClusterName       $cfg.wsfc_sofs_cluster_name       "GuestClusterName"          # compute.wsfc.wsfc_sofs_cluster_name
-$GuestClusterIP         = Resolve-Param $GuestClusterIP         $cfg.wsfc_sofs_cluster_ip         "GuestClusterIP"            # compute.wsfc.wsfc_sofs_cluster_ip
-$SOFSAccessPoint        = Resolve-Param $SOFSAccessPoint        $cfg.wsfc_sofs_name               "SOFSAccessPoint"           # compute.wsfc.wsfc_sofs_name
-$SOFSAccessPointIP      = Resolve-Param $SOFSAccessPointIP      $cfg.wsfc_sofs_ip                 "SOFSAccessPointIP" $false  # compute.wsfc.wsfc_sofs_ip (not used in current logic)
-$FSLogixShareName       = Resolve-Param $FSLogixShareName       $cfg.wsfc_sofs_share_name         "FSLogixShareName"          # compute.wsfc.wsfc_sofs_share_name
-$WitnessStorageAccount  = Resolve-Param $WitnessStorageAccount  $cfg.wsfc_sofs_cloud_witness_name "WitnessStorageAccount"     # compute.wsfc.wsfc_sofs_cloud_witness_name
-$S2DVolumeName          = Resolve-Param $S2DVolumeName          $cfg.wsfc_sofs_s2d_volume_name    "S2DVolumeName"             # compute.wsfc.wsfc_sofs_s2d_volume_name
-$DomainFQDN             = Resolve-Param $DomainFQDN             $cfg.wsfc_sofs_domain_fqdn        "DomainFQDN"                # compute.wsfc.wsfc_sofs_domain_fqdn
-$DomainNetBIOS          = Resolve-Param $DomainNetBIOS          $cfg.wsfc_sofs_domain_netbios     "DomainNetBIOS"             # compute.wsfc.wsfc_sofs_domain_netbios
+$VMPrefix               = Resolve-Param $VMPrefix               $sol.vm.prefix                    "VMPrefix"
+$GuestClusterName       = Resolve-Param $GuestClusterName       $sol.sofs.cluster_name            "GuestClusterName"
+$GuestClusterIP         = Resolve-Param $GuestClusterIP         $sol.sofs.cluster_ip              "GuestClusterIP"
+$SOFSAccessPoint        = Resolve-Param $SOFSAccessPoint        $sol.sofs.role_name               "SOFSAccessPoint"
+$SOFSAccessPointIP      = Resolve-Param $SOFSAccessPointIP      $sol.sofs.access_point_ip         "SOFSAccessPointIP" $false
+$FSLogixShareName       = Resolve-Param $FSLogixShareName       $sol.sofs.share_name              "FSLogixShareName"
+$WitnessStorageAccount  = Resolve-Param $WitnessStorageAccount  $sol.cloud_witness.name           "WitnessStorageAccount"
+$S2DVolumeName          = Resolve-Param $S2DVolumeName          $sol.s2d.volume_name              "S2DVolumeName"
+$DomainFQDN             = Resolve-Param $DomainFQDN             $sol.domain.fqdn                  "DomainFQDN"
+$DomainNetBIOS          = Resolve-Param $DomainNetBIOS          $sol.domain.netbios               "DomainNetBIOS"
 
 # Integer params: 0 = not set via param, use config
-if ($VMCount -le 0)              { $VMCount              = [int]$cfg.wsfc_sofs_vm_count          }  # compute.wsfc.wsfc_sofs_vm_count
-if ($S2DVolumeSizeGB -le 0)      { $S2DVolumeSizeGB      = [int]$cfg.wsfc_sofs_s2d_volume_size_gb }  # compute.wsfc.wsfc_sofs_s2d_volume_size_gb
-if ($S2DNumberOfDataCopies -le 0) { $S2DNumberOfDataCopies = [int]$cfg.wsfc_sofs_s2d_data_copies  }  # compute.wsfc.wsfc_sofs_s2d_data_copies
+if ($VMCount -le 0)              { $VMCount              = [int]$sol.vm.count                  }
+if ($S2DVolumeSizeGB -le 0)      { $S2DVolumeSizeGB      = [int]$sol.s2d.volume_size_gb         }
+if ($S2DNumberOfDataCopies -le 0) { $S2DNumberOfDataCopies = [int]$sol.s2d.data_copies            }
 
 $S2DVolumeSize = "${S2DVolumeSizeGB}GB"
 
-$WitnessEndpoint = "core.windows.net"
+$WitnessEndpoint = if ($sol.cloud_witness.endpoint -and $sol.cloud_witness.endpoint -ne "") {
+    $sol.cloud_witness.endpoint
+} else { "core.windows.net" }
+
+# Deployment architecture choices
+$GuestVolumeLayout = if ($sol.deployment.guest_volume_layout) { $sol.deployment.guest_volume_layout } else { "option_a" }
+$S2DVolumes        = $sol.s2d.volumes       # array for Option B (null for Option A)
+$SOFSShares        = $sol.sofs.shares       # array for Option B (null for Option A)
+
+# SMB share settings from config
+$SMBEncryption       = if ($null -ne $sol.sofs.smb_encryption)          { [bool]$sol.sofs.smb_encryption }          else { $true }
+$CachingMode         = if ($sol.sofs.caching_mode)                      { $sol.sofs.caching_mode }                  else { "None" }
+$ContinuouslyAvail   = if ($null -ne $sol.sofs.continuous_availability) { [bool]$sol.sofs.continuous_availability } else { $true }
+$FolderEnumMode      = if ($sol.sofs.folder_enumeration_mode)           { $sol.sofs.folder_enumeration_mode }       else { "AccessBased" }
+
+# Permissions from config
+$AdminGroup   = if ($sol.permissions.admin_group)  { $sol.permissions.admin_group }  else { "Domain Admins" }
+$UsersGroup   = if ($sol.permissions.users_group)  { $sol.permissions.users_group }  else { "Domain Users" }
+
+# FSLogix settings
+$FSLogixConfig = $sol.fslogix
 
 # Anti-affinity — use config if param is empty
 if ($AntiAffinityRuleName -eq "") {
-    $AntiAffinityRuleName = if ($cfg['wsfc_sofs_anti_affinity_rule_name']) { $cfg['wsfc_sofs_anti_affinity_rule_name'] } else { "SOFS-AntiAffinity" }
+    $AntiAffinityRuleName = if ($sol.sofs.anti_affinity_rule_name) { $sol.sofs.anti_affinity_rule_name } else { "SOFS-AntiAffinity" }
 }
 $AntiAffinityEnabled = ($AntiAffinityRuleName -ne "")
 
 # Azure Local cluster name
 if ($AzureLocalClusterName -eq "") {
-    $AzureLocalClusterName = if ($cfg['wsfc_sofs_azl_cluster_name']) { $cfg['wsfc_sofs_azl_cluster_name'] } else { "AzLocalCluster" }
+    $AzureLocalClusterName = if ($sol.azure_local.cluster_name) { $sol.azure_local.cluster_name } else { "AzLocalCluster" }
 }
 
 # Build VM names
@@ -365,13 +312,13 @@ for ($i = 1; $i -le $VMCount; $i++) {
     $VMNames += "{0}-{1:D2}" -f $VMPrefix, $i
 }
 
-# VM IPs — from wsfc_sofs_vm_ips map or DNS fallback
+# VM IPs — from vm.ips map or DNS fallback
 $VMIPs = @{}
-if ($cfg.wsfc_sofs_vm_ips -and $cfg.wsfc_sofs_vm_ips.Count -gt 0) {
+if ($sol.vm.ips -and $sol.vm.ips.Count -gt 0) {
     $i = 1
     foreach ($VM in $VMNames) {
         $key = "{0:D2}" -f $i
-        $ip  = $cfg.wsfc_sofs_vm_ips[$key]                              # compute.wsfc.wsfc_sofs_vm_ips
+        $ip  = $sol.vm.ips[$key]
         if ($ip) { $VMIPs[$VM] = $ip }
         $i++
     }
@@ -391,8 +338,8 @@ if ($cfg.wsfc_sofs_vm_ips -and $cfg.wsfc_sofs_vm_ips.Count -gt 0) {
 # Credential config — use domain account (required for Kerberos WinRM and AD object creation)
 # Local VM admin cannot authenticate via Kerberos; New-Cluster and Add-ClusterScaleOutFileServerRole
 # both require domain credentials to create CNO/VCO objects in AD.
-$ClusterAdminUser    = $cfg.wsfc_sofs_domain_join_username               # compute.wsfc.wsfc_sofs_domain_join_username (plain string or keyvault://)
-$ClusterAdminPassUri = $cfg.wsfc_sofs_domain_join_password               # compute.wsfc.wsfc_sofs_domain_join_password (keyvault:// URI)
+$ClusterAdminUser    = $sol.domain.join_username              # plain string or keyvault://
+$ClusterAdminPassUri = $sol.domain.join_password              # keyvault:// URI
 
 Write-Log "Cluster:           $GuestClusterName ($GuestClusterIP)"
 Write-Log "SOFS Name:         $SOFSAccessPoint"
@@ -402,6 +349,7 @@ Write-Log "Cloud Witness:     $WitnessStorageAccount"
 Write-Log "Domain:            $DomainFQDN ($DomainNetBIOS)"
 Write-Log "VMs:               $($VMNames -join ', ')"
 Write-Log "Anti-affinity:     $AntiAffinityEnabled"
+Write-Log "Volume Layout:     $GuestVolumeLayout"
 Write-Log "WinRM Transport:   $WinRMTransport"
 
 # ===========================================================================
@@ -441,8 +389,8 @@ if (-not $Credential) {
 # Resolve cloud witness key
 Write-Log "Resolving cloud witness key..." "HEADER"
 $WitnessKey = $null
-if ($cfg['wsfc_sofs_cloud_witness_key_uri'] -and $cfg['wsfc_sofs_cloud_witness_key_uri'] -ne "") {
-    $WitnessKey = Resolve-KeyVaultRef -KvUri $cfg['wsfc_sofs_cloud_witness_key_uri']  # compute.wsfc.wsfc_sofs_cloud_witness_key_uri
+if ($sol.cloud_witness.key_uri -and $sol.cloud_witness.key_uri -ne "") {
+    $WitnessKey = Resolve-KeyVaultRef -KvUri $sol.cloud_witness.key_uri
 }
 if (-not $WitnessKey) {
     # Fallback: retrieve key directly from witness storage account
@@ -450,7 +398,7 @@ if (-not $WitnessKey) {
     try {
         $WitnessKey = az storage account keys list `
             --account-name $WitnessStorageAccount `
-            --resource-group $cfg.wsfc_sofs_resource_group `
+            --resource-group $sol.azure.resource_group `
             --query "[0].value" -o tsv 2>$null
         if ($LASTEXITCODE -eq 0 -and $WitnessKey) {
             Write-Log "  Witness key retrieved from storage account." "PASS"
@@ -524,9 +472,9 @@ if ($WhatIf) {
     Write-Log "  Phase 3:  Anti-affinity rules (enabled=$AntiAffinityEnabled)"
     Write-Log "  Phase 5:  Failover-Clustering, FS-FileServer roles on $VMCount nodes"
     Write-Log "  Phase 6:  Create cluster '$GuestClusterName' @ $GuestClusterIP"
-    Write-Log "  Phase 7:  Enable S2D, create volume '$S2DVolumeName' ($S2DVolumeSize)"
-    Write-Log "  Phase 8:  AD pre-stage + SOFS role '$SOFSAccessPoint' + share '$FSLogixShareName' (verified)"
-    Write-Log "  Phase 9:  NTFS permissions on share directory (verified — all 4 ACEs confirmed)"
+    Write-Log "  Phase 7:  Enable S2D, create volume(s) (layout=$GuestVolumeLayout)"
+    Write-Log "  Phase 8:  AD pre-stage + SOFS role '$SOFSAccessPoint' + shares (verified)"
+    Write-Log "  Phase 9:  NTFS permissions on share directories (verified)"
     Write-Log "  Phase 10: Antivirus exclusion guidance"
     Write-Log "  Phase 11: Deployment validation"
     Write-Log "[DRY RUN] No changes made." "WARN"
@@ -913,31 +861,62 @@ Invoke-OnFirstNode -ScriptBlock {
     }
 }
 
-# Create the S2D volume — idempotency check
-$volumeExists = $false
-try {
-    $existingVolume = Invoke-OnFirstNode -ScriptBlock {
-        Get-VirtualDisk -FriendlyName $using:S2DVolumeName -ErrorAction SilentlyContinue
-    }
-    if ($existingVolume) {
-        $volumeExists = $true
-        Write-Log "S2D volume '$S2DVolumeName' already exists. Skipping create." "PASS"
-    }
-} catch {
-    # Volume does not exist
-}
+# Create S2D volume(s) — Option A: single volume, Option B: multiple volumes
+$S2DPoolName = if ($sol.s2d.pool_name -and $sol.s2d.pool_name -ne "") {
+    $sol.s2d.pool_name
+} else { "S2D on $GuestClusterName" }
 
-if (-not $volumeExists) {
-    Write-Log "Creating S2D volume: $S2DVolumeName ($S2DVolumeSize, ${S2DNumberOfDataCopies}-way mirror)..."
-    Invoke-OnFirstNode -ScriptBlock {
-        New-Volume -FriendlyName $using:S2DVolumeName `
-                   -StoragePoolFriendlyName "S2D on $using:GuestClusterName" `
-                   -FileSystem CSVFS_ReFS `
-                   -ResiliencySettingName Mirror `
-                   -NumberOfDataCopies $using:S2DNumberOfDataCopies `
-                   -Size ([uint64]$using:S2DVolumeSizeGB * 1GB) `
-                   -ErrorAction Stop | Out-Null
-        Write-Host "    Volume '$using:S2DVolumeName' created." -ForegroundColor Green
+if ($GuestVolumeLayout -eq 'option_b' -and $S2DVolumes -and $S2DVolumes.Count -gt 0) {
+    Write-Log "Option B — Creating $($S2DVolumes.Count) S2D volumes..."
+    foreach ($volDef in $S2DVolumes) {
+        $volName   = $volDef.name
+        $volSizeGB = [int]$volDef.size_gb
+        $volCopies = if ($volDef.data_copies) { [int]$volDef.data_copies } else { $S2DNumberOfDataCopies }
+        $volExists = $false
+        try {
+            $existingVol = Invoke-OnFirstNode -ScriptBlock {
+                Get-VirtualDisk -FriendlyName $using:volName -ErrorAction SilentlyContinue
+            }
+            if ($existingVol) { $volExists = $true; Write-Log "  Volume '$volName' already exists. Skipping." "PASS" }
+        } catch { }
+        if (-not $volExists) {
+            Write-Log "  Creating volume: $volName (${volSizeGB}GB, ${volCopies}-way mirror)..."
+            Invoke-OnFirstNode -ScriptBlock {
+                New-Volume -FriendlyName $using:volName `
+                           -StoragePoolFriendlyName $using:S2DPoolName `
+                           -FileSystem CSVFS_ReFS `
+                           -ResiliencySettingName Mirror `
+                           -NumberOfDataCopies $using:volCopies `
+                           -Size ([uint64]$using:volSizeGB * 1GB) `
+                           -ErrorAction Stop | Out-Null
+                Write-Host "    Volume '$using:volName' created." -ForegroundColor Green
+            }
+        }
+    }
+} else {
+    # Option A — single volume
+    $volumeExists = $false
+    try {
+        $existingVolume = Invoke-OnFirstNode -ScriptBlock {
+            Get-VirtualDisk -FriendlyName $using:S2DVolumeName -ErrorAction SilentlyContinue
+        }
+        if ($existingVolume) {
+            $volumeExists = $true
+            Write-Log "S2D volume '$S2DVolumeName' already exists. Skipping create." "PASS"
+        }
+    } catch { }
+    if (-not $volumeExists) {
+        Write-Log "Creating S2D volume: $S2DVolumeName ($S2DVolumeSize, ${S2DNumberOfDataCopies}-way mirror)..."
+        Invoke-OnFirstNode -ScriptBlock {
+            New-Volume -FriendlyName $using:S2DVolumeName `
+                       -StoragePoolFriendlyName $using:S2DPoolName `
+                       -FileSystem CSVFS_ReFS `
+                       -ResiliencySettingName Mirror `
+                       -NumberOfDataCopies $using:S2DNumberOfDataCopies `
+                       -Size ([uint64]$using:S2DVolumeSizeGB * 1GB) `
+                       -ErrorAction Stop | Out-Null
+            Write-Host "    Volume '$using:S2DVolumeName' created." -ForegroundColor Green
+        }
     }
 }
 
@@ -948,11 +927,23 @@ Invoke-OnFirstNode -ScriptBlock {
     Get-StoragePool -IsPrimordial $false | Format-Table FriendlyName, Size, AllocatedSize, HealthStatus -AutoSize
 }
 
-Write-Log "S2D enabled and volume ready." "PASS"
+Write-Log "S2D enabled and volume(s) ready." "PASS"
 
 # Credentials shared by Phase 8 and Phase 9 tasks
 $plainPass8   = $Credential.GetNetworkCredential().Password
 $domainUser8  = $Credential.UserName
+
+# Build share definitions for Phase 8 (Option A: single share, Option B: multiple shares)
+if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares -and $SOFSShares.Count -gt 0) {
+    $phase8ShareDefs = @($SOFSShares | ForEach-Object { @{n=$_.name; v=$_.volume} })
+} else {
+    $phase8ShareDefs = @(@{n=$FSLogixShareName; v=$S2DVolumeName})
+}
+$sharesJson = ($phase8ShareDefs | ConvertTo-Json -Compress)
+if ($phase8ShareDefs.Count -eq 1) { $sharesJson = "[$sharesJson]" }
+$phase8ShareNames = @($phase8ShareDefs | ForEach-Object { $_.n })
+$smbCaParam  = if ($ContinuouslyAvail) { '$true' } else { '$false' }
+$smbEncParam = if ($SMBEncryption) { '$true' } else { '$false' }
 
 # ===========================================================================
 # PHASE 8: AD Pre-Staging, SOFS Role, and FSLogix Share Creation
@@ -1147,22 +1138,25 @@ try {
     Write-Host '[STEP1] Role Online.'
 
     # -----------------------------------------------------------------------
-    # PHASE 8: Locate CSV and create FSLogix share (idempotent)
-    # Note: no -Cluster param — running locally on a cluster node
+    # PHASE 8: Locate CSV(s) and create share(s) (idempotent)
     # -----------------------------------------------------------------------
-    Write-Host '[STEP2] Locating CSV...'
-    `$CSV = Get-ClusterSharedVolume | Where-Object { `$_.SharedVolumeInfo.FriendlyVolumeName -match '$S2DVolumeName' }
-    if (-not `$CSV) { throw 'Could not find CSV for volume $S2DVolumeName' }
-    `$CSVPath   = `$CSV.SharedVolumeInfo.FriendlyVolumeName
-    `$SharePath = Join-Path `$CSVPath '$FSLogixShareName'
-    Write-Host "[STEP2] SharePath: `$SharePath"
-    if (-not (Test-Path `$SharePath)) { New-Item -Path `$SharePath -ItemType Directory -Force | Out-Null; Write-Host '[STEP2] Directory created.' }
-    if (-not (Get-SmbShare -Name '$FSLogixShareName' -ScopeName '$SOFSAccessPoint' -ErrorAction SilentlyContinue)) {
-        Write-Host '[STEP2] Creating SMB share...'
-        New-SmbShare -Name '$FSLogixShareName' -Path `$SharePath -ScopeName '$SOFSAccessPoint' -ContinuouslyAvailable `$true -CachingMode None -FullAccess '$DomainNetBIOS\Domain Admins' -ChangeAccess '$DomainNetBIOS\Domain Users' -FolderEnumerationMode AccessBased -ErrorAction Stop | Out-Null
-        Write-Host '[STEP2] Share created.'
-    } else {
-        Write-Host '[STEP2] Share already exists.'
+    Write-Host '[STEP2] Creating shares...'
+    `$shareDefs = '$sharesJson' | ConvertFrom-Json
+    foreach (`$sd in @(`$shareDefs)) {
+        Write-Host "[STEP2] Processing share: `$(`$sd.n) (volume: `$(`$sd.v))..."
+        `$CSV = Get-ClusterSharedVolume | Where-Object { `$_.SharedVolumeInfo.FriendlyVolumeName -match `$sd.v }
+        if (-not `$CSV) { throw "Could not find CSV for volume `$(`$sd.v)" }
+        `$CSVPath = `$CSV.SharedVolumeInfo.FriendlyVolumeName
+        `$SharePath = Join-Path `$CSVPath `$sd.n
+        Write-Host "[STEP2] SharePath: `$SharePath"
+        if (-not (Test-Path `$SharePath)) { New-Item -Path `$SharePath -ItemType Directory -Force | Out-Null; Write-Host '[STEP2] Directory created.' }
+        if (-not (Get-SmbShare -Name `$sd.n -ScopeName '$SOFSAccessPoint' -ErrorAction SilentlyContinue)) {
+            Write-Host "[STEP2] Creating SMB share: `$(`$sd.n)..."
+            New-SmbShare -Name `$sd.n -Path `$SharePath -ScopeName '$SOFSAccessPoint' -ContinuouslyAvailable $smbCaParam -EncryptData $smbEncParam -CachingMode '$CachingMode' -FullAccess '$DomainNetBIOS\$AdminGroup' -ChangeAccess '$DomainNetBIOS\$UsersGroup' -FolderEnumerationMode '$FolderEnumMode' -ErrorAction Stop | Out-Null
+            Write-Host "[STEP2] Share '`$(`$sd.n)' created."
+        } else {
+            Write-Host "[STEP2] Share '`$(`$sd.n)' already exists."
+        }
     }
 
     'SUCCESS' | Out-File -FilePath '$resultFile8' -Encoding utf8
@@ -1233,29 +1227,33 @@ if (-not $WhatIf) {
     # sufficient — we confirm actual live state before proceeding to Phase 9.
     # Hard exit 1 if role is not Online or share does not exist.
     # -----------------------------------------------------------------------
-    Write-Log "Phase 8 Verification — Confirming SOFS role Online and share exists" "HEADER"
+    Write-Log "Phase 8 Verification — Confirming SOFS role Online and shares exist" "HEADER"
 
     $p8verify = Invoke-Command -ComputerName (Get-WinRMTarget -VMName $VMNames[0]) -Credential $Credential -ErrorAction Stop -ScriptBlock {
         $grp      = Get-ClusterGroup -Name $using:SOFSAccessPoint -ErrorAction SilentlyContinue
         $grpState = if ($grp) { "$($grp.State)" } else { 'NotFound' }
-        $share    = Get-SmbShare -Name $using:FSLogixShareName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
         $dnnRes   = Get-ClusterResource -ErrorAction SilentlyContinue |
                         Where-Object { $_.ResourceType -eq 'Distributed Network Name' -and $_.OwnerGroup -eq $using:SOFSAccessPoint }
         $dnnState = if ($dnnRes) { "$($dnnRes.State)" } else { 'NotFound' }
+        $shareResults = @()
+        foreach ($sName in $using:phase8ShareNames) {
+            $sh = Get-SmbShare -Name $sName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
+            $shareResults += [PSCustomObject]@{
+                Name   = $sName
+                Exists = ($null -ne $sh)
+                Path   = if ($sh) { $sh.Path } else { '' }
+                CA     = if ($sh) { $sh.ContinuouslyAvailable } else { $false }
+            }
+        }
         return [PSCustomObject]@{
-            RoleState  = $grpState
-            DnnState   = $dnnState
-            ShareExist = ($null -ne $share)
-            SharePath  = if ($share) { $share.Path } else { '' }
-            ShareCA    = if ($share) { $share.ContinuouslyAvailable } else { $false }
+            RoleState    = $grpState
+            DnnState     = $dnnState
+            ShareResults = $shareResults
         }
     }
 
     Write-Log "  SOFS role state       : $($p8verify.RoleState)"
     Write-Log "  DNN resource state    : $($p8verify.DnnState)"
-    Write-Log "  Share exists          : $($p8verify.ShareExist)"
-    Write-Log "  Share path            : $($p8verify.SharePath)"
-    Write-Log "  ContinuouslyAvailable : $($p8verify.ShareCA)"
 
     $p8ok = $true
 
@@ -1266,17 +1264,18 @@ if (-not $WhatIf) {
         Write-Log "  [PASS] SOFS role is Online." "PASS"
     }
 
-    if (-not $p8verify.ShareExist) {
-        Write-Log "  [FAIL] SMB share '$FSLogixShareName' (scope '$SOFSAccessPoint') was not found." "FAIL"
-        $p8ok = $false
-    } else {
-        Write-Log "  [PASS] SMB share '$FSLogixShareName' exists at $($p8verify.SharePath)." "PASS"
-    }
-
-    if (-not $p8verify.ShareCA) {
-        Write-Log "  [WARN] Share ContinuouslyAvailable = false — FSLogix requires CA shares." "WARN"
-    } else {
-        Write-Log "  [PASS] Share is ContinuouslyAvailable." "PASS"
+    foreach ($sr in $p8verify.ShareResults) {
+        if (-not $sr.Exists) {
+            Write-Log "  [FAIL] SMB share '$($sr.Name)' (scope '$SOFSAccessPoint') was not found." "FAIL"
+            $p8ok = $false
+        } else {
+            Write-Log "  [PASS] SMB share '$($sr.Name)' exists at $($sr.Path)." "PASS"
+        }
+        if (-not $sr.CA) {
+            Write-Log "  [WARN] Share '$($sr.Name)' ContinuouslyAvailable = false — FSLogix requires CA shares." "WARN"
+        } else {
+            Write-Log "  [PASS] Share '$($sr.Name)' is ContinuouslyAvailable." "PASS"
+        }
     }
 
     if (-not $p8ok) {
@@ -1308,30 +1307,34 @@ $scriptBody9 = @"
 Start-Transcript -Path '$taskLog9' -Force | Out-Null
 
 try {
-    `$share = Get-SmbShare -Name '$FSLogixShareName' -ScopeName '$SOFSAccessPoint' -ErrorAction Stop
-    `$SharePath = `$share.Path
-    Write-Host "[ACL] Share path resolved: `$SharePath"
+    `$shareDefs = '$sharesJson' | ConvertFrom-Json
+    foreach (`$sd in @(`$shareDefs)) {
+        Write-Host "[ACL] Processing share: `$(`$sd.n)..."
+        `$share = Get-SmbShare -Name `$sd.n -ScopeName '$SOFSAccessPoint' -ErrorAction Stop
+        `$SharePath = `$share.Path
+        Write-Host "[ACL] Share path resolved: `$SharePath"
 
-    if (-not (Test-Path `$SharePath)) { throw "Share directory does not exist on disk: `$SharePath" }
+        if (-not (Test-Path `$SharePath)) { throw "Share directory does not exist on disk: `$SharePath" }
 
-    Write-Host '[ACL] Breaking inheritance and applying explicit NTFS ACEs...'
-    `$acl = Get-Acl `$SharePath
-    `$acl.SetAccessRuleProtection(`$true, `$false)
-    `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-        'CREATOR OWNER','Modify','ContainerInherit,ObjectInherit','InheritOnly','Allow')))
-    `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-        '$DomainNetBIOS\Domain Users','Modify','None','None','Allow')))
-    `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-        '$DomainNetBIOS\Domain Admins','FullControl','ContainerInherit,ObjectInherit','None','Allow')))
-    `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
-        'NT AUTHORITY\SYSTEM','FullControl','ContainerInherit,ObjectInherit','None','Allow')))
-    Set-Acl -Path `$SharePath -AclObject `$acl
-    Write-Host '[ACL] Set-Acl completed.'
+        Write-Host '[ACL] Breaking inheritance and applying explicit NTFS ACEs...'
+        `$acl = Get-Acl `$SharePath
+        `$acl.SetAccessRuleProtection(`$true, `$false)
+        `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+            'CREATOR OWNER','Modify','ContainerInherit,ObjectInherit','InheritOnly','Allow')))
+        `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+            '$DomainNetBIOS\$UsersGroup','Modify','None','None','Allow')))
+        `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+            '$DomainNetBIOS\$AdminGroup','FullControl','ContainerInherit,ObjectInherit','None','Allow')))
+        `$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+            'NT AUTHORITY\SYSTEM','FullControl','ContainerInherit,ObjectInherit','None','Allow')))
+        Set-Acl -Path `$SharePath -AclObject `$acl
+        Write-Host "[ACL] Set-Acl completed for `$(`$sd.n)."
 
-    `$readAcl = Get-Acl `$SharePath
-    Write-Host '[ACL] ACEs now on disk:'
-    `$readAcl.Access | ForEach-Object {
-        Write-Host "  `$(`$_.IdentityReference)  `$(`$_.FileSystemRights)  `$(`$_.AccessControlType)"
+        `$readAcl = Get-Acl `$SharePath
+        Write-Host "[ACL] ACEs on `$(`$sd.n):"
+        `$readAcl.Access | ForEach-Object {
+            Write-Host "  `$(`$_.IdentityReference)  `$(`$_.FileSystemRights)  `$(`$_.AccessControlType)"
+        }
     }
 
     'SUCCESS' | Out-File -FilePath '$resultFile9' -Encoding utf8
@@ -1401,44 +1404,47 @@ if (-not $WhatIf) {
     # Read the ACL back from disk. Confirm all four required ACEs are present.
     # Hard exit 1 if any are missing — Phase 10 must not run on bad permissions.
     # -----------------------------------------------------------------------
-    Write-Log "Phase 9 Verification — Confirming NTFS ACEs on share directory" "HEADER"
+    Write-Log "Phase 9 Verification — Confirming NTFS ACEs on share directories" "HEADER"
 
-    $p9verify = Invoke-Command -ComputerName (Get-WinRMTarget -VMName $VMNames[0]) -Credential $Credential -ErrorAction Stop -ScriptBlock {
-        $share = Get-SmbShare -Name $using:FSLogixShareName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
-        if (-not $share) { return [PSCustomObject]@{ Error = "Share not found"; Aces = @(); Path = '' } }
-        $acl  = Get-Acl $share.Path -ErrorAction SilentlyContinue
-        $aces = $acl.Access | ForEach-Object {
-            [PSCustomObject]@{
-                Identity = $_.IdentityReference.Value
-                Rights   = "$($_.FileSystemRights)"
-                Type     = "$($_.AccessControlType)"
-            }
-        }
-        return [PSCustomObject]@{ Error = ''; Path = $share.Path; Aces = $aces }
-    }
-
-    if ($p9verify.Error) {
-        Write-Log "FATAL: Phase 9 verification — $($p9verify.Error)" "FAIL"
-        exit 1
-    }
-
-    Write-Log "  ACL on: $($p9verify.Path)"
-    $p9verify.Aces | ForEach-Object { Write-Log "    $($_.Identity)  [$($_.Rights)]  $($_.Type)" }
-
-    $expectedACEs = @(
-        'CREATOR OWNER',
-        "$DomainNetBIOS\Domain Users",
-        "$DomainNetBIOS\Domain Admins",
-        'NT AUTHORITY\SYSTEM'
-    )
     $p9ok = $true
-    foreach ($ace in $expectedACEs) {
-        $found = $p9verify.Aces | Where-Object { $_.Identity -match [regex]::Escape($ace) }
-        if ($found) {
-            Write-Log "  [PASS] ACE present : $ace" "PASS"
-        } else {
-            Write-Log "  [FAIL] ACE MISSING : $ace" "FAIL"
+    foreach ($shareName in $phase8ShareNames) {
+        $p9verify = Invoke-Command -ComputerName (Get-WinRMTarget -VMName $VMNames[0]) -Credential $Credential -ErrorAction Stop -ScriptBlock {
+            $share = Get-SmbShare -Name $using:shareName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
+            if (-not $share) { return [PSCustomObject]@{ Error = "Share not found"; Aces = @(); Path = '' } }
+            $acl  = Get-Acl $share.Path -ErrorAction SilentlyContinue
+            $aces = $acl.Access | ForEach-Object {
+                [PSCustomObject]@{
+                    Identity = $_.IdentityReference.Value
+                    Rights   = "$($_.FileSystemRights)"
+                    Type     = "$($_.AccessControlType)"
+                }
+            }
+            return [PSCustomObject]@{ Error = ''; Path = $share.Path; Aces = $aces }
+        }
+
+        if ($p9verify.Error) {
+            Write-Log "  [FAIL] Share '$shareName' — $($p9verify.Error)" "FAIL"
             $p9ok = $false
+            continue
+        }
+
+        Write-Log "  ACL on '$shareName': $($p9verify.Path)"
+        $p9verify.Aces | ForEach-Object { Write-Log "    $($_.Identity)  [$($_.Rights)]  $($_.Type)" }
+
+        $expectedACEs = @(
+            'CREATOR OWNER',
+            "$DomainNetBIOS\$UsersGroup",
+            "$DomainNetBIOS\$AdminGroup",
+            'NT AUTHORITY\SYSTEM'
+        )
+        foreach ($ace in $expectedACEs) {
+            $found = $p9verify.Aces | Where-Object { $_.Identity -match [regex]::Escape($ace) }
+            if ($found) {
+                Write-Log "  [PASS] ACE present on '$shareName': $ace" "PASS"
+            } else {
+                Write-Log "  [FAIL] ACE MISSING on '$shareName': $ace" "FAIL"
+                $p9ok = $false
+            }
         }
     }
 
@@ -1450,6 +1456,128 @@ if (-not $WhatIf) {
     Write-Log "Phase 9 complete and verified." "PASS"
 } else {
     Write-Log "  [WhatIf] Would run Phase 9 scheduled task on $($VMNames[0])." "WARN"
+}
+
+# ===========================================================================
+# PHASE 9b: FSRM Quota Support
+# Installs File Server Resource Manager on all SOFS nodes and applies an
+# auto-apply soft quota to each share directory. When a user profile folder
+# is created under the share, FSRM automatically applies the quota limit
+# from fslogix.profile_size_mb. Skipped if fslogix is disabled or
+# profile_size_mb is not set.
+# ===========================================================================
+
+$FSRMQuotaSizeMB = if ($FSLogixConfig -and $FSLogixConfig.enabled -and $FSLogixConfig.profile_size_mb) { [int]$FSLogixConfig.profile_size_mb } else { 0 }
+
+if ($FSRMQuotaSizeMB -gt 0) {
+    Write-Log "Phase 9b — FSRM Quota Support (${FSRMQuotaSizeMB} MB per profile)" "HEADER"
+
+    if ($WhatIf) {
+        Write-Log "  [WhatIf] Would install FS-Resource-Manager on all nodes." "WARN"
+        Write-Log "  [WhatIf] Would create quota template 'FSLogix Profile Quota' (${FSRMQuotaSizeMB} MB, soft limit)." "WARN"
+        foreach ($sn in $phase8ShareNames) {
+            Write-Log "  [WhatIf] Would apply auto-apply quota to \\$SOFSAccessPoint\$sn." "WARN"
+        }
+    } else {
+        # Install FSRM role on all nodes (idempotent)
+        Write-Log "Installing FS-Resource-Manager on all nodes..."
+        Invoke-OnAllNodes -ScriptBlock {
+            $feat = Get-WindowsFeature -Name FS-Resource-Manager
+            if ($feat.InstallState -ne 'Installed') {
+                Install-WindowsFeature -Name FS-Resource-Manager -IncludeManagementTools | Out-Null
+                Write-Host "    FS-Resource-Manager installed." -ForegroundColor Green
+            } else {
+                Write-Host "    FS-Resource-Manager already installed." -ForegroundColor Green
+            }
+        }
+
+        # Create quota template and apply auto-apply quotas to share directories
+        Write-Log "Configuring FSRM quota template and auto-apply quotas..."
+        $fsrmSharesJson = $sharesJson
+        Invoke-OnFirstNode -ScriptBlock {
+            $templateName = "FSLogix Profile Quota"
+            $quotaBytes   = [uint64]$using:FSRMQuotaSizeMB * 1MB
+
+            # Create or update quota template (soft limit — warns but does not block)
+            $existing = Get-FsrmQuotaTemplate -Name $templateName -ErrorAction SilentlyContinue
+            if ($existing) {
+                Set-FsrmQuotaTemplate -Name $templateName -Size $quotaBytes -SoftLimit -ErrorAction Stop
+                Write-Host "    Quota template '$templateName' updated to $using:FSRMQuotaSizeMB MB." -ForegroundColor Green
+            } else {
+                New-FsrmQuotaTemplate -Name $templateName -Size $quotaBytes -SoftLimit -ErrorAction Stop
+                Write-Host "    Quota template '$templateName' created ($using:FSRMQuotaSizeMB MB, soft limit)." -ForegroundColor Green
+            }
+
+            # Apply auto-apply quota to each share directory
+            $shareDefs = $using:fsrmSharesJson | ConvertFrom-Json
+            foreach ($sd in @($shareDefs)) {
+                $share = Get-SmbShare -Name $sd.n -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
+                if (-not $share) { Write-Host "    [WARN] Share '$($sd.n)' not found — skipping quota." -ForegroundColor Yellow; continue }
+                $autoQuotaPath = "$($share.Path)\*"
+                $existingQuota = Get-FsrmAutoQuota -Path $autoQuotaPath -ErrorAction SilentlyContinue
+                if ($existingQuota) {
+                    Set-FsrmAutoQuota -Path $autoQuotaPath -Template $templateName -ErrorAction Stop
+                    Write-Host "    Auto-apply quota updated on $autoQuotaPath" -ForegroundColor Green
+                } else {
+                    New-FsrmAutoQuota -Path $autoQuotaPath -Template $templateName -ErrorAction Stop
+                    Write-Host "    Auto-apply quota created on $autoQuotaPath" -ForegroundColor Green
+                }
+            }
+        }
+        Write-Log "FSRM quota configured (${FSRMQuotaSizeMB} MB soft limit per profile folder)." "PASS"
+    }
+} else {
+    Write-Log "Phase 9b — FSRM Quota Support — SKIPPED (fslogix.profile_size_mb not set or fslogix disabled)." "INFO"
+}
+
+# ===========================================================================
+# PHASE 9c: Cloud Cache Registry Configuration
+# When fslogix.cloud_cache.enabled = true, outputs the recommended
+# CCDLocations registry value for AVD session hosts. Cloud Cache writes
+# profile containers to both the SOFS share and an Azure Blob provider,
+# providing DR and reduced SOFS load.
+# ===========================================================================
+
+$CloudCacheEnabled = ($FSLogixConfig -and $FSLogixConfig.cloud_cache -and $FSLogixConfig.cloud_cache.enabled)
+
+if ($CloudCacheEnabled) {
+    Write-Log "Phase 9c — Cloud Cache Configuration" "HEADER"
+
+    $AzureProvider = if ($FSLogixConfig.cloud_cache.azure_provider -and $FSLogixConfig.cloud_cache.azure_provider -ne "") {
+        $FSLogixConfig.cloud_cache.azure_provider
+    } else { $null }
+
+    # Build CCDLocations value — SMB provider for each share + optional Azure Blob provider
+    $ccdParts = @()
+    foreach ($sn in $phase8ShareNames) {
+        $ccdParts += "type=smb,connectionString=\\$SOFSAccessPoint\$sn"
+    }
+    if ($AzureProvider) {
+        $ccdParts += "type=azure,connectionString=$AzureProvider"
+    }
+    $ccdLocations = $ccdParts -join ";"
+
+    Write-Log "  CCDLocations value for AVD session hosts:" "HEADER"
+    Write-Log "    $ccdLocations"
+
+    if ($WhatIf) {
+        Write-Log "  [WhatIf] Would output Cloud Cache registry guidance." "WARN"
+    } else {
+        Write-Log "  Cloud Cache is an AVD session host setting — apply on session hosts, not SOFS VMs." "WARN"
+        Write-Log "  Registry key: HKLM:\SOFTWARE\FSLogix\Profiles" "INFO"
+        Write-Log "  Value name:   CCDLocations" "INFO"
+        Write-Log "  Value type:   REG_EXPAND_SZ (multi-string)" "INFO"
+        Write-Log "  Value data:   $ccdLocations" "INFO"
+        Write-Log "  PowerShell to apply on each AVD session host:" "INFO"
+        Write-Log "    Set-ItemProperty -Path 'HKLM:\SOFTWARE\FSLogix\Profiles' -Name 'CCDLocations' -Value '$ccdLocations' -Type ExpandString" "INFO"
+        if (-not $AzureProvider) {
+            Write-Log "  [WARN] No Azure Blob provider configured — Cloud Cache will only use SMB." "WARN"
+            Write-Log "  Set fslogix.cloud_cache.azure_provider in config for DR redundancy." "WARN"
+        }
+    }
+    Write-Log "Cloud Cache configuration guidance generated." "PASS"
+} else {
+    Write-Log "Phase 9c — Cloud Cache Configuration — SKIPPED (cloud_cache.enabled = false)." "INFO"
 }
 
 # ===========================================================================
@@ -1479,7 +1607,7 @@ Write-Log $avGuidance "WARN"
 
 Write-Log "Phase 11 — Validation" "HEADER"
 
-$ShareUNC = "\\$SOFSAccessPoint\$FSLogixShareName"
+$ShareUNCs = @($phase8ShareNames | ForEach-Object { "\\$SOFSAccessPoint\$_" })
 
 # Run all validation from SOFS-01 — management workstation is not on the compute network
 Invoke-OnFirstNode -ScriptBlock {
@@ -1501,16 +1629,18 @@ Invoke-OnFirstNode -ScriptBlock {
     }
 
     Write-Host "  --- SOFS Share properties ---" -ForegroundColor Cyan
-    Get-SmbShare -Name $using:FSLogixShareName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue |
-        Format-Table Name, ScopeName, ContinuouslyAvailable, CachingMode, Path -AutoSize
+    foreach ($sName in $using:phase8ShareNames) {
+        Get-SmbShare -Name $sName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue |
+            Format-Table Name, ScopeName, ContinuouslyAvailable, EncryptData, CachingMode, Path -AutoSize
 
-    Write-Host "  --- Share ACL (access list) ---" -ForegroundColor Cyan
-    $shareAcl = Get-SmbShareAccess -Name $using:FSLogixShareName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
-    if ($shareAcl) {
-        $shareAcl | Format-Table Name, ScopeName, AccountName, AccessControlType, AccessRight -AutoSize
-        Write-Host "  [PASS] Share ACL retrieved — $using:ShareUNC is present and queryable." -ForegroundColor Green
-    } else {
-        Write-Host "  [FAIL] Could not retrieve share ACL for $using:ShareUNC." -ForegroundColor Red
+        Write-Host "  --- Share ACL: $sName ---" -ForegroundColor Cyan
+        $shareAcl = Get-SmbShareAccess -Name $sName -ScopeName $using:SOFSAccessPoint -ErrorAction SilentlyContinue
+        if ($shareAcl) {
+            $shareAcl | Format-Table Name, ScopeName, AccountName, AccessControlType, AccessRight -AutoSize
+            Write-Host "  [PASS] Share ACL retrieved — \\$($using:SOFSAccessPoint)\$sName" -ForegroundColor Green
+        } else {
+            Write-Host "  [FAIL] Could not retrieve share ACL for \\$($using:SOFSAccessPoint)\$sName" -ForegroundColor Red
+        }
     }
 }
 
@@ -1568,7 +1698,12 @@ Write-Log "SOFS DEPLOYMENT COMPLETE" "PASS"
 Write-Log "========================================" "HEADER"
 Write-Log "  Guest Cluster:       $GuestClusterName ($GuestClusterIP)"
 Write-Log "  SOFS Access Point:   $SOFSAccessPoint"
-Write-Log "  FSLogix Share:       \\$SOFSAccessPoint\$FSLogixShareName"
+Write-Log "  Volume Layout:       $GuestVolumeLayout"
+if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares) {
+    foreach ($sn in $phase8ShareNames) { Write-Log "  FSLogix Share:       \\$SOFSAccessPoint\$sn" }
+} else {
+    Write-Log "  FSLogix Share:       \\$SOFSAccessPoint\$FSLogixShareName"
+}
 Write-Log "  S2D Volume:          $S2DVolumeName ($S2DVolumeSize, ${S2DNumberOfDataCopies}-way mirror)"
 Write-Log "  Cloud Witness:       $WitnessStorageAccount"
 Write-Log "  Anti-Affinity:       $AntiAffinityRuleName (enabled=$AntiAffinityEnabled)"
@@ -1578,5 +1713,9 @@ Write-Log ""
 Write-Log "NEXT STEPS:" "HEADER"
 Write-Log "  1. Configure AV exclusions (see Phase 10 guidance above)"
 Write-Log "  2. When deploying AVD session hosts, set FSLogix VHDLocations to:"
-Write-Log "     \\$SOFSAccessPoint\$FSLogixShareName"
+if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares) {
+    foreach ($sn in $phase8ShareNames) { Write-Log "     \\$SOFSAccessPoint\$sn" }
+} else {
+    Write-Log "     \\$SOFSAccessPoint\$FSLogixShareName"
+}
 Write-Log "  3. Optionally configure Cloud Cache for DR to Azure Blob"

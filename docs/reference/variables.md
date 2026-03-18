@@ -16,13 +16,17 @@ All deployment tools read from a single central configuration file: `config/vari
 ```yaml
 deployment:
   host_volume_layout: "three_volumes"
-  guest_volume_layout: "option_b"
+  host_resiliency: "two_way"
+  guest_volume_layout: "option_a"
+  guest_resiliency: "two_way"
 ```
 
 | Variable | Type | Required | Description | Default | Valid Values | Phases |
 |----------|------|:--------:|-------------|---------|-------------|--------|
 | `deployment.host_volume_layout` | string | **Yes** | Host CSV layout — three volumes for fault isolation or one shared volume | `three_volumes` | `three_volumes`, `single_volume` | 1 |
-| `deployment.guest_volume_layout` | string | **Yes** | Guest S2D + share model — Option B (three) or Option A (single) | `option_b` | `option_a`, `option_b` | 7–8 |
+| `deployment.host_resiliency` | string | **Yes** | Host mirror level — three-way requires 3+ nodes | `two_way` | `two_way`, `three_way` | 1 |
+| `deployment.guest_volume_layout` | string | **Yes** | Guest S2D + share model — Option A (single) or Option B (three) | `option_a` | `option_a`, `option_b` | 7–8 |
+| `deployment.guest_resiliency` | string | **Yes** | Guest S2D mirror level — three-way requires 3+ nodes | `two_way` | `two_way`, `three_way` | 7 |
 
 ### Deployment Path Decision Tree
 
@@ -31,14 +35,17 @@ flowchart TD
     A[Start] --> B{host_volume_layout?}
     B -->|three_volumes| C[Use storage_path_ids — one VM per CSV]
     B -->|single_volume| D[Use storage_path_id — all VMs on one CSV]
-    C --> E{guest_volume_layout?}
-    D --> E
+    C --> HR{host_resiliency?}
+    D --> HR
+    HR -->|two_way| E{guest_volume_layout?}
+    HR -->|three_way| E2["vm.count ≥ 3 required"]
+    E2 --> E{guest_volume_layout?}
     E -->|option_a| F[Read: s2d.volume_name, s2d.volume_size_gb, sofs.share_name]
     E -->|option_b| G[Read: s2d.volumes list, sofs.shares list]
-    F --> H{s2d.data_copies?}
-    G --> H
-    H -->|2| I[Two-way mirror — 2× raw]
-    H -->|3| J[Three-way mirror — 3× raw]
+    F --> GR{guest_resiliency?}
+    G --> GR
+    GR -->|two_way| I[Two-way mirror — 2× raw]
+    GR -->|three_way| J["Three-way mirror — 3× raw, vm.count ≥ 3"]
 ```
 
 **Variable activation by path:**
@@ -82,6 +89,7 @@ The shim is transparent — downstream script logic is unchanged.
 
 ```yaml
 azure:
+  tenant_id: "00000000-0000-0000-0000-000000000000"
   subscription_id: "00000000-0000-0000-0000-000000000000"
   resource_group: "rg-sofs-azl-eus-01"
   location: "eastus"
@@ -89,6 +97,7 @@ azure:
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
+| `azure.tenant_id` | string | **Yes** | Entra ID tenant for provider authentication | — | 1 |
 | `azure.subscription_id` | string | **Yes** | Azure subscription for all SOFS resources | — | 1 |
 | `azure.resource_group` | string | **Yes** | Resource group name — created by the deployment tool if it doesn't exist | `rg-sofs-azl-eus-01` | 1 |
 | `azure.location` | string | **Yes** | Azure region matching your Azure Local cluster registration | `eastus` | 1 |
@@ -100,11 +109,17 @@ azure:
 ```yaml
 keyvault:
   name: "kv-platform-prod"
+  tenant_id: "00000000-0000-0000-0000-000000000000"
+  subscription_id: "00000000-0000-0000-0000-000000000000"
+  resource_group: "rg-platform"
 ```
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
 | `keyvault.name` | string | **Yes** | Key Vault name for secret resolution — all `keyvault://` URIs reference this | — | 1–2 |
+| `keyvault.tenant_id` | string | **Yes** | Entra ID tenant hosting the Key Vault (may differ from `azure.tenant_id`) | — | 1–2 |
+| `keyvault.subscription_id` | string | **Yes** | Subscription hosting the Key Vault (may differ from `azure.subscription_id`) | — | 1–2 |
+| `keyvault.resource_group` | string | **Yes** | Resource group hosting the Key Vault | — | 1–2 |
 
 ---
 
@@ -228,23 +243,33 @@ dns_servers:
 
     ```yaml
     sofs:
-      name: "FSLogixSOFS"
+      role_name: "FSLogixSOFS"
       cluster_name: "sofs-cluster"
       cluster_ip: "192.168.1.204"
+      access_point_ip: "192.168.1.205"
       share_name: "Profiles"
       role_enabled: true
       anti_affinity_rule_name: "SOFS-AntiAffinity"
+      smb_encryption: true
+      caching_mode: "None"
+      continuous_availability: true
+      folder_enumeration_mode: "AccessBased"
     ```
 
 === "Option B — Three Shares"
 
     ```yaml
     sofs:
-      name: "FSLogixSOFS"
+      role_name: "FSLogixSOFS"
       cluster_name: "sofs-cluster"
       cluster_ip: "192.168.1.204"
+      access_point_ip: "192.168.1.205"
       role_enabled: true
       anti_affinity_rule_name: "SOFS-AntiAffinity"
+      smb_encryption: true
+      caching_mode: "None"
+      continuous_availability: true
+      folder_enumeration_mode: "AccessBased"
       shares:
         - name: "Profiles"
           volume: "Profiles"
@@ -256,13 +281,16 @@ dns_servers:
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
-| `sofs.name` | string | **Yes** | SOFS client access point name (`\\name\share` prefix) | `FSLogixSOFS` | 8 |
+| `sofs.role_name` | string | **Yes** | SOFS client access point name (`\\name\share` prefix) | `FSLogixSOFS` | 8 |
 | `sofs.cluster_name` | string | **Yes** | Windows Failover Cluster name (the CNO in AD) | `sofs-cluster` | 5 |
 | `sofs.cluster_ip` | string | **Yes** | Static IP for the failover cluster | — | 5 |
+| `sofs.access_point_ip` | string | **Yes** | Static IP for the SOFS role client access point | — | 8 |
 | `sofs.role_enabled` | boolean | No | Whether the SOFS Scale-Out File Server role is enabled | `true` | 8 |
 | `sofs.anti_affinity_rule_name` | string | No | Anti-affinity rule name in the host cluster | `SOFS-AntiAffinity` | 5 |
 | `sofs.smb_encryption` | boolean | No | Enable SMB encryption on shares | `true` | 8 |
 | `sofs.caching_mode` | string | No | BranchCache caching mode for shares | `None` | 8 |
+| `sofs.continuous_availability` | boolean | No | Enable SMB Continuous Availability on shares | `true` | 8 |
+| `sofs.folder_enumeration_mode` | string | No | Access-based enumeration mode for share security | `AccessBased` | 8 |
 | `sofs.share_name` | string | Option A | Single SMB share name | `Profiles` | 8 |
 | `sofs.shares` | list | Option B | List of shares, each mapped to its own S2D volume | — | 8 |
 | `sofs.shares[].name` | string | Option B | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
@@ -324,6 +352,7 @@ dns_servers:
 ```yaml
 cloud_witness:
   name: "stsofswitnessprod01"
+  endpoint: "core.windows.net"
   key_uri: ""
   key_secret: ""
 ```
@@ -331,6 +360,7 @@ cloud_witness:
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
 | `cloud_witness.name` | string | **Yes** | Azure Storage Account name for the cluster quorum cloud witness | — | 1, 5 |
+| `cloud_witness.endpoint` | string | No | Storage endpoint suffix — override for sovereign clouds (e.g., `core.chinacloudapi.cn`) | `core.windows.net` | 5 |
 | `cloud_witness.key_uri` | string | No | Key Vault URI for the storage account key | — | 5 |
 | `cloud_witness.key_secret` | string | No | Direct storage key value (less secure — use `key_uri` when possible) | — | 5 |
 
@@ -363,6 +393,8 @@ ansible_controller:
   name: "vm-ansible-sofs-01"
   size: "Standard_B2s"
   admin_username: "ansibleadmin"
+  ssh_public_key_path: "~/.ssh/id_rsa.pub"
+  private_ip: "10.250.1.41"
   hub_subnet_id: "<resource ID>"
   hub_rg: "rg-connectivity"
   existing_controller_ip: ""
@@ -374,6 +406,8 @@ ansible_controller:
 | `ansible_controller.name` | string | ansible_create | VM name for the Ansible controller | `vm-ansible-sofs-01` | 2 |
 | `ansible_controller.size` | string | ansible_create | Azure VM size | `Standard_B2s` | 2 |
 | `ansible_controller.admin_username` | string | ansible_create | Admin username for the controller VM | `ansibleadmin` | 2 |
+| `ansible_controller.ssh_public_key_path` | string | ansible_create | Path to the SSH public key for controller authentication | `~/.ssh/id_rsa.pub` | 2 |
+| `ansible_controller.private_ip` | string | ansible_create | Static private IP for the controller VM | — | 2 |
 | `ansible_controller.hub_subnet_id` | string | ansible_create | Subnet resource ID in the hub VNet | — | 2 |
 | `ansible_controller.hub_rg` | string | ansible_create | Resource group for the hub network | `rg-connectivity` | 2 |
 | `ansible_controller.existing_controller_ip` | string | ansible_existing | IP address of existing controller | — | 3 |
@@ -404,13 +438,16 @@ tags:
 
 | Architecture Decision | Variables Affected |
 |----------------------|-------------------|
-| Three host volumes (fault isolation) | `azure_local.storage_path_ids` (populate all three) |
-| Single host volume | `azure_local.storage_path_id` (populate one) |
-| Two-way guest mirror | `s2d.data_copies: 2` or `s2d.volumes[].data_copies: 2` |
-| Three-way guest mirror | `s2d.data_copies: 3`, increase `data_disks.size_gb` |
-| Option A (single share) | `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
-| Option B (three shares) | `sofs.shares[]`, `s2d.volumes[]` — one entry per workload |
+| Three host volumes (fault isolation) | `deployment.host_volume_layout: "three_volumes"`, `azure_local.storage_path_ids` |
+| Single host volume | `deployment.host_volume_layout: "single_volume"`, `azure_local.storage_path_id` |
+| Two-way host mirror | `deployment.host_resiliency: "two_way"` |
+| Three-way host mirror | `deployment.host_resiliency: "three_way"`, `vm.count` ≥ 3 |
+| Two-way guest mirror | `deployment.guest_resiliency: "two_way"`, `s2d.data_copies: 2` |
+| Three-way guest mirror | `deployment.guest_resiliency: "three_way"`, `s2d.data_copies: 3`, `vm.count` ≥ 3 |
+| Option A (single share) | `deployment.guest_volume_layout: "option_a"`, `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
+| Option B (three shares) | `deployment.guest_volume_layout: "option_b"`, `sofs.shares[]`, `s2d.volumes[]` |
 | Profile sizing | `data_disks.size_gb` (derived from capacity planning) |
+| Sovereign cloud | `cloud_witness.endpoint` (override default `core.windows.net`) |
 
 ---
 
@@ -460,6 +497,7 @@ Shows which variable groups are consumed by each deployment phase.
 
 | Variable Group | ☁️ Phase 1 | 🖥️ Phase 2 | ⚙️ Phases 3–4 | 🔧 Phases 5–8 | 🛡️ Phases 9–11 |
 |---------------|:---:|:---:|:---:|:---:|:---:|
+| Deployment Choices | ✅ | ✅ | | ✅ | |
 | Azure | ✅ | | | | |
 | Key Vault | ✅ | ✅ | | | |
 | Azure Local | | ✅ | | | |
@@ -472,32 +510,47 @@ Shows which variable groups are consumed by each deployment phase.
 | Cloud Witness | ✅ | | | ✅ | |
 | Guest Config Engine | | | ✅ | | |
 | Ansible Controller | | ✅ | ✅ | | |
-| Tags | ✅ | | | | |
-| Deployment Choices | ✅ | ✅ | | ✅ | |
 | Host Volumes | | | | | |
 | Permissions | | | | ✅ | ✅ |
 | FSLogix | | | | | ✅ |
+| Tags | ✅ | | | | |
+| WinRM | | | ✅ | ✅ | ✅ |
 
 ---
 
 ## Host Volumes
 
-```yaml
-host_volumes:
-  prefix: "SOFS-CSV"
-  resiliency: "two_way"
-  count: 3
-  size_tb: 4.0
-  storage_pool_name: "S2D on azl-cluster-01"
-```
+=== "Three Volumes (fault isolation)"
+
+    ```yaml
+    host_volumes:
+      storage_pool_name: "S2D on azl-cluster-01"
+      volumes:
+        - name: "SOFS-CSV-01"
+          size_tb: 4.0
+        - name: "SOFS-CSV-02"
+          size_tb: 4.0
+        - name: "SOFS-CSV-03"
+          size_tb: 4.0
+    ```
+
+=== "Single Volume"
+
+    ```yaml
+    host_volumes:
+      storage_pool_name: "S2D on azl-cluster-01"
+      name: "SOFS-CSV-01"
+      size_tb: 12.0
+    ```
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
-| `host_volumes.prefix` | string | No | CSV volume name prefix | `SOFS-CSV` | Reference |
-| `host_volumes.resiliency` | string | No | Host mirror level | `two_way` | Reference |
-| `host_volumes.count` | integer | No | Number of host CSV volumes | `3` | Reference |
-| `host_volumes.size_tb` | number | No | Size per host volume in TB | `4.0` | Reference |
-| `host_volumes.storage_pool_name` | string | No | Host S2D pool name (for validation) | — | Reference |
+| `host_volumes.storage_pool_name` | string | **Yes** | Host S2D pool name (for validation) | — | Reference |
+| `host_volumes.volumes` | list | three_volumes | List of host CSV volumes with explicit names | — | Reference |
+| `host_volumes.volumes[].name` | string | three_volumes | CSV volume name | — | Reference |
+| `host_volumes.volumes[].size_tb` | number | three_volumes | Size per host volume in TB | — | Reference |
+| `host_volumes.name` | string | single_volume | Single CSV volume name | — | Reference |
+| `host_volumes.size_tb` | number | single_volume | Total host volume size in TB | — | Reference |
 
 !!! note "Reference only"
     Host volumes are provisioned directly on the Azure Local cluster as a prerequisite. These variables exist for documentation, validation, and reporting — automation tools do not create host volumes.
@@ -544,3 +597,27 @@ fslogix:
 | `fslogix.delete_local_profile` | boolean | No | Delete local profile on logoff when FSLogix is active | `true` | — | 9 |
 | `fslogix.cloud_cache.enabled` | boolean | No | Enable Cloud Cache (dual-write to SOFS + Azure Blob) | `false` | — | 9 |
 | `fslogix.cloud_cache.azure_provider` | string | No | Azure Blob Storage connection string for Cloud Cache | — | — | 9 |
+
+---
+
+## WinRM
+
+Used by PowerShell and Ansible tools for remote guest OS configuration (Phases 3–11).
+
+```yaml
+winrm:
+  transport: "kerberos"
+  port: 5985
+  use_ssl: false
+  cert_validation: "ignore"
+```
+
+| Variable | Type | Required | Description | Default | Valid Values | Phases |
+|----------|------|:--------:|-------------|---------|-------------|--------|
+| `winrm.transport` | string | No | WinRM authentication transport | `kerberos` | `kerberos`, `ntlm`, `basic` | 3–11 |
+| `winrm.port` | integer | No | WinRM listener port | `5985` | `5985`, `5986` | 3–11 |
+| `winrm.use_ssl` | boolean | No | Use HTTPS for WinRM connections | `false` | — | 3–11 |
+| `winrm.cert_validation` | string | No | Certificate validation mode for SSL connections | `ignore` | `ignore`, `validate` | 3–11 |
+
+!!! tip "Transport choice"
+    Use `kerberos` for domain-joined environments (most secure, requires AD). Use `ntlm` when Kerberos delegation is not available. Avoid `basic` in production.
