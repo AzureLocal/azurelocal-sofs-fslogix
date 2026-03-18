@@ -27,9 +27,12 @@
     },
     "keyvault": {
       "type": "object",
-      "required": ["name"],
+      "required": ["name", "tenant_id", "subscription_id", "resource_group"],
       "properties": {
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "subscription_id": { "type": "string" },
+        "resource_group": { "type": "string" }
       }
     },
     "azure_local": {
