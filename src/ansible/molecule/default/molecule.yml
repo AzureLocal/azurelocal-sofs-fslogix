@@ -1,0 +1,89 @@
+---
+# Molecule test scenario for SOFS Ansible playbooks.
+# Uses the "delegated" driver — no real Windows VMs are provisioned.
+# Validates YAML syntax, variable references, and ansible-lint compliance.
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+
+driver:
+  name: delegated
+  options:
+    managed: false
+
+platforms:
+  - name: sofs-test-01
+    groups:
+      - sofs_nodes
+      - all
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          sofs_subscription_id: "00000000-0000-0000-0000-000000000000"
+          sofs_resource_group: "rg-sofs-test"
+          sofs_location: "eastus"
+          sofs_custom_location_id: "/subscriptions/00000000/resourceGroups/rg-test/providers/Microsoft.ExtendedLocation/customLocations/test-cl"
+          sofs_logical_network_id: "/subscriptions/00000000/resourceGroups/rg-test/providers/Microsoft.AzureStackHCI/logicalNetworks/test-net"
+          sofs_gallery_image_id: "/subscriptions/00000000/resourceGroups/rg-test/providers/Microsoft.AzureStackHCI/galleryImages/ws2025-g2"
+          sofs_storage_path_ids:
+            "01": "/subscriptions/00000000/storageContainers/csv-01"
+            "02": "/subscriptions/00000000/storageContainers/csv-02"
+          sofs_vm_prefix: "TEST-SOFS"
+          sofs_vm_count: 2
+          sofs_vm_processors: 4
+          sofs_vm_memory_mb: 8192
+          sofs_admin_username: "TestAdmin"
+          sofs_data_disk_count: 2
+          sofs_data_disk_size_gb: 128
+          sofs_cloud_witness_name: "sttestwitness01"
+          sofs_guest_volume_layout: "option_a"
+          sofs_host_resiliency: "two_way"
+          sofs_guest_resiliency: "two_way"
+          sofs_cluster_name: "TEST-Cluster"
+          sofs_cluster_ip: "10.0.0.100"
+          sofs_access_point: "TestSOFS"
+          sofs_share_name: "TestShare"
+          sofs_s2d_volume_name: "TestData"
+          sofs_s2d_volume_size: "256GB"
+          sofs_s2d_data_copies: 2
+          sofs_s2d_pool_name: "S2D on TEST-Cluster"
+          sofs_smb_encryption: true
+          sofs_domain_fqdn: "test.local"
+          sofs_domain_netbios: "TEST"
+          sofs_domain_join_account: "svc.domainjoin"
+          sofs_domain_ou_nodes: "OU=Test,DC=test,DC=local"
+          sofs_anti_affinity_rule: "TEST-AntiAffinity"
+          sofs_azl_cluster_name: "TestCluster"
+          sofs_permissions_admin_group: "Domain Admins"
+          sofs_permissions_users_group: "Test-Users"
+          sofs_permissions_avd_users_group: "Test-Users"
+          sofs_fslogix_enabled: true
+          sofs_fslogix_profile_size_mb: 10000
+          sofs_fslogix_volume_type: "VHDX"
+          sofs_cloud_cache_enabled: false
+          sofs_dns_servers:
+            - "10.0.0.10"
+          ansible_connection: local
+        children:
+          sofs_nodes:
+            hosts:
+              sofs-test-01:
+                ansible_host: 127.0.0.1
+              sofs-test-02:
+                ansible_host: 127.0.0.2
+          host_cluster:
+            hosts:
+              host-test-01:
+                ansible_host: 127.0.0.10
+          avd_session_hosts:
+            hosts:
+              avd-test-01:
+                ansible_host: 127.0.0.20
+
+verifier:
+  name: ansible

@@ -4,7 +4,7 @@
 # Update host IPs and credentials for your environment.
 # Use ansible-vault to encrypt sensitive values.
 #
-# EXAMPLE COMPANY: Infinite Improbability Corp (improbability.cloud)
+# Supports all 10 SOFS scenarios via sofs_guest_volume_layout + resiliency.
 # =============================================================================
 
 all:
@@ -15,13 +15,17 @@ all:
     sofs_location: "eastus"
 
     # --- Azure Local infrastructure IDs ---
-    sofs_custom_location_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.ExtendedLocation/customLocations/iic-azl-eus-cl"
-    sofs_logical_network_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/logicalNetworks/iic-compute-network"
-    sofs_gallery_image: "img-iic-ws2025-datacenter-g2-v1"
-    sofs_storage_path_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/storageContainers/iic-azl-eus-storage"
+    sofs_custom_location_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.ExtendedLocation/customLocations/azl-eus-cl"
+    sofs_logical_network_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/logicalNetworks/compute-network"
+    sofs_gallery_image_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-azl-eus-01/providers/Microsoft.AzureStackHCI/galleryImages/ws2025-datacenter-g2"
+    # Per-VM storage path mapping (spreads I/O across CSV volumes)
+    sofs_storage_path_ids:
+      "01": "/subscriptions/.../storageContainers/csv-01"
+      "02": "/subscriptions/.../storageContainers/csv-02"
+      "03": "/subscriptions/.../storageContainers/csv-03"
 
     # --- VM configuration ---
-    sofs_vm_prefix: "IIC-SOFS"
+    sofs_vm_prefix: "SOFS"
     sofs_vm_count: 3
     sofs_vm_processors: 4
     sofs_vm_memory_mb: 8192
@@ -33,9 +37,14 @@ all:
     sofs_data_disk_size_gb: 1024
 
     # --- Cloud witness ---
-    sofs_cloud_witness_name: "stsofswitnessiic01"
+    sofs_cloud_witness_name: "stsofswitness01"
 
-    # --- Guest cluster configuration ---
+    # --- Architecture choices (determines which of the 10 scenarios) ---
+    sofs_guest_volume_layout: "option_a"   # option_a | option_b
+    sofs_host_resiliency: "two_way"        # two_way | three_way
+    sofs_guest_resiliency: "two_way"       # two_way | three_way
+
+    # --- Guest cluster configuration (Option A) ---
     sofs_cluster_name: "SOFS-Cluster"
     sofs_cluster_ip: "192.168.211.60"
     sofs_access_point: "FSLogixSOFS"
@@ -43,10 +52,61 @@ all:
     sofs_s2d_volume_name: "FSLogixData"
     sofs_s2d_volume_size: "5632GB"
     sofs_s2d_data_copies: 2
-    sofs_domain_fqdn: "iic.local"
-    sofs_domain_netbios: "IMPROBABLE"
+    sofs_sofs_role_name: "FSLogixSOFS"
+    sofs_s2d_pool_name: "S2D on SOFS-Cluster"
+    sofs_smb_encryption: true
+    sofs_access_point_ip: "192.168.211.61"
+
+    # --- Option B: multiple volumes/shares (uncomment when layout = option_b) ---
+    # sofs_shares:
+    #   - name: "Profiles"
+    #     volume: "Profiles"
+    #   - name: "ODFC"
+    #     volume: "ODFC"
+    #   - name: "AppData"
+    #     volume: "AppData"
+    # sofs_s2d_volumes:
+    #   - name: "Profiles"
+    #     size_gb: 33485
+    #     data_copies: 2
+    #   - name: "ODFC"
+    #     size_gb: 21299
+    #     data_copies: 2
+    #   - name: "AppData"
+    #     size_gb: 6144
+    #     data_copies: 2
+
+    # --- Domain join ---
+    sofs_domain_fqdn: "contoso.local"
+    sofs_domain_netbios: "CONTOSO"
+    sofs_domain_join_account: "svc.domainjoin"
+    # sofs_domain_join_password: !vault | (use ansible-vault encrypt_string)
+    sofs_domain_ou_nodes: "OU=SOFS-Cluster,OU=Servers,DC=contoso,DC=local"
+    sofs_domain_ou_cluster: "OU=SOFS-Cluster,OU=Servers,DC=contoso,DC=local"
+
+    # --- Anti-affinity ---
     sofs_anti_affinity_rule: "SOFS-AntiAffinity"
     sofs_azl_cluster_name: "AzLocalCluster"
+
+    # --- Permissions ---
+    sofs_permissions_admin_group: "Domain Admins"
+    sofs_permissions_users_group: "AVD-Users"
+    sofs_permissions_avd_users_group: "AVD-Users"
+
+    # --- FSLogix ---
+    sofs_fslogix_enabled: true
+    sofs_fslogix_profile_size_mb: 30000
+    sofs_fslogix_volume_type: "VHDX"
+    sofs_cloud_cache_enabled: false
+    # sofs_cloud_cache_azure_provider: ""
+
+    # --- DNS ---
+    sofs_dns_servers:
+      - "10.0.1.10"
+      - "10.0.1.11"
+
+    # --- Tags ---
+    sofs_tags: "project=SOFS workload=FSLogix solution=sofs-azure-local"
 
     # --- WinRM connection for Windows targets ---
     ansible_connection: winrm
@@ -55,11 +115,28 @@ all:
     ansible_port: 5986
 
   children:
+    # Azure Local host cluster nodes (for Phase 3 anti-affinity)
+    host_cluster:
+      hosts:
+        azl-node-01:
+          ansible_host: 10.0.0.1
+        azl-node-02:
+          ansible_host: 10.0.0.2
+
+    # SOFS guest VMs
     sofs_nodes:
       hosts:
-        IIC-SOFS-01:
+        SOFS-01:
           ansible_host: 192.168.211.51
-        IIC-SOFS-02:
+        SOFS-02:
           ansible_host: 192.168.211.52
-        IIC-SOFS-03:
+        SOFS-03:
           ansible_host: 192.168.211.53
+
+    # AVD session hosts (for FSLogix registry config)
+    avd_session_hosts:
+      hosts:
+        avd-host-01:
+          ansible_host: 192.168.2.11
+        avd-host-02:
+          ansible_host: 192.168.2.12

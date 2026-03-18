@@ -1,0 +1,15 @@
+---
+# .ansible-lint configuration
+# See https://ansible.readthedocs.io/projects/lint/configuring/
+
+profile: production
+
+exclude_paths:
+  - molecule/
+
+skip_list:
+  - command-instead-of-module   # az CLI has no native module equivalent for stack-hci-vm
+  - no-changed-when             # many az CLI tasks have custom changed_when logic
+
+warn_list:
+  - experimental

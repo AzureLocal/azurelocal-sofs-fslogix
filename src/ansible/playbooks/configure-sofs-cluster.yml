@@ -1,27 +1,62 @@
 # =============================================================================
 # SOFS on Azure Local — Configure Guest Cluster (Ansible Playbook)
 # =============================================================================
-# Configures the SOFS guest failover cluster on Windows Server VMs via WinRM:
-#   - Installs Failover Clustering + File Server roles
-#   - Creates the guest failover cluster
-#   - Configures cloud witness
-#   - Enables S2D, applies guest tuning
-#   - Creates the S2D volume
-#   - Adds SOFS role + FSLogix SMB share
-#   - Configures NTFS permissions
-#   - Validates the deployment
+# Phases covered:
+#   Phase 3 — Anti-affinity rule (host_cluster WinRM)
+#   Phase 5 — Install roles/features
+#   Phase 6 — Create failover cluster + cloud witness
+#   Phase 7 — Enable S2D, tuning, create volume(s)
+#   Phase 8 — Add SOFS role + create share(s)
+#   Phase 9 — NTFS permissions + SMB encryption
+#   Phase 9c — Cloud Cache (optional)
+#   Phase 11 — Validation
 #
-# Prerequisites:
-#   - SOFS VMs deployed and domain-joined (deploy-azure-resources.yml)
-#   - WinRM accessible from Ansible controller (Kerberos or NTLM)
-#   - pywinrm installed on Ansible controller
+# Supports Option A (single volume/share) and Option B (multiple)
+# via sofs_guest_volume_layout variable.
 #
 # Usage:
 #   ansible-playbook -i inventory.yml configure-sofs-cluster.yml
-#   ansible-playbook -i inventory.yml configure-sofs-cluster.yml --check  (dry-run)
+#   ansible-playbook -i inventory.yml configure-sofs-cluster.yml --check
 # =============================================================================
 ---
-- name: Configure SOFS Guest Cluster
+# =====================================================================
+# Phase 3: Anti-Affinity (runs on Azure Local HOST cluster via WinRM)
+# =====================================================================
+- name: "Phase 3 — Configure Anti-Affinity on Host Cluster"
+  hosts: host_cluster
+  gather_facts: false
+  run_once: true
+
+  vars:
+    anti_affinity_rule: "{{ sofs_anti_affinity_rule }}"
+    vm_prefix: "{{ sofs_vm_prefix }}"
+    vm_count: "{{ sofs_vm_count | int }}"
+
+  tasks:
+    - name: "Phase 3 — Create anti-affinity rule for SOFS VMs"
+      ansible.windows.win_powershell:
+        script: |
+          $ruleName = '{{ anti_affinity_rule }}'
+          $existing = Get-ClusterAffinityRule -Name $ruleName -ErrorAction SilentlyContinue
+          if (-not $existing) {
+              New-ClusterAffinityRule -Name $ruleName -RuleType AntiAffinity -ErrorAction Stop
+              Write-Output "Anti-affinity rule created: $ruleName"
+          } else {
+              Write-Output "Anti-affinity rule already exists: $ruleName"
+          }
+          {% for idx in range(1, vm_count | int + 1) %}
+          $vmName = '{{ vm_prefix }}-{{ '%02d' | format(idx) }}'
+          $vmResource = Get-ClusterGroup -Name $vmName -ErrorAction SilentlyContinue
+          if ($vmResource) {
+              Add-ClusterGroupToAffinityRule -Groups $vmResource -Name $ruleName -ErrorAction SilentlyContinue
+              Write-Output "Added $vmName to $ruleName"
+          }
+          {% endfor %}
+
+# =====================================================================
+# Phases 5-11: Guest OS Configuration (runs on SOFS VMs via WinRM)
+# =====================================================================
+- name: "Configure SOFS Guest Cluster (Phases 5-11)"
   hosts: sofs_nodes
   gather_facts: true
 
@@ -29,17 +64,33 @@
     cluster_name: "{{ sofs_cluster_name }}"
     cluster_ip: "{{ sofs_cluster_ip }}"
     access_point: "{{ sofs_access_point }}"
-    share_name: "{{ sofs_share_name }}"
+    share_name: "{{ sofs_share_name | default('FSLogix') }}"
     witness_account: "{{ sofs_cloud_witness_name }}"
-    witness_key: "{{ sofs_witness_key }}"               # pass via --extra-vars or vault
+    witness_key: "{{ sofs_witness_key }}"
     witness_endpoint: "core.windows.net"
-    s2d_volume_name: "{{ sofs_s2d_volume_name }}"
-    s2d_volume_size: "{{ sofs_s2d_volume_size }}"
-    s2d_data_copies: "{{ sofs_s2d_data_copies | int }}"
+    s2d_volume_name: "{{ sofs_s2d_volume_name | default('FSLogixData') }}"
+    s2d_volume_size: "{{ sofs_s2d_volume_size | default('5632GB') }}"
+    s2d_data_copies: "{{ sofs_s2d_data_copies | default(2) | int }}"
+    s2d_pool_name: "{{ sofs_s2d_pool_name | default('S2D on ' ~ sofs_cluster_name) }}"
+    sofs_role_name: "{{ sofs_sofs_role_name | default(sofs_access_point) }}"
+    smb_encryption: "{{ sofs_smb_encryption | default(true) }}"
     domain_netbios: "{{ sofs_domain_netbios }}"
+    guest_volume_layout: "{{ sofs_guest_volume_layout | default('option_a') }}"
     anti_affinity_rule: "{{ sofs_anti_affinity_rule }}"
     azl_cluster_name: "{{ sofs_azl_cluster_name }}"
     vm_names: "{{ groups['sofs_nodes'] }}"
+    # Permissions
+    admin_group: "{{ sofs_permissions_admin_group | default('Domain Admins') }}"
+    users_group: "{{ sofs_permissions_users_group | default('AVD-Users') }}"
+    avd_users_group: "{{ sofs_permissions_avd_users_group | default('AVD-Users') }}"
+    # Option B lists (empty defaults for Option A)
+    sofs_shares_list: "{{ sofs_shares | default([]) }}"
+    s2d_volumes_list: "{{ sofs_s2d_volumes | default([]) }}"
+    # FSLogix
+    fslogix_enabled: "{{ sofs_fslogix_enabled | default(true) }}"
+    fslogix_profile_size_mb: "{{ sofs_fslogix_profile_size_mb | default(30000) }}"
+    # DNS
+    dns_servers: "{{ sofs_dns_servers | default([]) }}"
 
   tasks:
     # -----------------------------------------------------------------
@@ -62,7 +113,7 @@
       when: feature_install.reboot_required
 
     # -----------------------------------------------------------------
-    # Phase 6: Create Guest Failover Cluster (run on first node only)
+    # Phase 6: Create Guest Failover Cluster (first node only)
     # -----------------------------------------------------------------
     - name: "Phase 6 — Validate cluster"
       ansible.windows.win_powershell:
@@ -135,26 +186,54 @@
           Write-Output "AutoReplace disabled"
       when: inventory_hostname == groups['sofs_nodes'][0]
 
-    - name: "Phase 7 — Create S2D volume"
+    # --- Option A: Single volume ---
+    - name: "Phase 7 — Create S2D volume (Option A)"
       ansible.windows.win_powershell:
         script: |
           $existing = Get-VirtualDisk -FriendlyName {{ s2d_volume_name }} -ErrorAction SilentlyContinue
           if (-not $existing) {
               New-Volume -FriendlyName {{ s2d_volume_name }} `
-                         -StoragePoolFriendlyName "S2D on {{ cluster_name }}" `
+                         -StoragePoolFriendlyName "{{ s2d_pool_name }}" `
                          -FileSystem CSVFS_ReFS `
                          -ResiliencySettingName Mirror `
                          -NumberOfDataCopies {{ s2d_data_copies }} `
                          -Size {{ s2d_volume_size }} `
                          -ErrorAction Stop | Out-Null
-              Write-Output "Volume created"
+              Write-Output "Volume {{ s2d_volume_name }} created"
           } else {
-              Write-Output "Volume already exists"
+              Write-Output "Volume {{ s2d_volume_name }} already exists"
           }
-      when: inventory_hostname == groups['sofs_nodes'][0]
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_a'
+
+    # --- Option B: Multiple volumes ---
+    - name: "Phase 7 — Create S2D volumes (Option B)"
+      ansible.windows.win_powershell:
+        script: |
+          $existing = Get-VirtualDisk -FriendlyName '{{ item.name }}' -ErrorAction SilentlyContinue
+          if (-not $existing) {
+              New-Volume -FriendlyName '{{ item.name }}' `
+                         -StoragePoolFriendlyName "{{ s2d_pool_name }}" `
+                         -FileSystem CSVFS_ReFS `
+                         -ResiliencySettingName Mirror `
+                         -NumberOfDataCopies {{ item.data_copies }} `
+                         -Size {{ item.size_gb }}GB `
+                         -ErrorAction Stop | Out-Null
+              Write-Output "Volume {{ item.name }} created"
+          } else {
+              Write-Output "Volume {{ item.name }} already exists"
+          }
+      loop: "{{ s2d_volumes_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_b'
+        - s2d_volumes_list | length > 0
 
     # -----------------------------------------------------------------
-    # Phase 8: Add SOFS Role and Create FSLogix Share
+    # Phase 8: Add SOFS Role and Create Shares
     # -----------------------------------------------------------------
     - name: "Phase 8 — Add SOFS cluster role"
       ansible.windows.win_powershell:
@@ -170,7 +249,8 @@
           }
       when: inventory_hostname == groups['sofs_nodes'][0]
 
-    - name: "Phase 8 — Create FSLogix SMB share"
+    # --- Option A: Single share ---
+    - name: "Phase 8 — Create FSLogix SMB share (Option A)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -187,20 +267,59 @@
                            -ScopeName {{ access_point }} `
                            -ContinuouslyAvailable $true `
                            -CachingMode None `
-                           -FullAccess "{{ domain_netbios }}\Domain Admins" `
-                           -ChangeAccess "{{ domain_netbios }}\Domain Users" `
+                           -FullAccess "{{ domain_netbios }}\{{ admin_group }}" `
+                           -ChangeAccess "{{ domain_netbios }}\{{ users_group }}" `
                            -FolderEnumerationMode AccessBased `
+                           -EncryptData ${{ smb_encryption | string | lower }} `
                            -ErrorAction Stop | Out-Null
               Write-Output "Share created: \\{{ access_point }}\{{ share_name }}"
           } else {
               Write-Output "Share already exists"
           }
-      when: inventory_hostname == groups['sofs_nodes'][0]
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_a'
+
+    # --- Option B: Multiple shares ---
+    - name: "Phase 8 — Create SMB shares (Option B)"
+      ansible.windows.win_powershell:
+        script: |
+          $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
+              Where-Object { $_.SharedVolumeInfo.FriendlyVolumeName -match '{{ item.volume }}' }
+          $CSVPath = $CSV.SharedVolumeInfo.FriendlyVolumeName
+          $SharePath = Join-Path $CSVPath "{{ item.name }}"
+
+          New-Item -Path $SharePath -ItemType Directory -Force | Out-Null
+
+          $existing = Get-SmbShare -Name '{{ item.name }}' -ScopeName {{ access_point }} -ErrorAction SilentlyContinue
+          if (-not $existing) {
+              New-SmbShare -Name '{{ item.name }}' `
+                           -Path $SharePath `
+                           -ScopeName {{ access_point }} `
+                           -ContinuouslyAvailable $true `
+                           -CachingMode None `
+                           -FullAccess "{{ domain_netbios }}\{{ admin_group }}" `
+                           -ChangeAccess "{{ domain_netbios }}\{{ users_group }}" `
+                           -FolderEnumerationMode AccessBased `
+                           -EncryptData ${{ smb_encryption | string | lower }} `
+                           -ErrorAction Stop | Out-Null
+              Write-Output "Share created: \\{{ access_point }}\{{ item.name }}"
+          } else {
+              Write-Output "Share {{ item.name }} already exists"
+          }
+      loop: "{{ sofs_shares_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_b'
+        - sofs_shares_list | length > 0
 
     # -----------------------------------------------------------------
     # Phase 9: NTFS Permissions
     # -----------------------------------------------------------------
-    - name: "Phase 9 — Configure NTFS permissions for FSLogix"
+    # --- Option A ---
+    - name: "Phase 9 — Configure NTFS permissions (Option A)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -211,19 +330,12 @@
           $acl = Get-Acl $SharePath
           $acl.SetAccessRuleProtection($true, $false)
 
-          # CREATOR OWNER — Modify (subfolders and files only)
           $rule1 = New-Object System.Security.AccessControl.FileSystemAccessRule(
               "CREATOR OWNER", "Modify", "ContainerInherit,ObjectInherit", "InheritOnly", "Allow")
-
-          # Domain Users — Modify (this folder only)
           $rule2 = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "{{ domain_netbios }}\Domain Users", "Modify", "None", "None", "Allow")
-
-          # Domain Admins — Full Control
+              "{{ domain_netbios }}\{{ avd_users_group }}", "Modify", "None", "None", "Allow")
           $rule3 = New-Object System.Security.AccessControl.FileSystemAccessRule(
-              "{{ domain_netbios }}\Domain Admins", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
-
-          # SYSTEM — Full Control
+              "{{ domain_netbios }}\{{ admin_group }}", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
           $rule4 = New-Object System.Security.AccessControl.FileSystemAccessRule(
               "NT AUTHORITY\SYSTEM", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
 
@@ -232,8 +344,70 @@
           $acl.AddAccessRule($rule3)
           $acl.AddAccessRule($rule4)
           Set-Acl -Path $SharePath -AclObject $acl
-          Write-Output "NTFS permissions configured"
-      when: inventory_hostname == groups['sofs_nodes'][0]
+          Write-Output "NTFS permissions configured for {{ share_name }}"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_a'
+
+    # --- Option B ---
+    - name: "Phase 9 — Configure NTFS permissions (Option B)"
+      ansible.windows.win_powershell:
+        script: |
+          $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
+              Where-Object { $_.SharedVolumeInfo.FriendlyVolumeName -match '{{ item.volume }}' }
+          $CSVPath = $CSV.SharedVolumeInfo.FriendlyVolumeName
+          $SharePath = Join-Path $CSVPath "{{ item.name }}"
+
+          $acl = Get-Acl $SharePath
+          $acl.SetAccessRuleProtection($true, $false)
+
+          $rule1 = New-Object System.Security.AccessControl.FileSystemAccessRule(
+              "CREATOR OWNER", "Modify", "ContainerInherit,ObjectInherit", "InheritOnly", "Allow")
+          $rule2 = New-Object System.Security.AccessControl.FileSystemAccessRule(
+              "{{ domain_netbios }}\{{ avd_users_group }}", "Modify", "None", "None", "Allow")
+          $rule3 = New-Object System.Security.AccessControl.FileSystemAccessRule(
+              "{{ domain_netbios }}\{{ admin_group }}", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+          $rule4 = New-Object System.Security.AccessControl.FileSystemAccessRule(
+              "NT AUTHORITY\SYSTEM", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+
+          $acl.AddAccessRule($rule1)
+          $acl.AddAccessRule($rule2)
+          $acl.AddAccessRule($rule3)
+          $acl.AddAccessRule($rule4)
+          Set-Acl -Path $SharePath -AclObject $acl
+          Write-Output "NTFS permissions configured for {{ item.name }}"
+      loop: "{{ sofs_shares_list }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - guest_volume_layout == 'option_b'
+        - sofs_shares_list | length > 0
+
+    # --- SMB Encryption ---
+    - name: "Phase 9 — Enable SMB server-wide encryption"
+      ansible.windows.win_powershell:
+        script: |
+          Set-SmbServerConfiguration -EncryptData ${{ smb_encryption | string | lower }} -Confirm:$false
+          Write-Output "SMB encryption set to {{ smb_encryption }}"
+      when: smb_encryption | bool
+
+    # -----------------------------------------------------------------
+    # Phase 9c: Cloud Cache (optional)
+    # -----------------------------------------------------------------
+    - name: "Phase 9c — Configure Cloud Cache provider"
+      ansible.windows.win_powershell:
+        script: |
+          # Cloud Cache configuration is applied via FSLogix GPO / registry
+          # This task creates the CCDLocations registry value
+          $regPath = 'HKLM:\SOFTWARE\FSLogix\Profiles'
+          if (-not (Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
+          Set-ItemProperty -Path $regPath -Name 'CCDLocations' `
+              -Value '{{ sofs_cloud_cache_azure_provider | default("") }}' -Type String
+          Write-Output "Cloud Cache CCDLocations configured"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - sofs_cloud_cache_enabled | default(false) | bool
 
     # -----------------------------------------------------------------
     # Phase 11: Validation
@@ -250,18 +424,18 @@
         msg: "{{ cluster_nodes.output | default('N/A') }}"
       when: inventory_hostname == groups['sofs_nodes'][0]
 
-    - name: "Phase 11 — Verify SOFS share"
+    - name: "Phase 11 — Verify SOFS shares"
       ansible.windows.win_powershell:
         script: |
-          Get-SmbShare -Name {{ share_name }} -ScopeName {{ access_point }} |
-              Select-Object Name, ScopeName, ContinuouslyAvailable, CachingMode, Path |
+          Get-SmbShare -ScopeName {{ access_point }} -ErrorAction SilentlyContinue |
+              Select-Object Name, ScopeName, ContinuouslyAvailable, EncryptData, Path |
               ConvertTo-Json
       when: inventory_hostname == groups['sofs_nodes'][0]
-      register: sofs_share
+      register: sofs_shares_result
 
-    - name: Display SOFS share
+    - name: Display SOFS shares
       ansible.builtin.debug:
-        msg: "{{ sofs_share.output | default('N/A') }}"
+        msg: "{{ sofs_shares_result.output | default('N/A') }}"
       when: inventory_hostname == groups['sofs_nodes'][0]
 
     - name: Deployment summary
@@ -271,12 +445,17 @@
           SOFS Guest Cluster Configuration Complete
           ============================================
           Cluster:        {{ cluster_name }} ({{ cluster_ip }})
+          Layout:         {{ guest_volume_layout }}
           SOFS Name:      {{ access_point }}
+          {% if guest_volume_layout == 'option_a' %}
           Share:          \\{{ access_point }}\{{ share_name }}
           S2D Volume:     {{ s2d_volume_name }} ({{ s2d_volume_size }}, {{ s2d_data_copies }}-way mirror)
+          {% else %}
+          Shares:         {{ sofs_shares_list | map(attribute='name') | join(', ') }}
+          Volumes:        {{ s2d_volumes_list | map(attribute='name') | join(', ') }}
+          {% endif %}
           Cloud Witness:  {{ witness_account }}
           Domain:         {{ domain_netbios }}
-          ============================================
-          NEXT: Set FSLogix VHDLocations to \\{{ access_point }}\{{ share_name }}
+          SMB Encryption: {{ smb_encryption }}
           ============================================
       when: inventory_hostname == groups['sofs_nodes'][0]

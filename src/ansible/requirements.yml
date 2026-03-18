@@ -1,0 +1,14 @@
+---
+# =============================================================================
+# SOFS on Azure Local — Ansible Collection Requirements
+# =============================================================================
+# Install with: ansible-galaxy collection install -r requirements.yml
+# =============================================================================
+
+collections:
+  - name: ansible.windows
+    version: ">=2.3.0"
+  - name: community.windows
+    version: ">=2.2.0"
+  - name: azure.azcollection
+    version: ">=2.4.0"

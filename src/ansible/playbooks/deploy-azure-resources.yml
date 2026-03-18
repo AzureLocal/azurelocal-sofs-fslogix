@@ -4,12 +4,13 @@
 # Creates all Azure-side resources using Azure CLI via command/shell modules.
 # Run from a management workstation with Azure CLI authenticated.
 #
+# Phases covered:
+#   Phase 1 — Azure resources (RG, witness, NICs, VMs, disks)
+#   Phase 2 — Domain join via Arc connected-machine extension
+#
 # Usage:
 #   ansible-playbook -i inventory.yml deploy-azure-resources.yml
 #   ansible-playbook -i inventory.yml deploy-azure-resources.yml --check  (dry-run)
-#
-# NOTE: This playbook runs against localhost — it provisions Azure resources,
-#       not guest OS configuration. Use configure-sofs-cluster.yml for that.
 # =============================================================================
 ---
 - name: Deploy SOFS Azure Resources
@@ -18,14 +19,13 @@
   gather_facts: false
 
   vars:
-    # Pull vars from inventory (all.vars) or override via --extra-vars
     subscription_id: "{{ sofs_subscription_id }}"
     resource_group: "{{ sofs_resource_group }}"
     location: "{{ sofs_location }}"
     custom_location_id: "{{ sofs_custom_location_id }}"
     logical_network_id: "{{ sofs_logical_network_id }}"
-    gallery_image: "{{ sofs_gallery_image }}"
-    storage_path_id: "{{ sofs_storage_path_id }}"
+    gallery_image_id: "{{ sofs_gallery_image_id }}"
+    storage_path_ids: "{{ sofs_storage_path_ids }}"
     vm_prefix: "{{ sofs_vm_prefix }}"
     vm_count: "{{ sofs_vm_count | int }}"
     vm_processors: "{{ sofs_vm_processors | int }}"
@@ -35,7 +35,12 @@
     data_disk_count: "{{ sofs_data_disk_count | int }}"
     data_disk_size_gb: "{{ sofs_data_disk_size_gb | int }}"
     cloud_witness_name: "{{ sofs_cloud_witness_name }}"
-    tags: "project=SOFS environment=production workload=FSLogix solution=sofs-azure-local"
+    domain_fqdn: "{{ sofs_domain_fqdn }}"
+    domain_netbios: "{{ sofs_domain_netbios }}"
+    domain_join_account: "{{ sofs_domain_join_account }}"
+    domain_join_password: "{{ sofs_domain_join_password }}"
+    domain_ou_nodes: "{{ sofs_domain_ou_nodes | default('') }}"
+    tags: "{{ sofs_tags | default('project=SOFS workload=FSLogix solution=sofs-azure-local') }}"
 
   tasks:
     # -----------------------------------------------------------------
@@ -50,9 +55,22 @@
       changed_when: false
 
     # -----------------------------------------------------------------
-    # Step 1: Cloud Witness Storage Account
+    # Phase 1a: Resource Group
     # -----------------------------------------------------------------
-    - name: Create cloud witness storage account
+    - name: "Phase 1a — Create resource group"
+      ansible.builtin.command: >
+        az group create
+          --name {{ resource_group }}
+          --location {{ location }}
+          --tags {{ tags }}
+          --output none
+      register: rg_result
+      changed_when: rg_result.rc == 0
+
+    # -----------------------------------------------------------------
+    # Phase 1b: Cloud Witness Storage Account
+    # -----------------------------------------------------------------
+    - name: "Phase 1b — Create cloud witness storage account"
       ansible.builtin.command: >
         az storage account create
           --name {{ cloud_witness_name }}
@@ -60,6 +78,8 @@
           --location {{ location }}
           --sku Standard_LRS
           --kind StorageV2
+          --min-tls-version TLS1_2
+          --allow-blob-public-access false
           --tags {{ tags }}
           --output none
       register: witness_result
@@ -81,9 +101,9 @@
       no_log: true
 
     # -----------------------------------------------------------------
-    # Step 2: Create NICs
+    # Phase 1c: Create NICs
     # -----------------------------------------------------------------
-    - name: Create NICs on compute logical network
+    - name: "Phase 1c — Create NICs on compute logical network"
       ansible.builtin.command: >
         az stack-hci-vm network nic create
           --resource-group {{ resource_group }}
@@ -98,22 +118,22 @@
         label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}-nic"
 
     # -----------------------------------------------------------------
-    # Step 3: Create VMs
+    # Phase 1d: Create VMs (with per-VM storage path mapping)
     # -----------------------------------------------------------------
-    - name: Create SOFS VMs
+    - name: "Phase 1d — Create SOFS VMs"
       ansible.builtin.command: >
         az stack-hci-vm create
           --name {{ vm_prefix }}-{{ '%02d' | format(item) }}
           --resource-group {{ resource_group }}
           --custom-location {{ custom_location_id }}
           --location {{ location }}
-          --image {{ gallery_image }}
+          --image {{ gallery_image_id }}
           --admin-username {{ admin_username }}
           --admin-password {{ admin_password }}
           --computer-name {{ vm_prefix }}-{{ '%02d' | format(item) }}
           --hardware-profile memory-mb="{{ vm_memory_mb }}" processors="{{ vm_processors }}"
           --nics {{ vm_prefix }}-{{ '%02d' | format(item) }}-nic
-          --storage-path-id {{ storage_path_id }}
+          --storage-path-id {{ storage_path_ids['%02d' | format(item)] | default(storage_path_ids.values() | first) }}
           --authentication-type all
           --enable-agent true
           --tags {{ tags }}
@@ -121,19 +141,17 @@
       loop: "{{ range(1, vm_count | int + 1) | list }}"
       loop_control:
         label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}"
-      no_log: true  # hide admin_password from output
+      no_log: true
 
     # -----------------------------------------------------------------
-    # Step 4: Create Data Disks
+    # Phase 1e: Create & Attach Data Disks
     # -----------------------------------------------------------------
     - name: Build data disk list
       ansible.builtin.set_fact:
         data_disk_list: >-
-          {{
-            range(1, vm_count | int + 1) | product(range(1, data_disk_count | int + 1)) | list
-          }}
+          {{ range(1, vm_count | int + 1) | product(range(1, data_disk_count | int + 1)) | list }}
 
-    - name: Create data disks for S2D pool
+    - name: "Phase 1e — Create data disks for S2D pool"
       ansible.builtin.command: >
         az stack-hci-vm disk create
           --resource-group {{ resource_group }}
@@ -142,28 +160,14 @@
           --name {{ vm_prefix }}-{{ '%02d' | format(item[0]) }}-data{{ item[1] }}
           --size-gb {{ data_disk_size_gb }}
           --dynamic true
-          --storage-path-id {{ storage_path_id }}
+          --storage-path-id {{ storage_path_ids['%02d' | format(item[0])] | default(storage_path_ids.values() | first) }}
           --tags {{ tags }}
           --output none
       loop: "{{ data_disk_list }}"
       loop_control:
         label: "{{ vm_prefix }}-{{ '%02d' | format(item[0]) }}-data{{ item[1] }}"
 
-    # -----------------------------------------------------------------
-    # Step 5: Attach Data Disks to VMs
-    # -----------------------------------------------------------------
-    - name: Build disk name lists per VM
-      ansible.builtin.set_fact:
-        vm_disk_names: >-
-          {{
-            dict(
-              range(1, vm_count | int + 1) | map('regex_replace', '^(.*)$', vm_prefix ~ '-' ~ '\1') |
-              zip(range(1, vm_count | int + 1) | map('apply_format') | list) | list
-            )
-          }}
-      ignore_errors: true  # complex Jinja — fallback below
-
-    - name: Attach data disks to VMs
+    - name: "Phase 1e — Attach data disks to VMs"
       ansible.builtin.command: >
         az stack-hci-vm disk attach
           --resource-group {{ resource_group }}
@@ -176,7 +180,33 @@
         label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}"
 
     # -----------------------------------------------------------------
-    # Step 6: Verify
+    # Phase 2: Domain Join via Arc Extension
+    # -----------------------------------------------------------------
+    - name: "Phase 2 — Domain join SOFS VMs via JsonADDomainExtension"
+      ansible.builtin.command: >
+        az connectedmachine extension create
+          --resource-group {{ resource_group }}
+          --machine-name {{ vm_prefix }}-{{ '%02d' | format(item) }}
+          --name JsonADDomainExtension
+          --location {{ location }}
+          --type JsonADDomainExtension
+          --publisher Microsoft.Compute
+          --settings '{
+            "Name": "{{ domain_fqdn }}",
+            "User": "{{ domain_netbios }}\\{{ domain_join_account }}",
+            "OUPath": "{{ domain_ou_nodes }}",
+            "Restart": "true",
+            "Options": "3"
+          }'
+          --protected-settings '{"Password": "{{ domain_join_password }}"}'
+          --output none
+      loop: "{{ range(1, vm_count | int + 1) | list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}"
+      no_log: true
+
+    # -----------------------------------------------------------------
+    # Verify
     # -----------------------------------------------------------------
     - name: List deployed VMs
       ansible.builtin.command: az stack-hci-vm list --resource-group {{ resource_group }} -o table
@@ -197,6 +227,7 @@
           Data Disks per VM:  {{ data_disk_count }} x {{ data_disk_size_gb }} GB
           Total S2D Pool:     {{ (vm_count | int * data_disk_count | int * data_disk_size_gb | int / 1024) | int }} TB
           Cloud Witness:      {{ cloud_witness_name }}
+          Domain Joined:      {{ domain_fqdn }}
           ============================================
           NEXT: Run configure-sofs-cluster.yml
           ============================================
