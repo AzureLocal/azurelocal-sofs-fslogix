@@ -1534,8 +1534,12 @@ if ($FSRMQuotaSizeMB -gt 0) {
 # PHASE 9c: Cloud Cache Registry Configuration
 # When fslogix.cloud_cache.enabled = true, outputs the recommended
 # CCDLocations registry value for AVD session hosts. Cloud Cache writes
-# profile containers to both the SOFS share and an Azure Blob provider,
-# providing DR and reduced SOFS load.
+# profile containers to both the SOFS share(s) and additional providers
+# (e.g. Azure Blob for DR), providing multi-site redundancy.
+#
+# Provider resolution order:
+#   1. fslogix.cloud_cache.providers[] array (preferred)
+#   2. fslogix.cloud_cache.azure_provider string (legacy fallback)
 # ===========================================================================
 
 $CloudCacheEnabled = ($FSLogixConfig -and $FSLogixConfig.cloud_cache -and $FSLogixConfig.cloud_cache.enabled)
@@ -1543,18 +1547,28 @@ $CloudCacheEnabled = ($FSLogixConfig -and $FSLogixConfig.cloud_cache -and $FSLog
 if ($CloudCacheEnabled) {
     Write-Log "Phase 9c — Cloud Cache Configuration" "HEADER"
 
-    $AzureProvider = if ($FSLogixConfig.cloud_cache.azure_provider -and $FSLogixConfig.cloud_cache.azure_provider -ne "") {
-        $FSLogixConfig.cloud_cache.azure_provider
-    } else { $null }
-
-    # Build CCDLocations value — SMB provider for each share + optional Azure Blob provider
+    # Build CCDLocations value — SMB provider for each share + additional providers
     $ccdParts = @()
     foreach ($sn in $phase8ShareNames) {
         $ccdParts += "type=smb,connectionString=\\$SOFSAccessPoint\$sn"
     }
-    if ($AzureProvider) {
-        $ccdParts += "type=azure,connectionString=$AzureProvider"
+
+    # Resolve additional providers from config
+    $providers = $FSLogixConfig.cloud_cache.providers
+    if ($providers -and $providers.Count -gt 0) {
+        foreach ($p in $providers) {
+            $ccdParts += "type=$($p.type),connectionString=$($p.connectionString)"
+        }
+    } else {
+        # Legacy fallback: single azure_provider string
+        $AzureProvider = if ($FSLogixConfig.cloud_cache.azure_provider -and $FSLogixConfig.cloud_cache.azure_provider -ne "") {
+            $FSLogixConfig.cloud_cache.azure_provider
+        } else { $null }
+        if ($AzureProvider) {
+            $ccdParts += "type=azure,connectionString=$AzureProvider"
+        }
     }
+
     $ccdLocations = $ccdParts -join ";"
 
     Write-Log "  CCDLocations value for AVD session hosts:" "HEADER"
@@ -1570,9 +1584,10 @@ if ($CloudCacheEnabled) {
         Write-Log "  Value data:   $ccdLocations" "INFO"
         Write-Log "  PowerShell to apply on each AVD session host:" "INFO"
         Write-Log "    Set-ItemProperty -Path 'HKLM:\SOFTWARE\FSLogix\Profiles' -Name 'CCDLocations' -Value '$ccdLocations' -Type ExpandString" "INFO"
-        if (-not $AzureProvider) {
-            Write-Log "  [WARN] No Azure Blob provider configured — Cloud Cache will only use SMB." "WARN"
-            Write-Log "  Set fslogix.cloud_cache.azure_provider in config for DR redundancy." "WARN"
+        $hasExternalProvider = ($providers -and $providers.Count -gt 0) -or $AzureProvider
+        if (-not $hasExternalProvider) {
+            Write-Log "  [WARN] No external provider configured — Cloud Cache will only use SMB." "WARN"
+            Write-Log "  Add providers to fslogix.cloud_cache.providers[] in config for DR redundancy." "WARN"
         }
     }
     Write-Log "Cloud Cache configuration guidance generated." "PASS"

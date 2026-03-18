@@ -147,6 +147,9 @@
     "cloudCacheAzureProvider": {
       "value": ""
     },
+    "cloudCacheProviders": {
+      "value": []
+    },
     "dnsServers": {
       "value": ["10.0.1.10", "10.0.1.11"]
     },

@@ -61,6 +61,7 @@ resource "local_sensitive_file" "ansible_inventory" {
     fslogix_profile_size_mb     = var.fslogix_profile_size_mb
     fslogix_volume_type         = var.fslogix_volume_type
     cloud_cache_enabled         = var.cloud_cache_enabled
+    cloud_cache_providers       = var.cloud_cache_providers
     dns_servers        = var.dns_servers
     winrm_transport    = var.winrm_transport
     vm_hosts           = local.ansible_vm_hosts

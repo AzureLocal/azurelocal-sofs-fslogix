@@ -66,6 +66,7 @@ provisioner:
           sofs_fslogix_profile_size_mb: 10000
           sofs_fslogix_volume_type: "VHDX"
           sofs_cloud_cache_enabled: false
+          sofs_cloud_cache_providers: []
           sofs_dns_servers:
             - "10.0.0.10"
           ansible_connection: local

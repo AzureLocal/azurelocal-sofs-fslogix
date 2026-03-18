@@ -98,7 +98,11 @@ all:
     sofs_fslogix_profile_size_mb: 30000
     sofs_fslogix_volume_type: "VHDX"
     sofs_cloud_cache_enabled: false
-    # sofs_cloud_cache_azure_provider: ""
+    # sofs_cloud_cache_azure_provider: ""  # (deprecated — use providers list)
+    sofs_cloud_cache_providers: []
+    # sofs_cloud_cache_providers:
+    #   - type: "azure"
+    #     connectionString: "DefaultEndpointsProtocol=https;AccountName=stfslogixdr;..."
 
     # --- DNS ---
     sofs_dns_servers:

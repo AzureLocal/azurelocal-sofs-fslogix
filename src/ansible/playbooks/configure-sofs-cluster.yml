@@ -395,19 +395,57 @@
     # -----------------------------------------------------------------
     # Phase 9c: Cloud Cache (optional)
     # -----------------------------------------------------------------
-    - name: "Phase 9c — Configure Cloud Cache provider"
-      ansible.windows.win_powershell:
-        script: |
-          # Cloud Cache configuration is applied via FSLogix GPO / registry
-          # This task creates the CCDLocations registry value
-          $regPath = 'HKLM:\SOFTWARE\FSLogix\Profiles'
-          if (-not (Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
-          Set-ItemProperty -Path $regPath -Name 'CCDLocations' `
-              -Value '{{ sofs_cloud_cache_azure_provider | default("") }}' -Type String
-          Write-Output "Cloud Cache CCDLocations configured"
+    # Builds CCDLocations from auto-generated SMB providers (one per share)
+    # plus any additional providers from sofs_cloud_cache_providers[].
+    # Falls back to legacy sofs_cloud_cache_azure_provider if providers
+    # list is empty.
+    - name: "Phase 9c — Build CCDLocations value"
+      ansible.builtin.set_fact:
+        _cc_smb_parts: >-
+          {%- if guest_volume_layout == 'option_a' -%}
+            type=smb,connectionString=\\{{ access_point }}\{{ share_name }}
+          {%- else -%}
+            {{ sofs_shares_list | map(attribute='name') | map('regex_replace', '^(.*)$', 'type=smb,connectionString=\\\\' ~ access_point ~ '\\\\\\1') | join(';') }}
+          {%- endif -%}
+        _cc_extra_parts: >-
+          {%- if (sofs_cloud_cache_providers | default([])) | length > 0 -%}
+            {{ sofs_cloud_cache_providers | map('regex_replace', '^.*$', '') }}
+          {%- endif -%}
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
         - sofs_cloud_cache_enabled | default(false) | bool
+
+    - name: "Phase 9c — Generate CCDLocations from providers"
+      ansible.builtin.set_fact:
+        _cc_ccd_locations: >-
+          {%- set parts = [] -%}
+          {%- if guest_volume_layout == 'option_a' -%}
+            {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ share_name) -%}
+          {%- else -%}
+            {%- for s in sofs_shares_list -%}
+              {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ s.name) -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- set providers = sofs_cloud_cache_providers | default([]) -%}
+          {%- if providers | length > 0 -%}
+            {%- for p in providers -%}
+              {%- set _ = parts.append('type=' ~ p.type ~ ',connectionString=' ~ p.connectionString) -%}
+            {%- endfor -%}
+          {%- elif sofs_cloud_cache_azure_provider | default('') | length > 0 -%}
+            {%- set _ = parts.append('type=azure,connectionString=' ~ sofs_cloud_cache_azure_provider) -%}
+          {%- endif -%}
+          {{ parts | join(';') }}
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - sofs_cloud_cache_enabled | default(false) | bool
+
+    - name: "Phase 9c — Display CCDLocations value"
+      ansible.builtin.debug:
+        msg: "CCDLocations: {{ _cc_ccd_locations }}"
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - sofs_cloud_cache_enabled | default(false) | bool
+        - _cc_ccd_locations is defined
 
     # -----------------------------------------------------------------
     # Phase 11: Validation
