@@ -1,11 +1,24 @@
 // main.bicepparam.example
 // Copy to main.bicepparam and fill in your values.
 // DO NOT commit main.bicepparam – it is excluded by .gitignore.
+// See main.bicepparam for a fully documented reference.
 
 using 'main.bicep'
 
 param location             = 'eastus'
-param resourceGroupName    = 'rg-azurelocal-prod'
-param diagStorageAccountName = 'stazlhcidiag001'   // Must be globally unique
-param environmentTag       = 'production'
-param ownerTag             = 'platform-team'
+param resourceGroupName    = 'rg-sofs-azl-eus-01'
+param cloudWitnessName     = 'stsofswitness01'
+param vmCount              = 3
+param vmPrefix             = 'SOFS'
+param customLocationId     = '<your-custom-location-resource-id>'
+param logicalNetworkId     = '<your-logical-network-resource-id>'
+param galleryImageId       = '<your-gallery-image-resource-id>'
+param storagePathIds       = { '01': '<sp-01>', '02': '<sp-02>', '03': '<sp-03>' }
+param adminUsername        = 'LocalAdmin'
+param adminPassword        = '<resolved-from-keyvault>'
+param domainFqdn           = 'contoso.local'
+param domainNetbios        = 'CONTOSO'
+param domainJoinPassword   = '<resolved-from-keyvault>'
+param clusterIp            = '192.168.211.60'
+param azlClusterName       = 'AzLocalCluster'
+param tags                 = { project: 'SOFS', workload: 'FSLogix' }

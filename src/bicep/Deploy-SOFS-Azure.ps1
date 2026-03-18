@@ -133,10 +133,16 @@ $Location            = $sofsCfg.wsfc_sofs_location                       # compu
 $CustomLocationId    = $sofsCfg.wsfc_sofs_custom_location_id             # compute.wsfc.wsfc_sofs_custom_location_id
 $LogicalNetworkId    = $sofsCfg.wsfc_sofs_logical_network_id             # compute.wsfc.wsfc_sofs_logical_network_id
 $GalleryImageName    = $sofsCfg.wsfc_sofs_gallery_image_name             # compute.wsfc.wsfc_sofs_gallery_image_name
-$StoragePathId       = $sofsCfg.wsfc_sofs_storage_path_id                # compute.wsfc.wsfc_sofs_storage_path_id
+$StoragePathIds      = $sofsCfg.wsfc_sofs_storage_path_ids               # compute.wsfc.wsfc_sofs_storage_path_ids (map)
 $AdminUsername       = $sofsCfg.wsfc_sofs_vm_admin_username              # compute.wsfc.wsfc_sofs_vm_admin_username
 $AdminPassUri        = $sofsCfg.wsfc_sofs_vm_admin_password              # compute.wsfc.wsfc_sofs_vm_admin_password
 $CloudWitnessName    = $sofsCfg.wsfc_sofs_cloud_witness_name             # compute.wsfc.wsfc_sofs_cloud_witness_name
+$DomainFqdn          = $sofsCfg.wsfc_sofs_domain_fqdn                    # compute.wsfc.wsfc_sofs_domain_fqdn
+$DomainNetbios       = $sofsCfg.wsfc_sofs_domain_netbios                 # compute.wsfc.wsfc_sofs_domain_netbios
+$DomainJoinAccount   = $sofsCfg.wsfc_sofs_domain_join_account ?? 'svc.domainjoin'
+$DomainJoinPassUri   = $sofsCfg.wsfc_sofs_domain_join_password           # keyvault:// URI
+$DomainOuNodes       = $sofsCfg.wsfc_sofs_domain_ou_nodes ?? ''
+$DomainOuCluster     = $sofsCfg.wsfc_sofs_domain_ou_cluster ?? ''
 
 # Validate required values
 $requiredValues = @{
@@ -148,10 +154,13 @@ $requiredValues = @{
     "CustomLocationId" = $CustomLocationId
     "LogicalNetworkId" = $LogicalNetworkId
     "GalleryImageName" = $GalleryImageName
-    "StoragePathId"    = $StoragePathId
+    "StoragePathIds"   = $StoragePathIds
     "AdminUsername"    = $AdminUsername
     "AdminPassUri"     = $AdminPassUri
     "CloudWitnessName" = $CloudWitnessName
+    "DomainFqdn"       = $DomainFqdn
+    "DomainNetbios"    = $DomainNetbios
+    "DomainJoinPassUri" = $DomainJoinPassUri
 }
 $missing = $requiredValues.GetEnumerator() | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) -or $_.Value -eq 0 }
 if ($missing) {
@@ -174,6 +183,8 @@ Write-Host "  Data Disks:        $DataDiskCount × ${DataDiskSizeGB} GB per VM (
 Write-Host "  S2D Pool:          $TotalPoolTB TB raw"
 Write-Host "  Cloud Witness:     $CloudWitnessName"
 Write-Host "  Gallery Image:     $GalleryImageName"
+Write-Host "  Storage Paths:     $($StoragePathIds.Count) mapped"
+Write-Host "  Domain:            $DomainFqdn ($DomainNetbios)"
 Write-Host ""
 
 # ---------------------------------------------------------------------------
@@ -223,6 +234,7 @@ Write-Host "=== Step 1: Resolve VM Admin Credentials ===" -ForegroundColor Cyan
 if ($WhatIf) {
     Write-Host "[DRY RUN] Using placeholder credentials for validation" -ForegroundColor Yellow
     $adminPassPlain = "WHATIF-PLACEHOLDER-ADMIN-PASSWORD"
+    $domainJoinPassPlain = "WHATIF-PLACEHOLDER-DOMAIN-JOIN-PASSWORD"
 } else {
     Write-Host "  Resolving admin password from Key Vault..."
     $adminPassPlain = Resolve-KeyVaultRef -KvUri $AdminPassUri
@@ -231,6 +243,15 @@ if ($WhatIf) {
         $adminPassPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
             [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR(
                 (Read-Host -AsSecureString -Prompt "Enter local admin password for SOFS VMs")))
+    }
+
+    Write-Host "  Resolving domain join password from Key Vault..."
+    $domainJoinPassPlain = Resolve-KeyVaultRef -KvUri $DomainJoinPassUri
+    if (-not $domainJoinPassPlain) {
+        Write-Host "  [WARN] KV unavailable — prompting for domain join password" -ForegroundColor Yellow
+        $domainJoinPassPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR(
+                (Read-Host -AsSecureString -Prompt "Enter domain join account password")))
     }
 }
 
@@ -267,9 +288,15 @@ $deployParams = @{
         customLocationId  = $CustomLocationId
         logicalNetworkId  = $LogicalNetworkId
         galleryImageId    = $GalleryImageName
-        storagePathId     = $StoragePathId
+        storagePathIds    = $StoragePathIds
         adminUsername     = $AdminUsername
         adminPassword     = $adminPassPlain
+        domainFqdn        = $DomainFqdn
+        domainNetbios     = $DomainNetbios
+        domainJoinAccount = $DomainJoinAccount
+        domainJoinPassword = $domainJoinPassPlain
+        domainOuNodes     = $DomainOuNodes
+        domainOuCluster   = $DomainOuCluster
         cloudWitnessName  = $CloudWitnessName
         tags              = @{
             project  = "SOFS"
@@ -319,6 +346,7 @@ if ($WhatIf) {
 # Cleanup
 # ---------------------------------------------------------------------------
 $adminPassPlain = $null
+$domainJoinPassPlain = $null
 [System.GC]::Collect()
 
 Write-Host ""

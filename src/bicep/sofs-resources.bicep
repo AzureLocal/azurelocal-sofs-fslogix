@@ -7,8 +7,9 @@
 // Resources per VM:
 //   1. Microsoft.HybridCompute/machines               — Arc machine placeholder
 //   2. Microsoft.AzureStackHCI/networkInterfaces       — NIC on Azure Local logical network
-//   3. Microsoft.AzureStackHCI/VirtualMachineInstances — VM instance (extension resource)
-//   4. Microsoft.AzureStackHCI/virtualHardDisks[]      — Data disks for S2D pool
+//   3. Microsoft.AzureStackHCI/virtualHardDisks[]      — Data disks for S2D pool
+//   4. Microsoft.AzureStackHCI/VirtualMachineInstances — VM instance (extension resource)
+//   5. Microsoft.HybridCompute/machines/extensions     — Domain join (JsonADDomainExtension)
 //
 // Post-deployment guest OS configuration (S2D, failover clustering, SOFS role,
 // SMB share) is handled by the PowerShell script Configure-SOFS-Cluster.ps1.
@@ -18,8 +19,8 @@
 // Parameters — VM Sizing & Count
 // ---------------------------------------------------------------------------
 
-@description('Number of SOFS VMs to deploy (minimum 3 for S2D two-way mirror)')
-@minValue(3)
+@description('Number of SOFS VMs to deploy (minimum 2 for two-way mirror)')
+@minValue(2)
 @maxValue(16)
 param vmCount int = 3
 
@@ -59,11 +60,11 @@ param customLocationId string
 @description('Full ARM resource ID of the Azure Local logical network for SOFS VMs')
 param logicalNetworkId string
 
-@description('Full ARM resource ID of the Azure Local marketplace gallery image (Windows Server 2025 Datacenter)')
+@description('Full ARM resource ID of the Azure Local marketplace gallery image')
 param galleryImageId string
 
-@description('Full ARM resource ID of the Azure Local storage path for VM disks')
-param storagePathId string
+@description('Per-VM storage path mapping: { "01": "<ARM-ID>", "02": "<ARM-ID>" }. Falls back to first entry if key not found.')
+param storagePathIds object
 
 // ---------------------------------------------------------------------------
 // Parameters — OS Credentials
@@ -77,11 +78,39 @@ param adminUsername string
 param adminPassword string
 
 // ---------------------------------------------------------------------------
+// Parameters — Domain Join
+// ---------------------------------------------------------------------------
+
+@description('Active Directory domain FQDN')
+param domainFqdn string
+
+@description('Active Directory NetBIOS domain name')
+param domainNetbios string
+
+@description('Domain join service account (sAMAccountName)')
+param domainJoinAccount string = 'svc.domainjoin'
+
+@secure()
+@description('Domain join service account password')
+param domainJoinPassword string
+
+@description('OU path for SOFS VM computer objects')
+param domainOuNodes string = ''
+
+// ---------------------------------------------------------------------------
 // Parameters — Tags
 // ---------------------------------------------------------------------------
 
 @description('Resource tags applied to all resources')
 param tags object = {}
+
+// ---------------------------------------------------------------------------
+// Variables
+// ---------------------------------------------------------------------------
+
+// Storage path keys in deterministic order for fallback lookup
+var storagePathKeys = objectKeys(storagePathIds)
+var defaultStoragePath = storagePathIds[storagePathKeys[0]]
 
 // ---------------------------------------------------------------------------
 // Resources — Arc Machine Placeholders
@@ -128,6 +157,7 @@ resource nics 'Microsoft.AzureStackHCI/networkInterfaces@2025-09-01-preview' = [
 // ---------------------------------------------------------------------------
 // Flatten loop: vmCount × dataDiskCount disks total.
 // Index mapping: disk[j] belongs to VM[j / dataDiskCount], disk number = (j % dataDiskCount) + 1
+// Per-VM storage path: looks up padded VM index in storagePathIds, falls back to first entry.
 
 resource dataDisks 'Microsoft.AzureStackHCI/virtualHardDisks@2025-09-01-preview' = [for j in range(0, vmCount * dataDiskCount): {
   name: '${vmPrefix}-${padLeft(string((j / dataDiskCount) + 1), 2, '0')}-data${(j % dataDiskCount) + 1}'
@@ -140,7 +170,9 @@ resource dataDisks 'Microsoft.AzureStackHCI/virtualHardDisks@2025-09-01-preview'
   properties: {
     diskSizeGB: dataDiskSizeGB
     dynamic: true
-    containerId: storagePathId
+    containerId: contains(storagePathIds, padLeft(string((j / dataDiskCount) + 1), 2, '0'))
+      ? storagePathIds[padLeft(string((j / dataDiskCount) + 1), 2, '0')]
+      : defaultStoragePath
   }
 }]
 
@@ -157,8 +189,6 @@ resource vmInstances 'Microsoft.AzureStackHCI/virtualMachineInstances@2025-09-01
   }
   dependsOn: [
     nics[i]
-    // Depend on all data disks for this VM
-    // Data disks for VM i are at indices: i*dataDiskCount .. (i+1)*dataDiskCount-1
   ]
   properties: {
     osProfile: {
@@ -179,7 +209,9 @@ resource vmInstances 'Microsoft.AzureStackHCI/virtualMachineInstances@2025-09-01
       imageReference: {
         id: galleryImageId
       }
-      vmConfigStoragePathId: storagePathId
+      vmConfigStoragePathId: contains(storagePathIds, padLeft(string(i + 1), 2, '0'))
+        ? storagePathIds[padLeft(string(i + 1), 2, '0')]
+        : defaultStoragePath
       dataDisks: [for d in range(0, dataDiskCount): {
         id: dataDisks[(i * dataDiskCount) + d].id
       }]
@@ -190,6 +222,33 @@ resource vmInstances 'Microsoft.AzureStackHCI/virtualMachineInstances@2025-09-01
           id: nics[i].id
         }
       ]
+    }
+  }
+}]
+
+// ---------------------------------------------------------------------------
+// Resources — Domain Join Extension (JsonADDomainExtension on Arc Machines)
+// ---------------------------------------------------------------------------
+
+resource domainJoin 'Microsoft.HybridCompute/machines/extensions@2023-06-20-preview' = [for i in range(0, vmCount): {
+  parent: arcMachines[i]
+  name: 'JsonADDomainExtension'
+  location: location
+  dependsOn: [vmInstances[i]]
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'JsonADDomainExtension'
+    typeHandlerVersion: '1.3'
+    autoUpgradeMinorVersion: true
+    settings: {
+      Name: domainFqdn
+      OUPath: domainOuNodes
+      User: '${domainNetbios}\\${domainJoinAccount}'
+      Restart: 'true'
+      Options: '3'
+    }
+    protectedSettings: {
+      Password: domainJoinPassword
     }
   }
 }]
