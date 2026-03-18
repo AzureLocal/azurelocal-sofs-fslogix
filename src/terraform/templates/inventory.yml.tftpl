@@ -48,10 +48,51 @@ all:
     sofs_s2d_volume_name: "${s2d_volume_name}"
     sofs_s2d_volume_size: "${s2d_volume_size}"
     sofs_s2d_data_copies: ${s2d_data_copies}
+    sofs_s2d_pool_name: "${s2d_pool_name}"
+    sofs_role_name: "${sofs_role_name}"
+    sofs_smb_encryption: ${smb_encryption}
+    sofs_guest_volume_layout: "${guest_volume_layout}"
+    sofs_guest_resiliency: "${guest_resiliency}"
+%{ if length(sofs_shares) > 0 ~}
+    sofs_shares:
+%{ for share in sofs_shares ~}
+      - name: "${share.name}"
+        volume: "${share.volume}"
+%{ endfor ~}
+%{ endif ~}
+%{ if length(s2d_volumes) > 0 ~}
+    sofs_s2d_volumes:
+%{ for vol in s2d_volumes ~}
+      - name: "${vol.name}"
+        size_gb: ${vol.size_gb}
+        data_copies: ${vol.data_copies}
+%{ endfor ~}
+%{ endif ~}
     sofs_domain_fqdn: "${domain_fqdn}"
     sofs_domain_netbios: "${domain_netbios}"
+    sofs_domain_ou_nodes: "${domain_ou_nodes}"
+    sofs_domain_ou_cluster: "${domain_ou_cluster}"
     sofs_anti_affinity_rule: "${anti_affinity_rule}"
     sofs_azl_cluster_name: "${azl_cluster_name}"
+
+    # --- Permissions ---
+    sofs_permissions_admin_group: "${permissions_admin_group}"
+    sofs_permissions_users_group: "${permissions_users_group}"
+    sofs_permissions_avd_users_group: "${permissions_avd_users_group}"
+
+    # --- FSLogix ---
+    sofs_fslogix_enabled: ${fslogix_enabled}
+    sofs_fslogix_profile_size_mb: ${fslogix_profile_size_mb}
+    sofs_fslogix_volume_type: "${fslogix_volume_type}"
+    sofs_cloud_cache_enabled: ${cloud_cache_enabled}
+
+    # --- DNS servers ---
+%{ if length(dns_servers) > 0 ~}
+    sofs_dns_servers:
+%{ for dns in dns_servers ~}
+      - "${dns}"
+%{ endfor ~}
+%{ endif ~}
 
     # --- WinRM connection for Windows targets ---
     ansible_connection: winrm

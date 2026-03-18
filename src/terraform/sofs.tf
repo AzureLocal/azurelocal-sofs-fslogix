@@ -20,8 +20,8 @@ resource "azapi_resource" "arc_machines" {
 
   type      = "Microsoft.HybridCompute/machines@2023-06-20-preview"
   name      = each.value
-  location  = azurerm_resource_group.sofs.location
-  parent_id = azurerm_resource_group.sofs.id
+  location  = local.rg_location
+  parent_id = local.rg_id
   tags      = var.tags
 
   identity {
@@ -44,8 +44,8 @@ resource "azapi_resource" "nics" {
 
   type      = "Microsoft.AzureStackHCI/networkInterfaces@2025-09-01-preview"
   name      = "${each.value}-nic"
-  location  = azurerm_resource_group.sofs.location
-  parent_id = azurerm_resource_group.sofs.id
+  location  = local.rg_location
+  parent_id = local.rg_id
   tags      = var.tags
 
   body = {
@@ -81,8 +81,8 @@ resource "azapi_resource" "data_disks" {
 
   type      = "Microsoft.AzureStackHCI/virtualHardDisks@2025-09-01-preview"
   name      = each.value.disk_name
-  location  = azurerm_resource_group.sofs.location
-  parent_id = azurerm_resource_group.sofs.id
+  location  = local.rg_location
+  parent_id = local.rg_id
   tags      = var.tags
 
   body = {
@@ -150,6 +150,52 @@ resource "azapi_resource" "vm_instances" {
     azapi_resource.nics,
     azapi_resource.data_disks,
   ]
+
+  schema_validation_enabled = false
+}
+
+# ---------------------------------------------------------------------------
+# Domain Join Extension — JsonADDomainExtension on Arc Machines
+# ---------------------------------------------------------------------------
+
+data "external" "domain_join_password" {
+  program = [
+    "az", "keyvault", "secret", "show",
+    "--vault-name", var.key_vault_name,
+    "--name",       var.key_vault_secret_domain_join_password,
+    "--query",      "{value: value}",
+    "-o",           "json"
+  ]
+}
+
+resource "azapi_resource" "domain_join" {
+  for_each = toset(local.vm_names)
+
+  type      = "Microsoft.HybridCompute/machines/extensions@2023-06-20-preview"
+  name      = "JsonADDomainExtension"
+  parent_id = azapi_resource.arc_machines[each.value].id
+  location  = local.rg_location
+
+  body = {
+    properties = {
+      publisher               = "Microsoft.Compute"
+      type                    = "JsonADDomainExtension"
+      typeHandlerVersion      = "1.3"
+      autoUpgradeMinorVersion = true
+      settings = {
+        Name    = var.domain_fqdn
+        OUPath  = var.domain_ou_nodes
+        User    = "${var.domain_netbios}\\${var.domain_join_account}"
+        Restart = "true"
+        Options = "3"
+      }
+      protectedSettings = {
+        Password = data.external.domain_join_password.result.value
+      }
+    }
+  }
+
+  depends_on = [azapi_resource.vm_instances]
 
   schema_validation_enabled = false
 }
