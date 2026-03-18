@@ -2,20 +2,167 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "resourceGroupName": {
+      "value": "rg-sofs-azl-eus-01"
+    },
     "location": {
       "value": "eastus"
     },
-    "resourceGroupName": {
-      "value": "rg-azurelocal-prod"
+    "vmCount": {
+      "value": 3
     },
-    "diagStorageAccountName": {
-      "value": "stazlhcidiag001"
+    "vmPrefix": {
+      "value": "SOFS"
     },
-    "environmentTag": {
-      "value": "production"
+    "vmProcessors": {
+      "value": 4
     },
-    "ownerTag": {
-      "value": "platform-team"
+    "vmMemoryMB": {
+      "value": 8192
+    },
+    "dataDiskCount": {
+      "value": 4
+    },
+    "dataDiskSizeGB": {
+      "value": 1024
+    },
+    "customLocationId": {
+      "value": "<your-custom-location-resource-id>"
+    },
+    "logicalNetworkId": {
+      "value": "<your-logical-network-resource-id>"
+    },
+    "galleryImageId": {
+      "value": "<your-gallery-image-resource-id>"
+    },
+    "storagePathIds": {
+      "value": {
+        "01": "<your-storage-path-01-resource-id>",
+        "02": "<your-storage-path-02-resource-id>",
+        "03": "<your-storage-path-03-resource-id>"
+      }
+    },
+    "adminUsername": {
+      "value": "LocalAdmin"
+    },
+    "adminPassword": {
+      "value": "<resolved-from-keyvault-at-runtime>"
+    },
+    "domainFqdn": {
+      "value": "contoso.local"
+    },
+    "domainNetbios": {
+      "value": "CONTOSO"
+    },
+    "domainJoinAccount": {
+      "value": "svc.domainjoin"
+    },
+    "domainJoinPassword": {
+      "value": "<resolved-from-keyvault-at-runtime>"
+    },
+    "domainOuNodes": {
+      "value": "OU=SOFS-Cluster,OU=Servers,DC=contoso,DC=local"
+    },
+    "domainOuCluster": {
+      "value": "OU=SOFS-Cluster,OU=Servers,DC=contoso,DC=local"
+    },
+    "cloudWitnessName": {
+      "value": "sofscloudwitness"
+    },
+    "guestVolumeLayout": {
+      "value": "option_a"
+    },
+    "hostResiliency": {
+      "value": "two_way"
+    },
+    "guestResiliency": {
+      "value": "two_way"
+    },
+    "clusterName": {
+      "value": "SOFS-Cluster"
+    },
+    "clusterIp": {
+      "value": "192.168.211.60"
+    },
+    "accessPoint": {
+      "value": "FSLogixSOFS"
+    },
+    "shareName": {
+      "value": "FSLogix"
+    },
+    "s2dVolumeName": {
+      "value": "FSLogixData"
+    },
+    "s2dVolumeSize": {
+      "value": "5632GB"
+    },
+    "s2dDataCopies": {
+      "value": 2
+    },
+    "sofsRoleName": {
+      "value": "FSLogixSOFS"
+    },
+    "s2dPoolName": {
+      "value": "S2D on SOFS-Cluster"
+    },
+    "smbEncryption": {
+      "value": true
+    },
+    "accessPointIp": {
+      "value": "192.168.211.61"
+    },
+    "sofsShares": {
+      "value": []
+    },
+    "s2dVolumes": {
+      "value": []
+    },
+    "antiAffinityRule": {
+      "value": "SOFS-AntiAffinity"
+    },
+    "azlClusterName": {
+      "value": "AzLocalCluster"
+    },
+    "permissionsAdminGroup": {
+      "value": "Domain Admins"
+    },
+    "permissionsUsersGroup": {
+      "value": "AVD-Users"
+    },
+    "permissionsAvdUsersGroup": {
+      "value": "AVD-Users"
+    },
+    "fslogixEnabled": {
+      "value": true
+    },
+    "fslogixProfileSizeMb": {
+      "value": 30000
+    },
+    "fslogixVolumeType": {
+      "value": "VHDX"
+    },
+    "cloudCacheEnabled": {
+      "value": false
+    },
+    "cloudCacheAzureProvider": {
+      "value": ""
+    },
+    "dnsServers": {
+      "value": ["10.0.1.10", "10.0.1.11"]
+    },
+    "vmIps": {
+      "value": {
+        "01": "192.168.211.51",
+        "02": "192.168.211.52",
+        "03": "192.168.211.53"
+      }
+    },
+    "tags": {
+      "value": {
+        "project": "SOFS",
+        "workload": "FSLogix",
+        "solution": "sofs-azure-local"
+      }
     }
   }
 }
