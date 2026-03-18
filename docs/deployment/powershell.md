@@ -38,8 +38,10 @@ Two main scripts:
 
 | Directory | File | Purpose |
 |-----------|------|---------|
-| `deploy/` | `Deploy-SOFS-Azure.ps1` | Azure resource provisioning |
+| `deploy/` | `Deploy-SOFS-Azure.ps1` | Azure resource provisioning (Phase 1–2) |
 | `deploy/` | `Configure-SOFS-Cluster.ps1` | Guest OS configuration (Phases 3–11) |
+| `deploy/` | `Invoke-SOFSDeployment.ps1` | End-to-end orchestrator with JSON state file for resume |
+| `deploy/` | `Remove-SOFSDeployment.ps1` | Idempotent teardown — removes all Azure resources |
 | `utilities/` | `New-SOFSDeployment.ps1` | Standalone: SOFS role + SMB share creation (Phases 8–9) |
 | `utilities/` | `Set-FSLogixShare.ps1` | Standalone: NTFS/SMB permissions + FSLogix registry (Phases 9–10) |
 
@@ -76,10 +78,11 @@ cd src/powershell
 
 - Resource group
 - Cloud witness storage account (LRS, TLS 1.2, no public blob access)
-- 3 NICs on the compute logical network (with optional static IPs)
-- 3 Arc VMs (4 vCPU, 8 GB RAM each)
-- 12 data disks (4 per VM, dynamically provisioned)
+- 2–16 NICs on the compute logical network (with optional static IPs)
+- 2–16 Arc VMs (configurable vCPU and RAM)
+- Data disks (configurable count per VM, dynamically provisioned)
 - Domain join via `JsonADDomainExtension` (Arc extension, parallel execution)
+- Per-VM storage path mapping (supports three-volume and single-volume host layouts)
 
 Passwords are resolved from Key Vault at runtime — never passed as plaintext parameters.
 
@@ -111,15 +114,18 @@ Comprehensive WinRM/PSRemoting-based script run from a management workstation. *
 
 | # | Action |
 |-------|--------|
-| 1 | Create anti-affinity rule on Azure Local host cluster |
-| 2 | Verify domain join and post-deployment VM configuration |
-| 3 | Install Failover-Clustering, FS-FileServer, RSAT tools |
-| 4 | Validate cluster prerequisites, create failover cluster, configure cloud witness |
-| 5 | Clean data disks, enable S2D, apply guest tuning (HwTimeout, auto-replace disable), create S2D volume(s) |
-| 6 | Add SOFS Scale-Out File Server role, create SMB share(s) with CA + ABE |
-| 7 | Apply NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
-| 8 | Configure antivirus exclusions (ClusterStorage, VHD/VHDX, cluster processes) |
-| 9 | Run validation checks |
+| 3 | Create anti-affinity rule on Azure Local host cluster |
+| 4 | Verify domain join and post-deployment VM configuration |
+| 5 | Install Failover-Clustering, FS-FileServer, FS-Resource-Manager, RSAT tools |
+| 5b | Add domain join account to local Administrators |
+| 6 | Validate cluster prerequisites, create failover cluster, configure cloud witness |
+| 7 | Clean data disks, enable S2D, apply guest tuning, create S2D volume(s) — Option A (single) or Option B (three) |
+| 8 | Pre-stage AD objects, add SOFS Scale-Out File Server role, create SMB share(s) with CA + ABE |
+| 9 | Apply NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
+| 9b | Configure FSRM quotas (soft quota at configured profile size) |
+| 9c | Configure Cloud Cache CCDLocations (multi-provider support for DR) |
+| 10 | Configure antivirus exclusions (ClusterStorage, VHD/VHDX, cluster processes) |
+| 11 | Run validation checks |
 
 ---
 
@@ -152,18 +158,80 @@ Configures NTFS and SMB share permissions, applies SMB settings optimized for FS
 
 ---
 
+## Orchestrator and Teardown
+
+### Invoke-SOFSDeployment.ps1
+
+Runs Deploy → Configure as a single pipeline with JSON state file for resume:
+
+```powershell
+# Full end-to-end:
+.\deploy\Invoke-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml"
+
+# Skip Azure provisioning (VMs already exist):
+.\deploy\Invoke-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml" -SkipDeploy
+
+# Skip guest config (only provision Azure resources):
+.\deploy\Invoke-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml" -SkipConfigure
+
+# Force resume from a failed state:
+.\deploy\Invoke-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml" -Force
+```
+
+State is tracked in `deployment-state.json` — if the script fails mid-way, re-running picks up where it left off.
+
+### Remove-SOFSDeployment.ps1
+
+Idempotent teardown that removes all Azure resources in reverse order:
+
+```powershell
+# Dry run — show what would be removed:
+.\deploy\Remove-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml" -WhatIf
+
+# Remove VMs, disks, NICs, witness — keep the resource group:
+.\deploy\Remove-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml"
+
+# Remove everything including the resource group:
+.\deploy\Remove-SOFSDeployment.ps1 -ConfigPath "..\..\config\variables.yml" -RemoveResourceGroup
+```
+
+---
+
+## All 10 Scenarios
+
+The scripts support all 10 SOFS deployment scenarios through `config/variables.yml`:
+
+| # | Nodes | Host Mirror | Guest Mirror | Guest Layout | Key Config Values |
+|---|-------|-------------|-------------|-------------|------------------|
+| 1 | 2 | 2-way | 2-way | Option A | `vm.count=2`, `guest_resiliency=two_way`, `guest_volume_layout=option_a` |
+| 2 | 2 | 2-way | 2-way | Option B | `vm.count=2`, `guest_resiliency=two_way`, `guest_volume_layout=option_b` |
+| 3 | 2 | 3-way | 2-way | Option A | `vm.count=2`, `host_resiliency=three_way`, `guest_volume_layout=option_a` |
+| 4 | 2 | 3-way | 2-way | Option B | `vm.count=2`, `host_resiliency=three_way`, `guest_volume_layout=option_b` |
+| 5 | 3 | 2-way | 2-way | Option A | `vm.count=3`, `guest_resiliency=two_way`, `guest_volume_layout=option_a` |
+| 6 | 3 | 2-way | 2-way | Option B | `vm.count=3`, `guest_resiliency=two_way`, `guest_volume_layout=option_b` |
+| 7 | 3 | 2-way | 3-way | Option A | `vm.count=3`, `guest_resiliency=three_way`, `guest_volume_layout=option_a` |
+| 8 | 3 | 2-way | 3-way | Option B | `vm.count=3`, `guest_resiliency=three_way`, `guest_volume_layout=option_b` |
+| 9 | 3 | 3-way | 2-way | Option A | `vm.count=3`, `host_resiliency=three_way`, `guest_volume_layout=option_a` |
+| 10 | 3 | 3-way | 3-way | Option B | `vm.count=3`, `host_resiliency=three_way`, `guest_volume_layout=option_b` |
+
+---
+
 ## Design Decision Support
 
-The PowerShell scripts support all deployment combinations through variables:
+The PowerShell scripts support all deployment combinations through `config/variables.yml`:
 
-| Decision | Parameter |
+| Decision | Config Key |
 |----------|-----------|
-| Three host volumes | `storage_path_ids` with three entries |
-| Single host volume | `storage_path_id` with one entry |
-| Two-way mirror | `-S2DDataCopies 2` |
-| Three-way mirror | `-S2DDataCopies 3` |
-| Option A (single share) | `-ShareName "FSLogix"` with single `-S2DVolumeName` |
-| Option B (three shares) | Multiple share names and volume names |
+| VM count (2–16) | `vm.count` |
+| Three host volumes | `azure_local.storage_path_ids` with per-VM entries |
+| Single host volume | `azure_local.storage_path_id` with one entry |
+| Two-way guest mirror | `deployment.guest_resiliency: two_way` |
+| Three-way guest mirror | `deployment.guest_resiliency: three_way` |
+| Option A (single volume/share) | `deployment.guest_volume_layout: option_a` |
+| Option B (three volumes/shares) | `deployment.guest_volume_layout: option_b` |
+| FSRM quotas | `fslogix.profile_size_mb` (auto-creates soft quota) |
+| Cloud Cache DR | `fslogix.cloud_cache.providers[]` (multi-provider) |
+| SMB encryption | `sofs.smb_encryption: true/false` |
 
 ---
 

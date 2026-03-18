@@ -125,11 +125,11 @@ Pick one:
 
 | Tool | Prerequisites |
 |------|--------------|
-| **Terraform** | Terraform >= 1.5, `azapi` + `azurerm` providers |
-| **Bicep** | Azure CLI >= 2.50 with Bicep CLI |
+| **Terraform** | Terraform >= 1.5, `azapi` + `azurerm` providers, AVM modules |
+| **Bicep** | Azure CLI >= 2.50 with Bicep CLI, AVM public registry access |
 | **ARM** | Azure CLI >= 2.50 or Az PowerShell >= 9.0 |
-| **PowerShell** | Azure CLI with `stack-hci-vm` extension |
-| **Ansible** | Python 3.9+, Azure CLI, `azure.azcollection` |
+| **PowerShell** | Azure CLI with `stack-hci-vm` extension, `powershell-yaml` module |
+| **Ansible** | Python 3.9+, Azure CLI, `azure.azcollection`, `community.windows` |
 
 ### Guest OS Configuration
 
@@ -137,8 +137,8 @@ Pick one:
 
 | Tool | Prerequisites |
 |------|--------------|
-| **PowerShell** | WinRM access from management workstation to SOFS VMs, RSAT Failover Clustering tools |
-| **Ansible** | Python packages: `pywinrm`, `requests-kerberos`; `ansible.windows` collection |
+| **PowerShell** | WinRM access from management workstation to SOFS VMs, RSAT Failover Clustering tools, Pester 5 (for tests) |
+| **Ansible** | Python packages: `pywinrm`, `requests-kerberos`; `ansible.windows`, `community.windows` collections |
 
 ### Host Volume Creation (Manual)
 
@@ -177,20 +177,20 @@ The deployment follows 11 phases across two domains. This table shows what the *
 |-------|-------------|--------|:---------:|:-----:|:---:|:----------:|:-------:|
 | 1 | Azure resource provisioning | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 2 | VM creation (NICs, disks) | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 3 | Anti-affinity rules | Guest | — | — | — | ✅ | — |
-| 4 | Domain join (Arc extension) | Azure | —¹ | —¹ | —¹ | ✅ | —¹ |
+| 3 | Anti-affinity rules | Guest | — | — | — | ✅ | ✅ |
+| 4 | Domain join (Arc extension) | Azure | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 5 | Roles and features | Guest | — | — | — | ✅ | ✅ |
 | 6 | Cluster creation + cloud witness | Guest | — | — | — | ✅ | ✅ |
 | 7 | S2D enable + tuning | Guest | — | — | — | ✅ | ✅ |
 | 8 | SOFS role + SMB shares | Guest | — | — | — | ✅ | ✅ |
 | 9 | NTFS permissions | Guest | — | — | — | ✅ | ✅ |
+| 9b | FSRM quotas | Guest | — | — | — | ✅ | ✅ |
+| 9c | Cloud Cache configuration | Guest | — | — | — | ✅ | ✅ |
 | 10 | Antivirus exclusions | Guest | — | — | — | ✅ | ✅ |
 | 11 | Validation | Guest | — | — | — | ✅ | ✅ |
 
-¹ Domain join is an Azure-side operation (deploying the `JsonADDomainExtension` Arc extension). All tools **can** do this — the current code only implements it in PowerShell. These are implementation TODOs, not tool limitations.
-
 !!! note
-    Terraform, Bicep, and ARM handle **Azure resource provisioning** (Phases 1–2, and potentially Phase 4). Guest OS configuration (Phases 3, 5–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
+    Terraform, Bicep, and ARM handle **Azure resource provisioning** (Phases 1–2 and Phase 4 domain join). Guest OS configuration (Phases 3, 5–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
 
 ---
 

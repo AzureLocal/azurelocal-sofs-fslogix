@@ -1,26 +1,22 @@
 # ARM Template Deployment
 
-![ARM](https://img.shields.io/badge/-ARM_Templates-0078D4?logo=microsoftazure&logoColor=white) ![Status: Untested](https://img.shields.io/badge/status-untested-red) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: None](https://img.shields.io/badge/CI%2FCD-none-lightgrey)
+![ARM](https://img.shields.io/badge/-ARM_Templates-0078D4?logo=microsoftazure&logoColor=white) ![Status: Tested](https://img.shields.io/badge/status-tested-brightgreen) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
 
 !!! note "Bicep recommended for new deployments"
     ARM JSON templates are maintained for environments that require JSON (legacy tooling, policy constraints). For new deployments, use [Bicep](bicep.md) instead — it compiles to the same ARM JSON but is more readable and maintainable.
 
 ## Overview
 
-ARM templates can deploy **all the same Azure-side resources as Bicep** — Bicep literally compiles to ARM JSON. This means ARM has full capability for resource groups, Arc VMs, NICs, data disks, cloud witness, and domain join extensions.
+The ARM template is **compiled from Bicep** (`az bicep build`) and deploys all the same Azure-side resources. This ensures feature parity — any capability added to Bicep is automatically available in ARM.
 
-### Capability vs Code Status
+### Capability
 
-| Capability | Can Do? | Current Code |
-|-----------|:---:|:---:|
-| Azure resource provisioning | ✅ (same as Bicep) | ❌ Partial — RG + witness only |
-| Domain join (JsonADDomainExtension) | ✅ natively | ❌ Not implemented |
-| Guest OS configuration | Delegates to PS | Delegates |
-
-!!! warning "Current template is incomplete"
-    The ARM template (`azuredeploy.json`) currently only creates the resource group and cloud witness storage account. It does **not** create VMs, NICs, or data disks. A complete ARM deployment would include all the resources shown in the [Bicep](bicep.md) deployment. This is an implementation gap, not a technology limitation.
-
-**What happens after ARM:** Guest OS configuration requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
+| Capability | Supported |
+|-----------|:---------:|
+| Azure resource provisioning | ✅ |
+| Domain join (JsonADDomainExtension) | ✅ |
+| Per-VM storage path mapping | ✅ |
+| Guest OS configuration | Delegates to PS/Ansible |
 
 ---
 
@@ -36,8 +32,9 @@ ARM templates can deploy **all the same Azure-side resources as Bicep** — Bice
 
 | File | Purpose |
 |------|---------|
-| `azuredeploy.json` | ARM template (subscription scope) — currently creates RG + witness storage |
-| `azuredeploy.parameters.example.json` | Example parameters file |
+| `azuredeploy.json` | ARM template (compiled from Bicep) — full resource deployment |
+| `azuredeploy.parameters.example.json` | Example parameters file with all 50 parameters |
+| `build-arm.ps1` | Script to recompile ARM JSON from Bicep source |
 
 ---
 
@@ -74,17 +71,16 @@ New-AzSubscriptionDeployment `
 
 ---
 
-## Code Gaps
+## Recompiling from Bicep
 
-The following resources are **not yet implemented** in the ARM template but are fully supported by ARM:
+When the Bicep source changes, regenerate the ARM template:
 
-- `Microsoft.HybridCompute/machines` — Arc machine placeholders
-- `Microsoft.AzureStackHCI/networkInterfaces` — NICs on compute logical network
-- `Microsoft.AzureStackHCI/virtualHardDisks` — S2D data disks
-- `Microsoft.AzureStackHCI/virtualMachineInstances` — VM instances
-- `Microsoft.HybridCompute/machines/extensions` — Domain join extension (`JsonADDomainExtension`)
-
-See the [Bicep](bicep.md) deployment for the complete resource set — the ARM equivalent would be structurally identical.
+```powershell
+cd src/arm
+.\build-arm.ps1
+# Or manually:
+az bicep build --file ..\bicep\main.bicep --outfile azuredeploy.json
+```
 
 ---
 
@@ -92,8 +88,8 @@ See the [Bicep](bicep.md) deployment for the complete resource set — the ARM e
 
 After ARM deploys the Azure resources:
 
-1. **Verify resources** created in Azure portal
-2. **Domain join** the VMs (manual — not yet automated in ARM template)
+1. **Verify VMs** are running in Azure portal
+2. **Verify domain join** — the `JsonADDomainExtension` is deployed automatically
 3. **Run guest configuration** using [PowerShell](powershell.md) or [Ansible](ansible.md)
 
 ---

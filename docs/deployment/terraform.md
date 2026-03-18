@@ -1,25 +1,22 @@
 # Terraform Deployment
 
-![Terraform](https://img.shields.io/badge/-Terraform-844FBA?logo=terraform&logoColor=white) ![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
+![Terraform](https://img.shields.io/badge/-Terraform-844FBA?logo=terraform&logoColor=white) ![Status: Tested](https://img.shields.io/badge/status-tested-brightgreen) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
 
 ## Overview
 
-Deploys all Azure-side resources for the SOFS guest cluster using Terraform with the `azapi` and `azurerm` providers. Azure Local resource types (`Microsoft.AzureStackHCI/*`) are not fully supported by `azurerm` alone, so the `azapi` provider handles Arc VM, NIC, and data disk creation.
+Deploys all Azure-side resources for the SOFS guest cluster using Terraform with the `azapi` and `azurerm` providers, plus **Azure Verified Modules (AVM)** for the resource group and cloud witness storage account. Azure Local resource types (`Microsoft.AzureStackHCI/*`) are not fully supported by `azurerm` alone, so the `azapi` provider handles Arc VM, NIC, data disk, and domain join extension creation.
 
 After `terraform apply`, a fully-populated Ansible inventory is auto-generated — feeding directly into the guest configuration phase.
 
-### Capability vs Code Status
+### Capability
 
-| Capability | Can Do? | Current Code |
-|-----------|:---:|:---:|
-| Azure resource provisioning | ✅ | ✅ Full |
-| Domain join (JsonADDomainExtension) | ✅ via azapi | ❌ Not yet implemented |
-| Guest OS configuration | Delegates to PS/Ansible | Delegates via `guest_config_engine` |
-
-!!! info "Domain join is a TODO, not a limitation"
-    Terraform can deploy the `JsonADDomainExtension` Arc extension using the `azapi` provider. The [aurelocal-avd](https://github.com/AzureLocal/aurelocal-avd) repo has a working example in `src/terraform/session-hosts.tf`. This repo's Terraform code does not implement it yet.
-
-**What happens after Terraform:** Guest OS configuration requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
+| Capability | Supported |
+|-----------|:---------:|
+| Azure resource provisioning | ✅ |
+| Domain join (JsonADDomainExtension) | ✅ via azapi |
+| Per-VM storage path mapping | ✅ |
+| Guest OS configuration | Delegates to PS/Ansible |
+| AVM modules (RG + Storage) | ✅ |
 
 ---
 
@@ -27,12 +24,13 @@ After `terraform apply`, a fully-populated Ansible inventory is auto-generated �
 
 | Resource | Provider | Type |
 |----------|----------|------|
-| Resource Group | `azurerm` | `azurerm_resource_group` |
-| Cloud Witness Storage Account | `azurerm` | `azurerm_storage_account` |
+| Resource Group | `azurerm` (AVM) | `avm-res-resources-resourcegroup` |
+| Cloud Witness Storage Account | `azurerm` (AVM) | `avm-res-storage-storageaccount` |
 | Arc Machine Placeholders | `azapi` | `Microsoft.HybridCompute/machines` |
 | NICs (compute logical network) | `azapi` | `Microsoft.AzureStackHCI/networkInterfaces` |
 | Data Disks (S2D pool) | `azapi` | `Microsoft.AzureStackHCI/virtualHardDisks` |
 | VM Instances | `azapi` | `Microsoft.AzureStackHCI/virtualMachineInstances` |
+| Domain Join Extension | `azapi` | `Microsoft.HybridCompute/machines/extensions` |
 | Ansible Inventory File | `local` | `local_sensitive_file` |
 
 ---
@@ -50,16 +48,16 @@ After `terraform apply`, a fully-populated Ansible inventory is auto-generated �
 
 | File | Purpose |
 |------|---------|
-| `main.tf` | Provider configuration (azapi, azurerm, local) |
-| `variables.tf` | All input variables |
-| `locals.tf` | Computed values — VM names, disk flattening, pool calculations |
-| `resource-group.tf` | Resource group |
-| `witness.tf` | Cloud witness storage account |
-| `sofs.tf` | Arc machines, NICs, data disks, VM instances |
+| `main.tf` | Provider configuration (azapi, azurerm, local) + AVM module calls |
+| `variables.tf` | All input variables (Azure, VM, domain join, SOFS, Option A/B, Cloud Cache) |
+| `locals.tf` | Computed values — VM names, disk flattening, pool calculations, Option A/B |
+| `sofs.tf` | Arc machines, NICs, data disks, VM instances, domain join extensions |
 | `ansible-inventory.tf` | Generates Ansible inventory from Terraform outputs |
-| `templates/inventory.yml.tftpl` | Ansible inventory template |
+| `ansible-controller.tf` | Optional Ansible controller VM (for `ansible_create` engine) |
+| `templates/inventory.yml.tftpl` | Ansible inventory template with all SOFS variables |
 | `outputs.tf` | VM IDs, witness key, pool sizing, inventory path |
-| `terraform.tfvars.example` | Example variable values |
+| `terraform.tfvars.example` | Example variable values for all 10 scenarios |
+| `tests/` | Terraform native tests (`.tftest.hcl`) |
 
 ---
 
@@ -90,6 +88,13 @@ Edit `terraform.tfvars` with values from your `config/variables.yml`. Key mappin
 | `vm.ips` | `vm_ips` |
 | `data_disks.count` | `data_disk_count` |
 | `data_disks.size_gb` | `data_disk_size_gb` |
+| `domain.fqdn` | `domain_fqdn` |
+| `domain.join_username` | `domain_join_username` |
+| `domain.join_password` | `domain_join_password` |
+| `deployment.guest_volume_layout` | `guest_volume_layout` |
+| `deployment.guest_resiliency` | `guest_resiliency` |
+| `sofs.*` | `sofs_*` variables |
+| `fslogix.cloud_cache.providers` | `cloud_cache_providers` |
 
 ### 2. Set Secrets Securely
 
@@ -179,7 +184,7 @@ This eliminates manual inventory creation when using the Terraform → Ansible d
 After Terraform completes:
 
 1. **Verify VMs** are running in Azure portal or via `az stack-hci-vm list`
-2. **Domain join** the VMs (manual or via Arc extension — not yet automated in this repo's Terraform)
+2. **Verify domain join** — the `JsonADDomainExtension` is deployed automatically
 3. **Run guest configuration** using [PowerShell](powershell.md) or [Ansible](ansible.md)
 
 ---
@@ -195,6 +200,22 @@ Terraform delegates guest OS configuration to either PowerShell or Ansible via t
 | `ansible_existing` | Use an existing Ansible controller to run playbooks |
 
 When using the Ansible path, Terraform auto-generates `../ansible/inventory-generated.yml` with all values populated from Terraform outputs.
+
+---
+
+## Testing
+
+Terraform native tests validate variable constraints and local value computations without requiring cloud access:
+
+```powershell
+cd src/terraform
+terraform test
+```
+
+Test files in `tests/`:
+
+- `variables.tftest.hcl` — validates vm_count range (2–16), required variables, Option A/B defaults
+- `locals.tftest.hcl` — validates VM name generation, disk flattening, pool calculations
 
 ---
 
