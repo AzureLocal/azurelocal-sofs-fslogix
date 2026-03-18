@@ -8,10 +8,12 @@
   "properties": {
     "deployment": {
       "type": "object",
-      "required": ["host_volume_layout", "guest_volume_layout"],
+      "required": ["host_volume_layout", "host_resiliency", "guest_volume_layout", "guest_resiliency"],
       "properties": {
         "host_volume_layout": { "type": "string", "enum": ["three_volumes", "single_volume"] },
-        "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] }
+        "host_resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
+        "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] },
+        "guest_resiliency": { "type": "string", "enum": ["two_way", "three_way"] }
       }
     },
     "azure": {
@@ -157,12 +159,22 @@
     },
     "host_volumes": {
       "type": "object",
+      "required": ["storage_pool_name"],
       "properties": {
-        "prefix": { "type": "string" },
-        "resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
-        "count": { "type": "integer", "minimum": 1 },
+        "storage_pool_name": { "type": "string" },
+        "name": { "type": "string" },
         "size_tb": { "type": "number" },
-        "storage_pool_name": { "type": "string" }
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "size_tb"],
+            "properties": {
+              "name": { "type": "string" },
+              "size_tb": { "type": "number" }
+            }
+          }
+        }
       }
     },
     "permissions": {
@@ -229,6 +241,70 @@
         "properties": {
           "s2d": { "required": ["pool_name", "volumes"] },
           "sofs": { "required": ["name", "cluster_name", "cluster_ip", "shares"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_volume_layout": { "const": "single_volume" } },
+            "required": ["host_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "host_volumes": { "required": ["storage_pool_name", "name", "size_tb"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_volume_layout": { "const": "three_volumes" } },
+            "required": ["host_volume_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "host_volumes": { "required": ["storage_pool_name", "volumes"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "host_resiliency": { "const": "three_way" } },
+            "required": ["host_resiliency"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "vm": { "properties": { "count": { "minimum": 3 } } }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": { "guest_resiliency": { "const": "three_way" } },
+            "required": ["guest_resiliency"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "vm": { "properties": { "count": { "minimum": 3 } } }
         }
       }
     }

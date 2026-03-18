@@ -22,7 +22,9 @@
 # =============================================================================
 deployment:
   host_volume_layout: "three_volumes"      # three_volumes | single_volume
+  host_resiliency: "two_way"               # two_way | three_way (host CSV mirror)
   guest_volume_layout: "option_a"          # option_a (single volume) | option_b (three volumes)
+  guest_resiliency: "two_way"              # two_way | three_way (S2D data copies in guest cluster)
 
 
 # =============================================================================
@@ -193,11 +195,20 @@ ansible_controller:
 # Host volumes are created directly on the Azure Local cluster before Phase 1.
 # =============================================================================
 host_volumes:
-  prefix: "SOFS-CSV"
-  resiliency: "two_way"                    # two_way | three_way
-  count: 3
-  size_tb: 4.0
   storage_pool_name: "S2D on azl-cluster-01"
+
+  # --- single_volume layout ---
+  # name: "SOFS-CSV-01"
+  # size_tb: 12.0
+
+  # --- three_volumes layout ---
+  volumes:
+    - name: "SOFS-CSV-01"
+      size_tb: 4.0
+    - name: "SOFS-CSV-02"
+      size_tb: 4.0
+    - name: "SOFS-CSV-03"
+      size_tb: 4.0
 
 
 # =============================================================================
