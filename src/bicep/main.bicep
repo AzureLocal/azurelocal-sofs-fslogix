@@ -1,11 +1,10 @@
 // =============================================================================
 // SOFS on Azure Local — Subscription-Scope Wrapper
 // =============================================================================
-// Creates the resource group (if it doesn't exist) and deploys SOFS VM
-// resources onto an Azure Local cluster via module.
+// Creates the resource group (AVM) and deploys SOFS VM resources via module.
 //
 // targetScope = 'subscription' allows this template to:
-//   1. Create or update the resource group
+//   1. Create/update the resource group via AVM module
 //   2. Deploy SOFS resources INTO that resource group via module scoping
 //
 // Inner module: sofs-resources.bicep (resource-group-scope)
@@ -15,9 +14,10 @@
 //   2. Microsoft.AzureStackHCI/networkInterfaces       — NIC on Azure Local logical network
 //   3. Microsoft.AzureStackHCI/virtualHardDisks[]      — Data disks for S2D pool
 //   4. Microsoft.AzureStackHCI/VirtualMachineInstances — VM instance (extension resource)
+//   5. Microsoft.HybridCompute/machines/extensions     — Domain join (JsonADDomainExtension)
 //
 // Also deploys:
-//   5. Microsoft.Storage/storageAccounts               — Cloud witness for guest cluster
+//   6. AVM Storage Account                            — Cloud witness for guest cluster
 // =============================================================================
 
 targetScope = 'subscription'
@@ -36,8 +36,8 @@ param location string
 // Parameters — VM Sizing & Count
 // ---------------------------------------------------------------------------
 
-@description('Number of SOFS VMs to deploy (minimum 3 for S2D two-way mirror)')
-@minValue(3)
+@description('Number of SOFS VMs to deploy (minimum 2 for two-way mirror)')
+@minValue(2)
 @maxValue(16)
 param vmCount int = 3
 
@@ -65,7 +65,7 @@ param dataDiskCount int = 4
 param dataDiskSizeGB int = 1024
 
 // ---------------------------------------------------------------------------
-// Parameters — Azure Local Infrastructure (cross-subscription references)
+// Parameters — Azure Local Infrastructure
 // ---------------------------------------------------------------------------
 
 @description('Full ARM resource ID of the Azure Local custom location')
@@ -74,11 +74,11 @@ param customLocationId string
 @description('Full ARM resource ID of the Azure Local logical network for SOFS VMs')
 param logicalNetworkId string
 
-@description('Full ARM resource ID of the Azure Local marketplace gallery image (Windows Server 2025 Datacenter)')
+@description('Full ARM resource ID of the Azure Local marketplace gallery image')
 param galleryImageId string
 
-@description('Full ARM resource ID of the Azure Local storage path for VM disks')
-param storagePathId string
+@description('Per-VM storage path mapping: { "01": "<ARM-ID>", "02": "<ARM-ID>" }. Falls back to first entry if key not found.')
+param storagePathIds object
 
 // ---------------------------------------------------------------------------
 // Parameters — OS Credentials
@@ -92,11 +92,147 @@ param adminUsername string
 param adminPassword string
 
 // ---------------------------------------------------------------------------
+// Parameters — Domain Join
+// ---------------------------------------------------------------------------
+
+@description('Active Directory domain FQDN')
+param domainFqdn string
+
+@description('Active Directory NetBIOS domain name')
+param domainNetbios string
+
+@description('Domain join service account (sAMAccountName)')
+param domainJoinAccount string = 'svc.domainjoin'
+
+@secure()
+@description('Domain join service account password')
+param domainJoinPassword string
+
+@description('OU path for SOFS VM computer objects')
+param domainOuNodes string = ''
+
+@description('OU path for the WSFC cluster name object (CNO)')
+param domainOuCluster string = ''
+
+// ---------------------------------------------------------------------------
 // Parameters — Cloud Witness
 // ---------------------------------------------------------------------------
 
 @description('Storage account name for the guest cluster cloud witness (max 24 chars, lowercase alphanumeric)')
+@maxLength(24)
 param cloudWitnessName string
+
+// ---------------------------------------------------------------------------
+// Parameters — Deployment Architecture Choices
+// ---------------------------------------------------------------------------
+
+@description('Guest S2D volume layout: option_a (single volume/share) or option_b (three volumes/shares)')
+@allowed(['option_a', 'option_b'])
+param guestVolumeLayout string = 'option_a'
+
+@description('Host CSV mirror: two_way or three_way')
+@allowed(['two_way', 'three_way'])
+param hostResiliency string = 'two_way'
+
+@description('Guest S2D data copies: two_way or three_way')
+@allowed(['two_way', 'three_way'])
+param guestResiliency string = 'two_way'
+
+// ---------------------------------------------------------------------------
+// Parameters — Guest Cluster Configuration
+// ---------------------------------------------------------------------------
+
+@description('Windows Failover Cluster name')
+param clusterName string = 'SOFS-Cluster'
+
+@description('Static IP for the cluster name object')
+param clusterIp string
+
+@description('Scale-Out File Server access point name (Option A)')
+param accessPoint string = 'FSLogixSOFS'
+
+@description('FSLogix SMB share name (Option A)')
+param shareName string = 'FSLogix'
+
+@description('S2D volume friendly name (Option A)')
+param s2dVolumeName string = 'FSLogixData'
+
+@description('S2D volume size string (Option A), e.g. "5632GB"')
+param s2dVolumeSize string = '5632GB'
+
+@description('S2D mirror data copies (Option A): 2 for two-way, 3 for three-way')
+param s2dDataCopies int = 2
+
+@description('SOFS cluster role name')
+param sofsRoleName string = 'FSLogixSOFS'
+
+@description('S2D storage pool friendly name')
+param s2dPoolName string = 'S2D on SOFS-Cluster'
+
+@description('Enable SMB 3.x encryption on SOFS shares')
+param smbEncryption bool = true
+
+@description('Static IP for the SOFS client access point')
+param accessPointIp string = ''
+
+@description('Option B: list of SMB share definitions [{name, volume}]')
+param sofsShares array = []
+
+@description('Option B: list of S2D volume definitions [{name, size_gb, data_copies}]')
+param s2dVolumes array = []
+
+@description('Anti-affinity rule name')
+param antiAffinityRule string = 'SOFS-AntiAffinity'
+
+@description('Azure Local host cluster name')
+param azlClusterName string
+
+// ---------------------------------------------------------------------------
+// Parameters — Permissions
+// ---------------------------------------------------------------------------
+
+@description('AD group for share administrative access')
+param permissionsAdminGroup string = 'Domain Admins'
+
+@description('AD group for share user access')
+param permissionsUsersGroup string = 'AVD-Users'
+
+@description('AD group for AVD users (FSLogix profile access)')
+param permissionsAvdUsersGroup string = 'AVD-Users'
+
+// ---------------------------------------------------------------------------
+// Parameters — FSLogix
+// ---------------------------------------------------------------------------
+
+@description('Whether FSLogix profile containers are enabled')
+param fslogixEnabled bool = true
+
+@description('Maximum profile container size in MB (FSRM quota)')
+param fslogixProfileSizeMb int = 30000
+
+@description('Profile container format: VHDX or VHD')
+param fslogixVolumeType string = 'VHDX'
+
+@description('Enable FSLogix Cloud Cache for multi-site DR')
+param cloudCacheEnabled bool = false
+
+@secure()
+@description('Azure Blob connection string for Cloud Cache provider')
+param cloudCacheAzureProvider string = ''
+
+// ---------------------------------------------------------------------------
+// Parameters — DNS
+// ---------------------------------------------------------------------------
+
+@description('DNS server IP addresses for guest cluster VMs')
+param dnsServers array = []
+
+// ---------------------------------------------------------------------------
+// Parameters — VM IPs
+// ---------------------------------------------------------------------------
+
+@description('Map of VM suffix to static IP: { "01": "10.0.0.1", "02": "10.0.0.2" }')
+param vmIps object = {}
 
 // ---------------------------------------------------------------------------
 // Parameters — Tags
@@ -106,13 +242,16 @@ param cloudWitnessName string
 param tags object = {}
 
 // ---------------------------------------------------------------------------
-// Resource Group — created at subscription scope
+// Resource Group — AVM Module (Bicep Public Registry)
 // ---------------------------------------------------------------------------
 
-resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
-  name: resourceGroupName
-  location: location
-  tags: tags
+module rg 'br/public:avm/res/resources/resource-group:0.4.1' = {
+  name: 'rg-${uniqueString(resourceGroupName)}'
+  params: {
+    name: resourceGroupName
+    location: location
+    tags: tags
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -120,8 +259,9 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 // ---------------------------------------------------------------------------
 
 module sofsVMs './sofs-resources.bicep' = {
-  scope: rg
+  scope: resourceGroup(resourceGroupName)
   name: 'sofs-vms-${uniqueString(resourceGroupName, vmPrefix)}'
+  dependsOn: [rg]
   params: {
     vmCount: vmCount
     vmPrefix: vmPrefix
@@ -133,23 +273,33 @@ module sofsVMs './sofs-resources.bicep' = {
     customLocationId: customLocationId
     logicalNetworkId: logicalNetworkId
     galleryImageId: galleryImageId
-    storagePathId: storagePathId
+    storagePathIds: storagePathIds
     adminUsername: adminUsername
     adminPassword: adminPassword
+    domainFqdn: domainFqdn
+    domainNetbios: domainNetbios
+    domainJoinAccount: domainJoinAccount
+    domainJoinPassword: domainJoinPassword
+    domainOuNodes: domainOuNodes
     tags: tags
   }
 }
 
 // ---------------------------------------------------------------------------
-// Cloud Witness Storage Account — for the guest failover cluster quorum
+// Cloud Witness Storage Account — AVM Module (Bicep Public Registry)
 // ---------------------------------------------------------------------------
 
-module witnessStorage './witness-storage.bicep' = {
-  scope: rg
+module witnessStorage 'br/public:avm/res/storage/storage-account:0.15.0' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'sofs-witness-${uniqueString(resourceGroupName, cloudWitnessName)}'
+  dependsOn: [rg]
   params: {
-    storageAccountName: cloudWitnessName
+    name: cloudWitnessName
     location: location
+    kind: 'StorageV2'
+    skuName: 'Standard_LRS'
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
     tags: tags
   }
 }
@@ -158,7 +308,7 @@ module witnessStorage './witness-storage.bicep' = {
 // Outputs
 // ---------------------------------------------------------------------------
 
-output resourceGroupName string = rg.name
+output resourceGroupName string = resourceGroupName
 output deployedVMs array = sofsVMs.outputs.deployedVMs
 output totalDataDisks int = sofsVMs.outputs.totalDataDisks
 output s2dPoolSizeGB int = sofsVMs.outputs.s2dPoolSizeGB
