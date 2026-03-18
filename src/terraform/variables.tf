@@ -417,10 +417,20 @@ variable "cloud_cache_enabled" {
 }
 
 variable "cloud_cache_azure_provider" {
-  description = "Azure Blob connection string for Cloud Cache provider"
+  description = "(Deprecated) Azure Blob connection string for Cloud Cache — use cloud_cache_providers instead"
   type        = string
   default     = ""
   sensitive   = true
+}
+
+variable "cloud_cache_providers" {
+  description = "Ordered list of additional Cloud Cache providers for CCDLocations (SMB providers auto-generated from shares)"
+  type = list(object({
+    type             = string
+    connectionString = string
+  }))
+  default   = []
+  sensitive = true
 }
 
 variable "s2d_volume_name" {

@@ -240,7 +240,16 @@ fslogix:
   delete_local_profile: true
   cloud_cache:
     enabled: false
-    azure_provider: ""                     # Azure Blob connection string (if Cloud Cache enabled)
+    azure_provider: ""                     # (DEPRECATED — use providers array instead)
+    # providers — ordered list of Cloud Cache providers for CCDLocations.
+    # Each entry needs type (smb, azure, smb2) and connectionString.
+    # SMB providers for the SOFS shares are auto-generated; list only
+    # additional providers here (e.g. Azure Blob for DR).
+    providers: []
+    # Example multi-provider setup:
+    # providers:
+    #   - type: "azure"
+    #     connectionString: "DefaultEndpointsProtocol=https;AccountName=stfslogixdr;..."
 
 
 # =============================================================================

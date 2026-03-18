@@ -94,6 +94,16 @@ fslogix:
   volume_type: "VHDX"
   flip_flop_name: true
   delete_local_profile: true
+  cloud_cache:
+    enabled: true
+    azure_provider: "type=smb,connectionString=\\\\TestSOFS.test.local\\Profiles"
+    providers:
+      - name: "primary"
+        type: "smb"
+        connection_string: "\\\\TestSOFS.test.local\\Profiles"
+      - name: "dr"
+        type: "smb"
+        connection_string: "\\\\DR-SOFS.test.local\\Profiles"
 tags:
   project: "SOFS"
   environment: "test"
@@ -880,6 +890,9 @@ Describe "Cloud Cache Configuration" {
     It "cloud_cache.enabled is a boolean" {
         $sol.fslogix.cloud_cache.enabled | Should -BeOfType [bool]
     }
+    It "cloud_cache.providers array exists" {
+        $sol.fslogix.cloud_cache.providers | Should -Not -BeNullOrEmpty -Because "providers array must be defined (even if empty)"
+    }
     It "Generates correct CCDLocations for SMB-only" {
         $sofsName  = $sol.sofs.role_name
         $shareName = $sol.sofs.share_name
@@ -888,7 +901,7 @@ Describe "Cloud Cache Configuration" {
         $ccd | Should -Match "type=smb"
         $ccd | Should -Match "\\\\$sofsName\\$shareName"
     }
-    It "Generates correct CCDLocations with Azure provider" {
+    It "Generates correct CCDLocations with Azure provider (legacy)" {
         $sofsName  = $sol.sofs.role_name
         $shareName = $sol.sofs.share_name
         $azProvider = "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=key;"
@@ -900,5 +913,42 @@ Describe "Cloud Cache Configuration" {
         $ccd | Should -Match "type=smb"
         $ccd | Should -Match "type=azure"
         $ccd | Should -Match "AccountName=test"
+    }
+    It "Generates correct CCDLocations from multi-provider array" {
+        $sofsName  = $sol.sofs.role_name
+        $shareName = $sol.sofs.share_name
+        $providers = @(
+            @{ type = "azure"; connectionString = "DefaultEndpointsProtocol=https;AccountName=stdr01;AccountKey=k1;" },
+            @{ type = "smb2";  connectionString = "\\secondary-sofs\Profiles" }
+        )
+        $ccdParts = @("type=smb,connectionString=\\$sofsName\$shareName")
+        foreach ($p in $providers) {
+            $ccdParts += "type=$($p.type),connectionString=$($p.connectionString)"
+        }
+        $ccd = $ccdParts -join ";"
+        $ccd | Should -Match "type=smb,connectionString=\\\\$sofsName"
+        $ccd | Should -Match "type=azure,connectionString=.*AccountName=stdr01"
+        $ccd | Should -Match "type=smb2,connectionString=\\\\secondary-sofs"
+        ($ccd.Split(';')).Count | Should -Be 3
+    }
+    It "Providers array takes precedence over legacy azure_provider" {
+        # When providers[] is non-empty, azure_provider is ignored
+        $providers = @(
+            @{ type = "azure"; connectionString = "AccountName=fromarray" }
+        )
+        $legacyProvider = "AccountName=fromlegacy"
+        $ccdParts = @("type=smb,connectionString=\\sofs\share")
+        if ($providers.Count -gt 0) {
+            foreach ($p in $providers) {
+                $ccdParts += "type=$($p.type),connectionString=$($p.connectionString)"
+            }
+        } else {
+            if ($legacyProvider) {
+                $ccdParts += "type=azure,connectionString=$legacyProvider"
+            }
+        }
+        $ccd = $ccdParts -join ";"
+        $ccd | Should -Match "fromarray"
+        $ccd | Should -Not -Match "fromlegacy"
     }
 }

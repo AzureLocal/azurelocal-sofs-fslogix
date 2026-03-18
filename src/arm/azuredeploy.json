@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13515824846979693699"
+      "templateHash": "7025526361703900475"
     }
   },
   "parameters": {
@@ -340,7 +340,14 @@
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
-        "description": "Azure Blob connection string for Cloud Cache provider"
+        "description": "(Deprecated) Azure Blob connection string — use cloudCacheProviders instead"
+      }
+    },
+    "cloudCacheProviders": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Additional Cloud Cache providers for CCDLocations (SMB providers auto-generated)"
       }
     },
     "dnsServers": {

@@ -17,6 +17,8 @@
     fslogix_profile_size_mb: "{{ sofs_fslogix_profile_size_mb | default(30000) | int }}"
     fslogix_volume_type: "{{ sofs_fslogix_volume_type | default('VHDX') }}"
     cloud_cache_enabled: "{{ sofs_cloud_cache_enabled | default(false) | bool }}"
+    guest_volume_layout: "{{ sofs_guest_volume_layout | default('option_a') }}"
+    sofs_shares_list: "{{ sofs_shares | default([]) }}"
 
   tasks:
     - name: Ensure FSLogix Profiles registry key exists
@@ -77,3 +79,45 @@
     - name: Show FSLogix configuration
       ansible.builtin.debug:
         var: fslogix_config.output
+
+    # ---------------------------------------------------------------
+    # Cloud Cache — CCDLocations registry (only when enabled)
+    # ---------------------------------------------------------------
+    - name: Build CCDLocations value for Cloud Cache
+      ansible.builtin.set_fact:
+        _cc_ccd_locations: >-
+          {%- set parts = [] -%}
+          {%- if guest_volume_layout == 'option_a' -%}
+            {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ share_name) -%}
+          {%- else -%}
+            {%- for s in sofs_shares_list -%}
+              {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ s.name) -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- set providers = sofs_cloud_cache_providers | default([]) -%}
+          {%- if providers | length > 0 -%}
+            {%- for p in providers -%}
+              {%- set _ = parts.append('type=' ~ p.type ~ ',connectionString=' ~ p.connectionString) -%}
+            {%- endfor -%}
+          {%- elif sofs_cloud_cache_azure_provider | default('') | length > 0 -%}
+            {%- set _ = parts.append('type=azure,connectionString=' ~ sofs_cloud_cache_azure_provider) -%}
+          {%- endif -%}
+          {{ parts | join(';') }}
+      when: cloud_cache_enabled
+
+    - name: Set CCDLocations registry value
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: CCDLocations
+        data: "{{ _cc_ccd_locations }}"
+        type: expandstring
+      when:
+        - cloud_cache_enabled
+        - _cc_ccd_locations is defined
+
+    - name: Remove VHDLocations when Cloud Cache is active
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: VHDLocations
+        state: absent
+      when: cloud_cache_enabled

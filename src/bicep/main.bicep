@@ -217,8 +217,11 @@ param fslogixVolumeType string = 'VHDX'
 param cloudCacheEnabled bool = false
 
 @secure()
-@description('Azure Blob connection string for Cloud Cache provider')
+@description('(Deprecated) Azure Blob connection string — use cloudCacheProviders instead')
 param cloudCacheAzureProvider string = ''
+
+@description('Additional Cloud Cache providers for CCDLocations (SMB providers auto-generated)')
+param cloudCacheProviders array = []
 
 // ---------------------------------------------------------------------------
 // Parameters — DNS

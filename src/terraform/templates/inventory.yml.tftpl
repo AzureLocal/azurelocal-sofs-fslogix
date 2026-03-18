@@ -85,6 +85,15 @@ all:
     sofs_fslogix_profile_size_mb: ${fslogix_profile_size_mb}
     sofs_fslogix_volume_type: "${fslogix_volume_type}"
     sofs_cloud_cache_enabled: ${cloud_cache_enabled}
+%{ if length(cloud_cache_providers) > 0 ~}
+    sofs_cloud_cache_providers:
+%{ for p in cloud_cache_providers ~}
+      - type: "${p.type}"
+        connectionString: "${p.connectionString}"
+%{ endfor ~}
+%{ else ~}
+    sofs_cloud_cache_providers: []
+%{ endif ~}
 
     # --- DNS servers ---
 %{ if length(dns_servers) > 0 ~}

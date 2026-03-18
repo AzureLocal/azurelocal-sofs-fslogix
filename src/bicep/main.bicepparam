@@ -93,7 +93,10 @@ param fslogixEnabled = true
 param fslogixProfileSizeMb = 30000
 param fslogixVolumeType = 'VHDX'
 param cloudCacheEnabled = false
-// param cloudCacheAzureProvider = ''
+// param cloudCacheAzureProvider = ''       // deprecated — use cloudCacheProviders
+// param cloudCacheProviders = [
+//   { type: 'azure', connectionString: '' }
+// ]
 
 // --- DNS ---
 param dnsServers = ['10.0.1.10', '10.0.1.11']

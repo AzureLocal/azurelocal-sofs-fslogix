@@ -104,7 +104,10 @@ fslogix_enabled         = true
 fslogix_profile_size_mb = 30000
 fslogix_volume_type     = "VHDX"
 cloud_cache_enabled     = false
-# cloud_cache_azure_provider = ""   # Azure Blob connection string (if enabled)
+# cloud_cache_azure_provider = ""            # (deprecated — use cloud_cache_providers)
+# cloud_cache_providers = [
+#   { type = "azure", connectionString = "DefaultEndpointsProtocol=https;AccountName=stfslogixdr;..." }
+# ]
 
 # --- VM IP Addresses (keyed by zero-padded index) ---
 vm_ips = {
