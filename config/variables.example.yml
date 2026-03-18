@@ -114,7 +114,7 @@ dns_servers:
 # Option B (three shares): use shares list instead
 # =============================================================================
 sofs:
-  name: "FSLogixSOFS"
+  role_name: "FSLogixSOFS"                  # SOFS cluster role name (Add-ClusterScaleOutFileServerRole)
   cluster_name: "sofs-cluster"
   cluster_ip: "192.168.1.204"
   role_enabled: true

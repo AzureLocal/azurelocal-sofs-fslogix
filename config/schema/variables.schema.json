@@ -89,9 +89,9 @@
     },
     "sofs": {
       "type": "object",
-      "required": ["name", "cluster_name", "cluster_ip"],
+      "required": ["role_name", "cluster_name", "cluster_ip"],
       "properties": {
-        "name": { "type": "string" },
+        "role_name": { "type": "string" },
         "cluster_name": { "type": "string" },
         "cluster_ip": { "type": "string" },
         "role_enabled": { "type": "boolean" },
@@ -226,7 +226,7 @@
       "then": {
         "properties": {
           "s2d": { "required": ["pool_name", "volume_name", "volume_size_gb", "data_copies"] },
-          "sofs": { "required": ["name", "cluster_name", "cluster_ip", "share_name"] }
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "share_name"] }
         }
       }
     },
@@ -243,7 +243,7 @@
       "then": {
         "properties": {
           "s2d": { "required": ["pool_name", "volumes"] },
-          "sofs": { "required": ["name", "cluster_name", "cluster_ip", "shares"] }
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "shares"] }
         }
       }
     },
