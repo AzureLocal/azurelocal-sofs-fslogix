@@ -43,6 +43,7 @@ logs/**
 # Source working folder (integrated into repo structure — not tracked directly)
 sofs/
 
+
 # Editor / OS artifacts
 .vscode/
 .idea/
@@ -57,3 +58,7 @@ dist/
 out/
 build/
 site/
+
+# Project management and temp working files
+project_management/
+temp/

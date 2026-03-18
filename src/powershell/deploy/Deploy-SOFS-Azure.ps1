@@ -75,6 +75,10 @@
 .PARAMETER WhatIf
     Dry-run mode — displays what would be deployed without making changes.
 
+.PARAMETER Destroy
+    Destroy mode — removes all SOFS resources (extensions, VMs, disks, NICs, witness).
+    Resource group is preserved. Idempotent — safe to re-run.
+
 .PARAMETER LogPath
     Override log file path.
 
@@ -113,6 +117,7 @@ param(
     [hashtable]    $Tags                  = $null,    # Resource tags
     [hashtable]    $VMIPs                 = $null,    # Per-VM static IPs {01 = ..., 02 = ...}
     [switch]       $WhatIf,                           # Dry-run mode
+    [switch]       $Destroy,                          # Destroy mode — remove all SOFS resources
     [string]       $LogPath               = ""        # Override log file path
 )
 
@@ -231,84 +236,11 @@ try {
 }
 
 # ===========================================================================
-# COMPATIBILITY SHIM — map new sectioned config to legacy compute_wsfc keys
-# ===========================================================================
-# If the config already has a compute_wsfc section (legacy format), use it as-is.
-# If it has the new sectioned format (azure, vm, sofs, ...), map to legacy keys
-# so all downstream code works unchanged.
+# VALIDATE CONFIG FORMAT
 # ===========================================================================
 
-if (-not $sol.compute_wsfc -and $sol.azure) {
-    Write-Log "Detected new config format — applying compatibility shim..." "INFO"
-    $mapped = @{}
-    # azure
-    $mapped['wsfc_sofs_subscription_id']    = $sol.azure.subscription_id
-    $mapped['wsfc_sofs_resource_group']     = $sol.azure.resource_group
-    $mapped['wsfc_sofs_location']           = $sol.azure.location
-    # azure_local
-    $mapped['wsfc_sofs_custom_location_id'] = $sol.azure_local.custom_location_id
-    $mapped['wsfc_sofs_logical_network_id'] = $sol.azure_local.logical_network_id
-    $mapped['wsfc_sofs_gallery_image_name'] = $sol.azure_local.gallery_image_name
-    $mapped['wsfc_sofs_storage_path_id']    = $sol.azure_local.storage_path_id
-    $mapped['wsfc_sofs_storage_path_ids']   = $sol.azure_local.storage_path_ids
-    $mapped['wsfc_sofs_azl_cluster_name']   = $sol.azure_local.cluster_name
-    # vm
-    $mapped['wsfc_sofs_vm_prefix']          = $sol.vm.prefix
-    $mapped['wsfc_sofs_vm_count']           = $sol.vm.count
-    $mapped['wsfc_sofs_vm_processors']      = $sol.vm.processors
-    $mapped['wsfc_sofs_vm_memory_mb']       = $sol.vm.memory_mb
-    $mapped['wsfc_sofs_vm_admin_username']  = $sol.vm.admin_username
-    $mapped['wsfc_sofs_vm_admin_password']  = $sol.vm.admin_password
-    $mapped['wsfc_sofs_vm_ips']             = $sol.vm.ips
-    # data_disks
-    $mapped['wsfc_sofs_data_disk_count']    = $sol.data_disks.count
-    $mapped['wsfc_sofs_data_disk_size_gb']  = $sol.data_disks.size_gb
-    # domain
-    $mapped['wsfc_sofs_domain_fqdn']        = $sol.domain.fqdn
-    $mapped['wsfc_domain_fqdn']             = $sol.domain.fqdn
-    $mapped['wsfc_sofs_domain_netbios']     = $sol.domain.netbios
-    $mapped['wsfc_sofs_domain_join_username'] = $sol.domain.join_username
-    $mapped['wsfc_sofs_domain_join_password'] = $sol.domain.join_password
-    $mapped['wsfc_sofs_cluster_ou_path']    = $sol.domain.cluster_ou_path
-    $mapped['wsfc_sofs_nodes_ou_path']      = $sol.domain.nodes_ou_path
-    # dns
-    $mapped['wsfc_sofs_dns_servers']        = $sol.dns_servers
-    # sofs
-    $mapped['wsfc_sofs_name']               = $sol.sofs.name
-    $mapped['wsfc_sofs_cluster_name']       = $sol.sofs.cluster_name
-    $mapped['wsfc_sofs_cluster_ip']         = $sol.sofs.cluster_ip
-    $mapped['wsfc_sofs_share_name']         = $sol.sofs.share_name
-    $mapped['wsfc_sofs_role_enabled']       = $sol.sofs.role_enabled
-    $mapped['wsfc_sofs_anti_affinity_rule_name'] = $sol.sofs.anti_affinity_rule_name
-    # s2d
-    $mapped['wsfc_sofs_s2d_volume_name']    = $sol.s2d.volume_name
-    $mapped['wsfc_sofs_s2d_volume_size_gb'] = $sol.s2d.volume_size_gb
-    $mapped['wsfc_sofs_s2d_data_copies']    = $sol.s2d.data_copies
-    # cloud_witness
-    $mapped['wsfc_sofs_cloud_witness_name'] = $sol.cloud_witness.name
-    $mapped['wsfc_sofs_cloud_witness_key_uri']    = $sol.cloud_witness.key_uri
-    $mapped['wsfc_sofs_cloud_witness_key_secret'] = $sol.cloud_witness.key_secret
-    # guest config
-    $mapped['wsfc_sofs_guest_config_engine'] = $sol.guest_config_engine
-    # ansible controller
-    if ($sol.ansible_controller) {
-        $mapped['wsfc_sofs_ansible_controller_name']           = $sol.ansible_controller.name
-        $mapped['wsfc_sofs_ansible_controller_size']           = $sol.ansible_controller.size
-        $mapped['wsfc_sofs_ansible_controller_admin_username'] = $sol.ansible_controller.admin_username
-        $mapped['wsfc_sofs_ansible_controller_hub_subnet_id']  = $sol.ansible_controller.hub_subnet_id
-        $mapped['wsfc_sofs_ansible_controller_hub_rg']         = $sol.ansible_controller.hub_rg
-        $mapped['wsfc_sofs_ansible_existing_controller_ip']    = $sol.ansible_controller.existing_controller_ip
-        $mapped['wsfc_sofs_ansible_existing_controller_user']  = $sol.ansible_controller.existing_controller_user
-    }
-
-    $sol['compute_wsfc'] = $mapped
-    Write-Log "Compatibility shim applied — mapped new config sections to legacy keys." "PASS"
-}
-
-$cfg = $sol.compute_wsfc                                                 # compute.wsfc section
-
-if (-not $cfg) {
-    Write-Log "Solution config missing 'compute_wsfc' section." "FAIL"
+if (-not $sol.azure) {
+    Write-Log "Config must use the sectioned format (azure, vm, sofs, ...). See config/variables.example.yml." "FAIL"
     exit 1
 }
 
@@ -328,31 +260,37 @@ function Resolve-Param {
     return $null
 }
 
-$SubscriptionId         = Resolve-Param $SubscriptionId         $cfg.wsfc_sofs_subscription_id    "SubscriptionId"            # compute.wsfc.wsfc_sofs_subscription_id
-$ResourceGroup          = Resolve-Param $ResourceGroup          $cfg.wsfc_sofs_resource_group     "ResourceGroup"             # compute.wsfc.wsfc_sofs_resource_group
-$Location               = Resolve-Param $Location               $cfg.wsfc_sofs_location           "Location"                  # compute.wsfc.wsfc_sofs_location
-$CustomLocationId       = Resolve-Param $CustomLocationId       $cfg.wsfc_sofs_custom_location_id "CustomLocationId"          # compute.wsfc.wsfc_sofs_custom_location_id
-$LogicalNetworkId       = Resolve-Param $LogicalNetworkId       $cfg.wsfc_sofs_logical_network_id "LogicalNetworkId"          # compute.wsfc.wsfc_sofs_logical_network_id
-$ImageName              = Resolve-Param $ImageName              $cfg.wsfc_sofs_gallery_image_name "ImageName"                 # compute.wsfc.wsfc_sofs_gallery_image_name
-$VMPrefix               = Resolve-Param $VMPrefix               $cfg.wsfc_sofs_vm_prefix          "VMPrefix"                  # compute.wsfc.wsfc_sofs_vm_prefix
-$WitnessStorageAccount  = Resolve-Param $WitnessStorageAccount  $cfg.wsfc_sofs_cloud_witness_name "WitnessStorageAccount"     # compute.wsfc.wsfc_sofs_cloud_witness_name
+$SubscriptionId         = Resolve-Param $SubscriptionId         $sol.azure.subscription_id            "SubscriptionId"
+$ResourceGroup          = Resolve-Param $ResourceGroup          $sol.azure.resource_group             "ResourceGroup"
+$Location               = Resolve-Param $Location               $sol.azure.location                   "Location"
+$CustomLocationId       = Resolve-Param $CustomLocationId       $sol.azure_local.custom_location_id   "CustomLocationId"
+$LogicalNetworkId       = Resolve-Param $LogicalNetworkId       $sol.azure_local.logical_network_id   "LogicalNetworkId"
+$ImageName              = Resolve-Param $ImageName              $sol.azure_local.gallery_image_name   "ImageName"
+$VMPrefix               = Resolve-Param $VMPrefix               $sol.vm.prefix                        "VMPrefix"
+$WitnessStorageAccount  = Resolve-Param $WitnessStorageAccount  $sol.cloud_witness.name               "WitnessStorageAccount"
 
 # Integer params: 0 = not set via param, use config
-if ($VMCount      -le 0) { $VMCount      = [int]$cfg.wsfc_sofs_vm_count         }  # compute.wsfc.wsfc_sofs_vm_count
-if ($VMProcessors -le 0) { $VMProcessors = [int]$cfg.wsfc_sofs_vm_processors    }  # compute.wsfc.wsfc_sofs_vm_processors
-if ($VMMemoryMB   -le 0) { $VMMemoryMB   = [int]$cfg.wsfc_sofs_vm_memory_mb     }  # compute.wsfc.wsfc_sofs_vm_memory_mb
-if ($DataDiskCount  -le 0) { $DataDiskCount  = [int]$cfg.wsfc_sofs_data_disk_count   }  # compute.wsfc.wsfc_sofs_data_disk_count
-if ($DataDiskSizeGB -le 0) { $DataDiskSizeGB = [int]$cfg.wsfc_sofs_data_disk_size_gb }  # compute.wsfc.wsfc_sofs_data_disk_size_gb
+if ($VMCount      -le 0) { $VMCount      = [int]$sol.vm.count             }
+if ($VMProcessors -le 0) { $VMProcessors = [int]$sol.vm.processors        }
+if ($VMMemoryMB   -le 0) { $VMMemoryMB   = [int]$sol.vm.memory_mb         }
+if ($DataDiskCount  -le 0) { $DataDiskCount  = [int]$sol.data_disks.count    }
+if ($DataDiskSizeGB -le 0) { $DataDiskSizeGB = [int]$sol.data_disks.size_gb  }
+
+# Validate VMCount range
+if ($VMCount -lt 2 -or $VMCount -gt 16) {
+    Write-Log "VMCount must be between 2 and 16. Got: $VMCount" "FAIL"
+    throw "VMCount out of range: $VMCount (valid: 2-16)"
+}
 
 # Storage paths — per-VM map takes priority, then single default
-if (-not $StoragePathIds -and $cfg.wsfc_sofs_storage_path_ids) {
+if (-not $StoragePathIds -and $sol.azure_local.storage_path_ids) {
     $StoragePathIds = @{}
-    foreach ($key in $cfg.wsfc_sofs_storage_path_ids.Keys) {
-        $StoragePathIds["$key"] = $cfg.wsfc_sofs_storage_path_ids[$key]      # compute.wsfc.wsfc_sofs_storage_path_ids
+    foreach ($key in $sol.azure_local.storage_path_ids.Keys) {
+        $StoragePathIds["$key"] = $sol.azure_local.storage_path_ids[$key]
     }
 }
 if ($StoragePathId -eq "") {
-    $StoragePathId = $cfg.wsfc_sofs_storage_path_id                          # compute.wsfc.wsfc_sofs_storage_path_id (fallback)
+    $StoragePathId = $sol.azure_local.storage_path_id
 }
 # Validate at least one storage path source exists
 if (-not $StoragePathIds -and [string]::IsNullOrWhiteSpace($StoragePathId)) {
@@ -361,31 +299,36 @@ if (-not $StoragePathIds -and [string]::IsNullOrWhiteSpace($StoragePathId)) {
 }
 
 # VM IPs — per-VM map from param or config
-if (-not $VMIPs -and $cfg.wsfc_sofs_vm_ips) {
+if (-not $VMIPs -and $sol.vm.ips) {
     $VMIPs = @{}
-    foreach ($key in $cfg.wsfc_sofs_vm_ips.Keys) {
-        $VMIPs["$key"] = $cfg.wsfc_sofs_vm_ips[$key]                        # compute.wsfc.wsfc_sofs_vm_ips
+    foreach ($key in $sol.vm.ips.Keys) {
+        $VMIPs["$key"] = $sol.vm.ips[$key]
     }
 }
 
 # Admin credential URIs from config
-$VMAdminUsername     = $cfg.wsfc_sofs_vm_admin_username       # compute.wsfc.wsfc_sofs_vm_admin_username
-$VMAdminPassUri      = $cfg.wsfc_sofs_vm_admin_password       # compute.wsfc.wsfc_sofs_vm_admin_password (keyvault:// URI)
+$VMAdminUsername     = $sol.vm.admin_username
+$VMAdminPassUri      = $sol.vm.admin_password                 # keyvault:// URI
 
 # Domain join config
-$DomainFQDN          = $cfg.wsfc_sofs_domain_fqdn             # compute.wsfc.wsfc_sofs_domain_fqdn
-$DomainNetBIOS       = $cfg.wsfc_sofs_domain_netbios          # compute.wsfc.wsfc_sofs_domain_netbios
-$NodesOUPath         = $cfg.wsfc_sofs_nodes_ou_path           # compute.wsfc.wsfc_sofs_nodes_ou_path
-$DomainJoinUser      = $cfg.wsfc_sofs_domain_join_username    # compute.wsfc.wsfc_sofs_domain_join_username
-$DomainJoinPassUri   = $cfg.wsfc_sofs_domain_join_password    # compute.wsfc.wsfc_sofs_domain_join_password (keyvault:// URI)
+$DomainFQDN          = $sol.domain.fqdn
+$DomainNetBIOS       = $sol.domain.netbios
+$NodesOUPath         = $sol.domain.nodes_ou_path
+$DomainJoinUser      = $sol.domain.join_username
+$DomainJoinPassUri   = $sol.domain.join_password              # keyvault:// URI
 
-# Tags: param > default
+# Tags: param > config > default
 if (-not $Tags) {
-    $Tags = @{
-        project     = "SOFS"
-        environment = "production"
-        workload    = "FSLogix"
-        solution    = "sofs-azure-local"
+    if ($sol.tags) {
+        $Tags = @{}
+        foreach ($tKey in $sol.tags.Keys) { $Tags[$tKey] = "$($sol.tags[$tKey])" }
+    } else {
+        $Tags = @{
+            project     = "SOFS"
+            environment = "production"
+            workload    = "FSLogix"
+            solution    = "sofs-azure-local"
+        }
     }
 }
 
@@ -487,6 +430,122 @@ Write-Log "Setting subscription context..." "HEADER"
 az account set --subscription $SubscriptionId
 Test-AzCliResult "Failed to set subscription"
 Write-Log "Subscription set: $SubscriptionId" "PASS"
+
+# ===========================================================================
+# DESTROY MODE — reverse the deployment
+# ===========================================================================
+
+if ($Destroy) {
+    Write-Log "========================================" "WARN"
+    Write-Log "DESTROY MODE — Removing SOFS Azure resources" "WARN"
+    Write-Log "========================================" "WARN"
+
+    # D1: Remove domain join extensions
+    Write-Log "Step D1 — Remove domain join extensions" "HEADER"
+    for ($i = 1; $i -le $VMCount; $i++) {
+        $key = "{0:D2}" -f $i
+        $VMName = "${VMPrefix}-${key}"
+        $extExists = az connectedmachine extension show --resource-group $ResourceGroup --machine-name $VMName --name JsonADDomainExtension --query name -o tsv 2>$null
+        if ($extExists) {
+            Write-Log "  Removing extension from $VMName..."
+            az connectedmachine extension delete --resource-group $ResourceGroup --machine-name $VMName --name JsonADDomainExtension --yes --output none 2>$null
+            Write-Log "  Extension removed." "PASS"
+        } else {
+            Write-Log "  [$VMName] No extension found. Skipping." "INFO"
+        }
+    }
+
+    # D2: Delete VMs
+    Write-Log "Step D2 — Delete VMs" "HEADER"
+    for ($i = 1; $i -le $VMCount; $i++) {
+        $key = "{0:D2}" -f $i
+        $VMName = "${VMPrefix}-${key}"
+        $vmExists = az stack-hci-vm show --resource-group $ResourceGroup --name $VMName --query name -o tsv 2>$null
+        if ($vmExists) {
+            Write-Log "  Deleting VM: $VMName..."
+            az stack-hci-vm delete --resource-group $ResourceGroup --name $VMName --yes --output none
+            if ($LASTEXITCODE -ne 0) { Write-Log "  Failed to delete $VMName" "WARN" }
+            else { Write-Log "  VM '$VMName' deleted." "PASS" }
+        } else {
+            Write-Log "  [$VMName] Not found. Skipping." "INFO"
+        }
+    }
+
+    # D3: Delete data disks
+    Write-Log "Step D3 — Delete data disks" "HEADER"
+    for ($i = 1; $i -le $VMCount; $i++) {
+        $key = "{0:D2}" -f $i
+        $VMName = "${VMPrefix}-${key}"
+        for ($d = 1; $d -le $DataDiskCount; $d++) {
+            $diskName = "$VMName-data$d"
+            $diskExists = az stack-hci-vm disk show --resource-group $ResourceGroup --name $diskName --query name -o tsv 2>$null
+            if ($diskExists) {
+                Write-Log "  Deleting disk: $diskName..."
+                az stack-hci-vm disk delete --resource-group $ResourceGroup --name $diskName --yes --output none
+                if ($LASTEXITCODE -ne 0) { Write-Log "  Failed to delete $diskName" "WARN" }
+                else { Write-Log "  Disk '$diskName' deleted." "PASS" }
+            }
+        }
+    }
+
+    # D4: Delete NICs
+    Write-Log "Step D4 — Delete NICs" "HEADER"
+    for ($i = 1; $i -le $VMCount; $i++) {
+        $key = "{0:D2}" -f $i
+        $NicName = "${VMPrefix}-${key}-nic"
+        $nicExists = az stack-hci-vm network nic show --resource-group $ResourceGroup --name $NicName --query name -o tsv 2>$null
+        if ($nicExists) {
+            Write-Log "  Deleting NIC: $NicName..."
+            az stack-hci-vm network nic delete --resource-group $ResourceGroup --name $NicName --yes --output none
+            if ($LASTEXITCODE -ne 0) { Write-Log "  Failed to delete $NicName" "WARN" }
+            else { Write-Log "  NIC '$NicName' deleted." "PASS" }
+        }
+    }
+
+    # D5: Delete cloud witness storage account
+    Write-Log "Step D5 — Delete cloud witness storage account" "HEADER"
+    $witnessCheck = az storage account show --name $WitnessStorageAccount --resource-group $ResourceGroup --query name -o tsv 2>$null
+    if ($witnessCheck) {
+        Write-Log "  Deleting storage account: $WitnessStorageAccount..."
+        az storage account delete --name $WitnessStorageAccount --resource-group $ResourceGroup --yes --output none
+        if ($LASTEXITCODE -ne 0) { Write-Log "  Failed to delete storage account" "WARN" }
+        else { Write-Log "  Storage account deleted." "PASS" }
+    }
+
+    Write-Log "========================================" "HEADER"
+    Write-Log "DESTROY COMPLETE" "PASS"
+    Write-Log "========================================" "HEADER"
+    Write-Log "  Resource group '$ResourceGroup' was NOT deleted."
+    Write-Log "  Delete manually if needed: az group delete --name $ResourceGroup --yes"
+    Write-Log "  Log file: $logFile"
+    $VMAdminPassword = $null
+    [System.GC]::Collect()
+    exit 0
+}
+
+# ===========================================================================
+# PRE-FLIGHT VALIDATION
+# ===========================================================================
+
+Write-Log "Pre-flight validation..." "HEADER"
+
+# Verify custom location exists
+$clName = az customlocation show --ids $CustomLocationId --query name -o tsv 2>$null
+if (-not $clName) {
+    Write-Log "Custom location not found: $CustomLocationId" "FAIL"
+    throw "Pre-flight failed: custom location not found"
+}
+Write-Log "  Custom location: $clName" "PASS"
+
+# Verify gallery image exists
+$imgName = az stack-hci-vm image show --ids $ImageName --query name -o tsv 2>$null
+if (-not $imgName) {
+    Write-Log "Gallery image not found: $ImageName" "FAIL"
+    throw "Pre-flight failed: gallery image not found"
+}
+Write-Log "  Gallery image: $imgName" "PASS"
+
+Write-Log "Pre-flight validation passed." "PASS"
 
 # ===========================================================================
 # STEP 0: Ensure Resource Group Exists
