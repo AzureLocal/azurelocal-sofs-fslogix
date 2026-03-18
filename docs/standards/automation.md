@@ -1,5 +1,13 @@
 # Automation Interoperability Standard
 
+> **Canonical reference:** [Scripting Framework (full)](https://azurelocal.cloud/standards/scripting/scripting-framework)
+> **Applies to:** All AzureLocal repositories
+> **Last Updated:** 2026-03-17
+
+---
+
+## Overview
+
 This standard ensures all deployment tools — Terraform, Bicep, ARM, PowerShell, and Ansible — can deploy a SOFS cluster in **every configuration path** from the [deployment guide](../reference/sofs-design-and-deployment-guide.md). It defines the variable contract, feature parity rules, and change propagation process.
 
 !!! tip "Portability"

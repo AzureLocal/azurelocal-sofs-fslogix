@@ -1,4 +1,8 @@
-# Naming & Tagging Standard
+# Naming Conventions
+
+> **Canonical reference:** [Naming Conventions (full)](https://azurelocal.cloud/standards/documentation/naming-conventions)  
+> **Applies to:** All AzureLocal repositories  
+> **Last Updated:** 2026-03-17
 
 CAF (Cloud Adoption Framework) resource naming conventions and WAF (Well-Architected Framework) pillar alignment for SOFS deployments on Azure Local. Naming is **documentation-only guidance** — it is not enforced by automation.
 
