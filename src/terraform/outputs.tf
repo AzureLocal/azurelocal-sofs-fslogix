@@ -4,12 +4,12 @@
 
 output "resource_group_name" {
   description = "Name of the SOFS resource group"
-  value       = azurerm_resource_group.sofs.name
+  value       = local.rg_name
 }
 
 output "resource_group_id" {
   description = "Resource ID of the SOFS resource group"
-  value       = azurerm_resource_group.sofs.id
+  value       = local.rg_id
 }
 
 output "deployed_vms" {
@@ -34,12 +34,12 @@ output "s2d_pool_size_gb" {
 
 output "cloud_witness_storage_account_name" {
   description = "Cloud witness storage account name"
-  value       = azurerm_storage_account.cloud_witness.name
+  value       = module.cloud_witness.name
 }
 
 output "cloud_witness_storage_account_key" {
   description = "Primary access key for the cloud witness storage account"
-  value       = azurerm_storage_account.cloud_witness.primary_access_key
+  value       = module.cloud_witness.resource.primary_access_key
   sensitive   = true
 }
 

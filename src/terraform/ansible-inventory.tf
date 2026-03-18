@@ -33,7 +33,7 @@ resource "local_sensitive_file" "ansible_inventory" {
     data_disk_count    = var.data_disk_count
     data_disk_size_gb  = var.data_disk_size_gb
     cloud_witness_name = var.cloud_witness_name
-    witness_key        = azurerm_storage_account.cloud_witness.primary_access_key
+    witness_key        = module.cloud_witness.resource.primary_access_key
     cluster_name       = var.cluster_name
     cluster_ip         = var.cluster_ip
     access_point       = var.access_point
@@ -41,10 +41,27 @@ resource "local_sensitive_file" "ansible_inventory" {
     s2d_volume_name    = var.s2d_volume_name
     s2d_volume_size    = var.s2d_volume_size
     s2d_data_copies    = var.s2d_data_copies
+    s2d_pool_name      = var.s2d_pool_name
+    sofs_role_name     = var.sofs_role_name
+    smb_encryption     = var.smb_encryption
+    guest_volume_layout = var.guest_volume_layout
+    guest_resiliency   = var.guest_resiliency
+    sofs_shares        = var.sofs_shares
+    s2d_volumes        = var.s2d_volumes
     domain_fqdn        = var.domain_fqdn
     domain_netbios     = var.domain_netbios
+    domain_ou_nodes    = var.domain_ou_nodes
+    domain_ou_cluster  = var.domain_ou_cluster
     anti_affinity_rule = var.anti_affinity_rule
     azl_cluster_name   = var.azl_cluster_name
+    permissions_admin_group     = var.permissions_admin_group
+    permissions_users_group     = var.permissions_users_group
+    permissions_avd_users_group = var.permissions_avd_users_group
+    fslogix_enabled             = var.fslogix_enabled
+    fslogix_profile_size_mb     = var.fslogix_profile_size_mb
+    fslogix_volume_type         = var.fslogix_volume_type
+    cloud_cache_enabled         = var.cloud_cache_enabled
+    dns_servers        = var.dns_servers
     winrm_transport    = var.winrm_transport
     vm_hosts           = local.ansible_vm_hosts
   })

@@ -53,13 +53,13 @@ variable "storage_path_ids" {
 # ---------------------------------------------------------------------------
 
 variable "vm_count" {
-  description = "Number of SOFS VMs — minimum 3 for S2D two-way mirror (wsfc_sofs_vm_count)"
+  description = "Number of SOFS VMs — minimum 2 for two-way mirror, 3+ for three-way (wsfc_sofs_vm_count)"
   type        = number
   default     = 3
 
   validation {
-    condition     = var.vm_count >= 3
-    error_message = "SOFS requires at least 3 VMs for a two-way mirror."
+    condition     = var.vm_count >= 2 && var.vm_count <= 16
+    error_message = "vm_count must be between 2 and 16."
   }
 }
 
@@ -104,7 +104,70 @@ variable "key_vault_secret_admin_password" {
   type        = string
   default     = "sofs-vm-admin-password"
 }
+variable "key_vault_secret_domain_join_password" {
+  description = "Name of the Key Vault secret holding the domain join account password"
+  type        = string
+  default     = "domain-join-password"
+}
 
+# ---------------------------------------------------------------------------
+# Domain Join Configuration
+# ---------------------------------------------------------------------------
+
+variable "domain_join_account" {
+  description = "Domain join service account username (sAMAccountName, no domain prefix)"
+  type        = string
+  default     = "svc.domainjoin"
+}
+
+variable "domain_ou_nodes" {
+  description = "OU path for SOFS VM computer objects in AD"
+  type        = string
+  default     = ""
+}
+
+variable "domain_ou_cluster" {
+  description = "OU path for the WSFC cluster name object (CNO) in AD"
+  type        = string
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
+# Deployment Architecture Choices
+# ---------------------------------------------------------------------------
+
+variable "guest_volume_layout" {
+  description = "Guest S2D volume layout: option_a (single volume/share) or option_b (three volumes/shares)"
+  type        = string
+  default     = "option_a"
+
+  validation {
+    condition     = contains(["option_a", "option_b"], var.guest_volume_layout)
+    error_message = "guest_volume_layout must be option_a or option_b."
+  }
+}
+
+variable "host_resiliency" {
+  description = "Host CSV mirror: two_way or three_way"
+  type        = string
+  default     = "two_way"
+
+  validation {
+    condition     = contains(["two_way", "three_way"], var.host_resiliency)
+    error_message = "host_resiliency must be two_way or three_way."
+  }
+}
+
+variable "guest_resiliency" {
+  description = "Guest S2D data copies: two_way (2 copies) or three_way (3 copies)"
+  type        = string
+  default     = "two_way"
+
+  validation {
+    condition     = contains(["two_way", "three_way"], var.guest_resiliency)
+    error_message = "guest_resiliency must be two_way or three_way."
+  }
+}
 # SSH public key — read directly from disk; wrapper does not need to set TF_VAR.
 variable "ssh_public_key_path" {
   description = "Path to SSH public key file for Ansible controller VM"
@@ -247,9 +310,117 @@ variable "access_point" {
 }
 
 variable "share_name" {
-  description = "FSLogix SMB share name (wsfc_sofs_share_name)"
+  description = "FSLogix SMB share name — Option A single share (wsfc_sofs_share_name)"
   type        = string
   default     = "FSLogix"
+}
+
+# ---------------------------------------------------------------------------
+# Option B: Multiple Shares / Volumes
+# ---------------------------------------------------------------------------
+
+variable "sofs_shares" {
+  description = "Option B: list of SMB share definitions [{name, volume}] — used when guest_volume_layout = option_b"
+  type = list(object({
+    name   = string
+    volume = string
+  }))
+  default = []
+}
+
+variable "s2d_volumes" {
+  description = "Option B: list of S2D volume definitions [{name, size_gb, data_copies}] — used when guest_volume_layout = option_b"
+  type = list(object({
+    name        = string
+    size_gb     = number
+    data_copies = number
+  }))
+  default = []
+}
+
+# ---------------------------------------------------------------------------
+# Additional SOFS Configuration
+# ---------------------------------------------------------------------------
+
+variable "sofs_role_name" {
+  description = "SOFS cluster role name for Add-ClusterScaleOutFileServerRole"
+  type        = string
+  default     = "FSLogixSOFS"
+}
+
+variable "s2d_pool_name" {
+  description = "S2D storage pool friendly name"
+  type        = string
+  default     = "S2D on sofs-cluster"
+}
+
+variable "smb_encryption" {
+  description = "Enable SMB 3.x encryption on SOFS shares"
+  type        = bool
+  default     = true
+}
+
+variable "access_point_ip" {
+  description = "Static IP for the SOFS client access point"
+  type        = string
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
+# Permissions
+# ---------------------------------------------------------------------------
+
+variable "permissions_admin_group" {
+  description = "AD group for share administrative access"
+  type        = string
+  default     = "Domain Admins"
+}
+
+variable "permissions_users_group" {
+  description = "AD group for share user access"
+  type        = string
+  default     = "AVD-Users"
+}
+
+variable "permissions_avd_users_group" {
+  description = "AD group for AVD users (FSLogix profile access)"
+  type        = string
+  default     = "AVD-Users"
+}
+
+# ---------------------------------------------------------------------------
+# FSLogix
+# ---------------------------------------------------------------------------
+
+variable "fslogix_enabled" {
+  description = "Whether FSLogix profile containers are enabled on this SOFS cluster"
+  type        = bool
+  default     = true
+}
+
+variable "fslogix_profile_size_mb" {
+  description = "Maximum profile container size in MB — used for FSRM quota"
+  type        = number
+  default     = 30000
+}
+
+variable "fslogix_volume_type" {
+  description = "Profile container format: VHDX or VHD"
+  type        = string
+  default     = "VHDX"
+}
+
+variable "cloud_cache_enabled" {
+  description = "Enable FSLogix Cloud Cache for multi-site DR"
+  type        = bool
+  default     = false
+}
+
+variable "cloud_cache_azure_provider" {
+  description = "Azure Blob connection string for Cloud Cache provider"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "s2d_volume_name" {
