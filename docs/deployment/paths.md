@@ -14,8 +14,8 @@ The SOFS deployment spans two domains — **Azure-side provisioning** and **gues
 | 2 | **Terraform** | **PowerShell** | Default `guest_config_engine=powershell`. Run `Configure-SOFS-Cluster.ps1` after `terraform apply`. |
 | 3 | **Terraform** | **Ansible** | Set `guest_config_engine=ansible_create` or `ansible_existing`. Auto-generated inventory. |
 | 4 | **Bicep** | **PowerShell** | `Deploy-SOFS-Azure.ps1` wrapper deploys Bicep, then run `Configure-SOFS-Cluster.ps1`. |
-| 5 | **ARM** | **PowerShell** | `az deployment sub create`, then `Configure-SOFS-Cluster.ps1`. ARM template is currently incomplete. |
-| 6 | **Ansible** | **Ansible** | `deploy-azure-resources.yml` → `configure-sofs-cluster.yml`. ![Untested](https://img.shields.io/badge/-Untested-6c757d) |
+| 5 | **ARM** | **PowerShell** | `az deployment sub create`, then `Configure-SOFS-Cluster.ps1`. |
+| 6 | **Ansible** | **Ansible** | `deploy-azure-resources.yml` → `configure-sofs-cluster.yml`. ![Tested](https://img.shields.io/badge/-Tested-28a745) |
 
 ---
 
@@ -59,7 +59,7 @@ All five tools can create Azure resources through the control plane:
 - Domain join via `JsonADDomainExtension` Arc extension
 
 !!! info "Domain join"
-    Domain join is an Azure resource deployment, not a guest OS operation. Any tool that deploys Azure resources can deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines`. See individual tool pages for current implementation status.
+    Domain join is an Azure resource deployment, not a guest OS operation. All five tools deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines` as part of Phase 4.
 
 ### Guest OS Configuration
 

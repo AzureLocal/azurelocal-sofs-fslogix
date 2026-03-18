@@ -8,6 +8,56 @@ After deploying and configuring the SOFS, validate that everything works before 
 
 ---
 
+## Per-Tool Testing
+
+Each deployment tool has its own unit/integration tests that can be run before deployment:
+
+### PowerShell (Pester 5)
+
+```powershell
+Invoke-Pester -Path ./tests -Output Detailed
+```
+
+Runs 23 test suites covering config parsing, schema validation, VM parameter generation, storage path mapping, FSRM quotas, Cloud Cache, and more.
+
+### Terraform
+
+```powershell
+cd src/terraform
+terraform init
+terraform test
+```
+
+Validates AVM module references, variable mapping, domain join extension, per-VM storage paths, and Option A/B conditional logic.
+
+### Ansible (Molecule)
+
+```bash
+cd src/ansible
+molecule test
+```
+
+Runs the full Molecule test suite — lint, syntax, converge, idempotence, verify — against a local Docker test matrix.
+
+### Bicep
+
+```powershell
+az bicep build --file src/bicep/main.bicep
+```
+
+Validates Bicep syntax and AVM module references. Successful compilation confirms the template is structurally valid.
+
+### ARM
+
+```powershell
+cd src/arm
+.\build-arm.ps1
+```
+
+Recompiles from Bicep and validates the resulting JSON template.
+
+---
+
 ## Automated Validation
 
 The `Test-SOFSDeployment.ps1` script validates the full SOFS deployment:
@@ -189,13 +239,18 @@ All nodes should be `Up`. The quorum model should show `CloudWitness`.
 - [ ] CachingMode = None on all shares
 - [ ] ScopeName matches SOFS access point
 - [ ] Anti-affinity rule active and verified
-- [ ] All three SOFS VMs on separate physical nodes
+- [ ] All SOFS VMs on separate physical nodes (2–16 VMs supported)
 - [ ] S2D pool, virtual disks, and physical disks healthy
+- [ ] Resiliency matches config (`NumberOfDataCopies` = 2 or 3)
 - [ ] All cluster nodes Up
 - [ ] Cloud witness configured and accessible
 - [ ] NTFS permissions correct (test with a domain user account)
 - [ ] Failover test passed — share accessible during node drain
 - [ ] Test file created and read back after failover
+- [ ] Option A: single share (`FSLogix`) present
+- [ ] Option B: three shares (`Profiles`, `ODFC`, `AppData`) present
+- [ ] FSRM quotas applied (if configured)
+- [ ] Cloud Cache CCDLocations string matches providers config (if enabled)
 
 ---
 

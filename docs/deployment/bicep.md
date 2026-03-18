@@ -1,23 +1,20 @@
 # Bicep Deployment
 
-![Bicep](https://img.shields.io/badge/-Bicep-0078D4?logo=microsoftazure&logoColor=white) ![Status: In Progress](https://img.shields.io/badge/status-in_progress-yellow) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
+![Bicep](https://img.shields.io/badge/-Bicep-0078D4?logo=microsoftazure&logoColor=white) ![Status: Tested](https://img.shields.io/badge/status-tested-brightgreen) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
 
 ## Overview
 
-Subscription-scope Bicep deployment that creates all Azure-side resources for the SOFS guest cluster. Bicep compiles to ARM JSON but is significantly more readable and maintainable.
+Subscription-scope Bicep deployment that creates all Azure-side resources for the SOFS guest cluster using **Azure Verified Modules (AVM)** from the public Bicep registry for the resource group and cloud witness storage account.
 
-### Capability vs Code Status
+### Capability
 
-| Capability | Can Do? | Current Code |
-|-----------|:---:|:---:|
-| Azure resource provisioning | ✅ | ✅ Full |
-| Domain join (JsonADDomainExtension) | ✅ natively | ❌ Not yet implemented |
-| Guest OS configuration | Delegates to PS | Delegates |
-
-!!! info "Domain join is a TODO, not a limitation"
-    Bicep can natively deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines`. This is a standard Azure resource deployment. The current Bicep code does not implement it yet.
-
-**What happens after Bicep:** Guest OS configuration requires the [PowerShell](powershell.md) script or [Ansible](ansible.md) playbook.
+| Capability | Supported |
+|-----------|:---------:|
+| Azure resource provisioning | ✅ |
+| Domain join (JsonADDomainExtension) | ✅ |
+| Per-VM storage path mapping | ✅ |
+| Guest OS configuration | Delegates to PS/Ansible |
+| AVM modules (RG + Storage) | ✅ |
 
 ---
 
@@ -25,12 +22,13 @@ Subscription-scope Bicep deployment that creates all Azure-side resources for th
 
 | Resource | Module |
 |----------|--------|
-| Resource Group | `main.bicep` |
+| Resource Group | AVM `br/public:avm/res/resources/resource-group` |
+| Cloud Witness Storage Account | AVM `br/public:avm/res/storage/storage-account` |
 | Arc Machine Placeholders | `sofs-resources.bicep` |
 | NICs (compute logical network) | `sofs-resources.bicep` |
 | Data Disks (S2D pool) | `sofs-resources.bicep` |
-| VM Instances | `sofs-resources.bicep` |
-| Cloud Witness Storage Account | `witness-storage.bicep` |
+| VM Instances (with per-VM storage paths) | `sofs-resources.bicep` |
+| Domain Join Extensions | `sofs-resources.bicep` |
 
 ---
 
@@ -46,24 +44,23 @@ Subscription-scope Bicep deployment that creates all Azure-side resources for th
 
 | File | Purpose |
 |------|---------|
-| `main.bicep` | Subscription-scope wrapper — creates RG, calls modules |
-| `sofs-resources.bicep` | Resource-group-scope module — VMs, NICs, data disks |
-| `witness-storage.bicep` | Cloud witness storage account |
-| `main.bicepparam` | Example parameters (reference only — never commit secrets) |
+| `main.bicep` | Subscription-scope wrapper — AVM RG + storage, calls sofs-resources module |
+| `sofs-resources.bicep` | Resource-group-scope module — VMs, NICs, data disks, domain join extensions |
+| `main.bicepparam` | Bicep parameters file (reference only — never commit secrets) |
 | `Deploy-SOFS-Azure.ps1` | Orchestrator script — reads config, resolves KV, deploys |
 
 ## Architecture
 
 ```
 main.bicep (subscription scope)
-├── Creates resource group
-├── sofs-resources.bicep (resource-group scope)
-│   ├── Microsoft.HybridCompute/machines[]           — Arc placeholders
-│   ├── Microsoft.AzureStackHCI/networkInterfaces[]   — NICs
-│   ├── Microsoft.AzureStackHCI/virtualHardDisks[]    — Data disks
-│   └── Microsoft.AzureStackHCI/VirtualMachineInstances[] — VMs
-└── witness-storage.bicep (resource-group scope)
-    └── Microsoft.Storage/storageAccounts             — Cloud witness
+├── AVM: avm/res/resources/resource-group
+├── AVM: avm/res/storage/storage-account (cloud witness)
+└── sofs-resources.bicep (resource-group scope)
+    ├── Microsoft.HybridCompute/machines[]               — Arc placeholders
+    ├── Microsoft.AzureStackHCI/networkInterfaces[]       — NICs
+    ├── Microsoft.AzureStackHCI/virtualHardDisks[]        — Data disks
+    ├── Microsoft.AzureStackHCI/VirtualMachineInstances[] — VMs (per-VM storage paths)
+    └── Microsoft.HybridCompute/machines/extensions[]     — Domain join
 ```
 
 ---
@@ -132,14 +129,12 @@ New-AzSubscriptionDeployment `
 After Bicep deploys the Azure resources:
 
 1. **Verify VMs** are running in Azure portal
-2. **Domain join** the VMs (manual or via Arc extension — not yet automated in this repo's Bicep)
+2. **Verify domain join** — the `JsonADDomainExtension` is deployed automatically
 3. **Run guest configuration:**
 
 ```powershell
-.\src\powershell\Configure-SOFS-Cluster.ps1
+.\src\powershell\deploy\Configure-SOFS-Cluster.ps1 -ConfigPath "config\variables.yml"
 ```
-
-This handles anti-affinity rules, failover clustering, S2D, SOFS role, SMB share, and NTFS permissions.
 
 ---
 

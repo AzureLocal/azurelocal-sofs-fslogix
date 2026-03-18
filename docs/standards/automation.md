@@ -17,12 +17,16 @@ Every configurable deployment choice and each tool's support status:
 | Guest volume layout | `option_a` / `option_b` | Inventory var | N/A | N/A | Config var | Playbook var |
 | S2D resiliency | `2` / `3` | Inventory var | N/A | N/A | Config var | Playbook var |
 | Guest config engine | `powershell` / `ansible_create` / `ansible_existing` / `manual` | Supported | N/A | N/A | N/A (is engine) | N/A (is engine) |
-| VM count, disk count/size | Configurable integers | Supported | Supported | Supported | Supported | Supported |
+| VM count, disk count/size | Configurable integers (2–16 VMs) | Supported | Supported | Supported | Supported | Supported |
+| Domain join | AD domain + OU + credentials | Supported | Supported | Supported | Supported | Supported |
+| Per-VM storage paths | Storage path resource IDs | Supported | Supported | Supported | Supported | Supported |
+| Cloud Cache providers | `providers[]` array | Inventory var | N/A | N/A | Config var | Playbook var |
+| FSRM quotas | Size + type per share | N/A | N/A | N/A | Config var | Playbook var |
 | NTFS permission groups | AD group names | Inventory var | N/A | N/A | Config var | Playbook var |
 | SMB encryption | `true` / `false` | Inventory var | N/A | N/A | Config var | Playbook var |
 
 !!! note "Phase boundaries"
-    Terraform, Bicep, and ARM handle **Phase 1 only** (Azure resource provisioning). Guest OS configuration (Phases 3–11) is always PowerShell or Ansible.
+    Terraform, Bicep, and ARM handle **Phases 1–2 and Phase 4** (Azure resource provisioning + domain join). Guest OS configuration (Phases 3, 5–11) is always PowerShell or Ansible.
 
 ---
 
@@ -42,8 +46,8 @@ Rules that **all tools must follow**:
 
 | Scope | Rule |
 |-------|------|
-| **Phase 1 tools** | Must support identical VM, disk, NIC, and cloud witness configurations |
-| **Phase 2+ tools** | Must support both guest volume layouts, both S2D resiliency levels, configurable permission groups, and configurable SMB settings |
+| **Phase 1–2 tools** | Must support identical VM, disk, NIC, cloud witness, and domain join configurations |
+| **Phase 2+ tools** | Must support both guest volume layouts, both S2D resiliency levels, Cloud Cache providers, FSRM quotas, configurable permission groups, and configurable SMB settings |
 | **New paths** | Adding a deployment path to ONE tool requires adding it to ALL tools in the same phase — or explicitly marking "not yet supported" in the matrix |
 | **Defaults** | All tools must produce identical infrastructure when given the same `variables.yml` |
 
