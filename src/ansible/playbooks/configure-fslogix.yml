@@ -3,15 +3,20 @@
 # Applies FSLogix registry settings to AVD session hosts.
 #
 # Usage:
-#   ansible-playbook -i inventory/hosts.yml playbooks/configure-fslogix.yml
+#   ansible-playbook -i inventory/inventory.yml playbooks/configure-fslogix.yml
 
 - name: Configure FSLogix on AVD session hosts
   hosts: avd_session_hosts
   gather_facts: false
 
   vars:
-    fslogix_vhd_location: "\\\\SOFS01\\FSLogixProfiles"
+    access_point: "{{ sofs_access_point }}"
+    share_name: "{{ sofs_share_name | default('FSLogix') }}"
+    fslogix_vhd_location: "\\\\{{ access_point }}\\{{ share_name }}"
     fslogix_reg_path: "HKLM:\\SOFTWARE\\FSLogix\\Profiles"
+    fslogix_profile_size_mb: "{{ sofs_fslogix_profile_size_mb | default(30000) | int }}"
+    fslogix_volume_type: "{{ sofs_fslogix_volume_type | default('VHDX') }}"
+    cloud_cache_enabled: "{{ sofs_cloud_cache_enabled | default(false) | bool }}"
 
   tasks:
     - name: Ensure FSLogix Profiles registry key exists
@@ -32,6 +37,7 @@
         name: VHDLocations
         data: "{{ fslogix_vhd_location }}"
         type: string
+      when: not cloud_cache_enabled
 
     - name: Enable FlipFlopProfileDirectoryName (SID_Username format)
       ansible.windows.win_regedit:
@@ -47,18 +53,25 @@
         data: 1
         type: dword
 
-    - name: Set profile container size (MB) - default 30 GB
+    - name: Set profile container size (MB)
       ansible.windows.win_regedit:
         path: "{{ fslogix_reg_path }}"
         name: SizeInMBs
-        data: 30720
+        data: "{{ fslogix_profile_size_mb | int }}"
         type: dword
+
+    - name: Set volume type (VHD or VHDX)
+      ansible.windows.win_regedit:
+        path: "{{ fslogix_reg_path }}"
+        name: VolumeType
+        data: "{{ fslogix_volume_type }}"
+        type: string
 
     - name: Verify FSLogix configuration
       ansible.windows.win_powershell:
         script: |
           Get-ItemProperty -Path "{{ fslogix_reg_path }}" |
-            Select-Object Enabled, VHDLocations, FlipFlopProfileDirectoryName, SizeInMBs
+            Select-Object Enabled, VHDLocations, FlipFlopProfileDirectoryName, SizeInMBs, VolumeType
       register: fslogix_config
 
     - name: Show FSLogix configuration

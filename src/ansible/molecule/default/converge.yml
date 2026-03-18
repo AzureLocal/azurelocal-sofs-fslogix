@@ -1,0 +1,14 @@
+---
+# Molecule converge playbook — verifies that playbooks parse and
+# variable references resolve against the test inventory.
+# No real Windows hosts are contacted (ansible_connection: local).
+
+- name: "Verify deploy-azure-resources.yml syntax"
+  ansible.builtin.import_playbook: ../../playbooks/deploy-azure-resources.yml
+  vars:
+    # Override passwords for syntax-only validation
+    sofs_admin_password: "TestPass123!"
+    sofs_domain_join_password: "TestPass123!"
+
+- name: "Verify configure-fslogix.yml syntax"
+  ansible.builtin.import_playbook: ../../playbooks/configure-fslogix.yml

@@ -12,23 +12,27 @@ all:
     ansible_winrm_server_cert_validation: ignore
 
   children:
+    # Azure Local host cluster nodes (for Phase 3 anti-affinity)
+    host_cluster:
+      hosts:
+        azl-node-01:
+          ansible_host: 10.0.0.1
+        azl-node-02:
+          ansible_host: 10.0.0.2
+
     sofs_nodes:
       hosts:
-        node01.iic.local:
+        SOFS-01:
           ansible_host: 192.168.1.11
-        node02.iic.local:
+        SOFS-02:
           ansible_host: 192.168.1.12
       vars:
-        sofs_name: "SOFS01"
-        share_name: "FSLogixProfiles"
-        share_path: "C:\\ClusterStorage\\Volume1\\FSLogixProfiles"
-        avd_users_group: "AVD-Users"
+        sofs_access_point: "FSLogixSOFS"
+        sofs_share_name: "FSLogix"
 
     avd_session_hosts:
       hosts:
-        avd-host-01.iic.local:
+        avd-host-01:
           ansible_host: 192.168.2.11
-        avd-host-02.iic.local:
+        avd-host-02:
           ansible_host: 192.168.2.12
-      vars:
-        fslogix_vhd_location: "\\\\SOFS01\\FSLogixProfiles"
