@@ -127,7 +127,13 @@ all:
         azl-node-02:
           ansible_host: 10.0.0.2
 
-    # SOFS guest VMs
+    # SOFS guest VMs — add/remove hosts to match sofs_vm_count (2-16).
+    # Each host must be listed explicitly with its IP. The sofs_vm_count
+    # variable above drives playbook loops; the host list here must
+    # contain at least that many entries.
+    #
+    # For dynamic inventories (e.g. Terraform-generated), see:
+    #   src/terraform/ansible-inventory.tf
     sofs_nodes:
       hosts:
         SOFS-01:
@@ -136,6 +142,12 @@ all:
           ansible_host: 192.168.211.52
         SOFS-03:
           ansible_host: 192.168.211.53
+        # Add more hosts for 4+ node scenarios:
+        # SOFS-04:
+        #   ansible_host: 192.168.211.54
+        # ...
+        # SOFS-16:
+        #   ansible_host: 192.168.211.66
 
     # AVD session hosts (for FSLogix registry config)
     avd_session_hosts:

@@ -197,7 +197,7 @@
     },
     "fslogix": {
       "type": "object",
-      "required": ["enabled"],
+      "required": ["enabled", "profile_size_mb", "volume_type"],
       "properties": {
         "enabled": { "type": "boolean" },
         "profile_size_mb": { "type": "integer" },
