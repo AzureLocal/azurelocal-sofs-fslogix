@@ -18,8 +18,9 @@
     },
     "azure": {
       "type": "object",
-      "required": ["subscription_id", "resource_group", "location"],
+      "required": ["tenant_id", "subscription_id", "resource_group", "location"],
       "properties": {
+        "tenant_id": { "type": "string" },
         "subscription_id": { "type": "string" },
         "resource_group": { "type": "string" },
         "location": { "type": "string" }
@@ -89,16 +90,18 @@
     },
     "sofs": {
       "type": "object",
-      "required": ["role_name", "cluster_name", "cluster_ip"],
+      "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip"],
       "properties": {
         "role_name": { "type": "string" },
         "cluster_name": { "type": "string" },
         "cluster_ip": { "type": "string" },
+        "access_point_ip": { "type": "string" },
         "role_enabled": { "type": "boolean" },
         "anti_affinity_rule_name": { "type": "string" },
         "smb_encryption": { "type": "boolean" },
         "caching_mode": { "type": "string", "enum": ["None", "Manual", "Documents", "Programs"] },
         "continuous_availability": { "type": "boolean" },
+        "folder_enumeration_mode": { "type": "string", "enum": ["AccessBased", "Unrestricted"] },
         "share_name": { "type": "string" },
         "shares": {
           "type": "array",
@@ -140,6 +143,7 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
+        "endpoint": { "type": "string" },
         "key_uri": { "type": "string" },
         "key_secret": { "type": "string" }
       }
@@ -154,6 +158,8 @@
         "name": { "type": "string" },
         "size": { "type": "string" },
         "admin_username": { "type": "string" },
+        "ssh_public_key_path": { "type": "string" },
+        "private_ip": { "type": "string" },
         "hub_subnet_id": { "type": "string" },
         "hub_rg": { "type": "string" },
         "existing_controller_ip": { "type": "string" },
@@ -210,6 +216,15 @@
     "tags": {
       "type": "object",
       "additionalProperties": { "type": "string" }
+    },
+    "winrm": {
+      "type": "object",
+      "properties": {
+        "transport": { "type": "string", "enum": ["kerberos", "ntlm", "basic"] },
+        "port": { "type": "integer", "enum": [5985, 5986] },
+        "use_ssl": { "type": "boolean" },
+        "cert_validation": { "type": "string", "enum": ["ignore", "validate"] }
+      }
     }
   },
   "allOf": [
@@ -226,7 +241,7 @@
       "then": {
         "properties": {
           "s2d": { "required": ["pool_name", "volume_name", "volume_size_gb", "data_copies"] },
-          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "share_name"] }
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "share_name"] }
         }
       }
     },
@@ -243,7 +258,7 @@
       "then": {
         "properties": {
           "s2d": { "required": ["pool_name", "volumes"] },
-          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "shares"] }
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "shares"] }
         }
       }
     },
