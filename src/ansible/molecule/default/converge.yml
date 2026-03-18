@@ -10,5 +10,14 @@
     sofs_admin_password: "TestPass123!"
     sofs_domain_join_password: "TestPass123!"
 
+- name: "Verify configure-sofs-cluster.yml syntax"
+  ansible.builtin.import_playbook: ../../playbooks/configure-sofs-cluster.yml
+  vars:
+    sofs_admin_password: "TestPass123!"
+    sofs_domain_join_password: "TestPass123!"
+
+- name: "Verify configure-sofs.yml syntax"
+  ansible.builtin.import_playbook: ../../playbooks/configure-sofs.yml
+
 - name: "Verify configure-fslogix.yml syntax"
   ansible.builtin.import_playbook: ../../playbooks/configure-fslogix.yml
