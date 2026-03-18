@@ -1,0 +1,90 @@
+# deploy-arm.yml
+# GitHub Actions — Deploy SOFS infrastructure via ARM template
+#
+# REQUIREMENTS:
+#   - Self-hosted runner with network access to Azure Local cluster
+#   - Runner label: azurelocal
+#   - Azure CLI >= 2.50 installed on runner
+#
+# SETUP:
+#   1. Copy this file to .github/workflows/deploy-arm.yml
+#   2. Configure repository secrets:
+#        AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#        (Use federated credentials / OIDC for production)
+#   3. Push to main or trigger manually
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+name: 'Deploy SOFS - ARM'
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/arm/**', 'config/**']
+  pull_request:
+    branches: [main]
+    paths: ['src/arm/**', 'config/**']
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-sofs-azl-eus-01
+  LOCATION: eastus
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: [self-hosted, azurelocal]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate ARM template
+        run: |
+          az deployment group validate \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file src/arm/azuredeploy.json \
+            --parameters src/arm/azuredeploy.parameters.example.json
+
+      - name: What-If Preview
+        run: |
+          az deployment group what-if \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file src/arm/azuredeploy.json \
+            --parameters src/arm/azuredeploy.parameters.example.json
+
+  deploy:
+    name: Deploy
+    needs: validate
+    runs-on: [self-hosted, azurelocal]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy ARM template
+        run: |
+          az deployment group create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file src/arm/azuredeploy.json \
+            --parameters src/arm/azuredeploy.parameters.example.json \
+            --name "sofs-$(date +%Y%m%d%H%M%S)"

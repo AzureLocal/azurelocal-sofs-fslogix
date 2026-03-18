@@ -1,0 +1,67 @@
+# deploy-arm.gitlab-ci.yml
+# GitLab CI — Deploy SOFS infrastructure via ARM template
+#
+# REQUIREMENTS:
+#   - GitLab Runner with tag: azurelocal
+#   - Azure CLI >= 2.50 installed on runner
+#
+# SETUP:
+#   1. Copy/include into .gitlab-ci.yml
+#   2. Configure CI/CD variables (Settings > CI/CD > Variables):
+#        AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   3. Update RESOURCE_GROUP variable below
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+stages:
+  - validate
+  - deploy
+
+variables:
+  RESOURCE_GROUP: rg-sofs-azl-eus-01
+
+.azure_login: &azure_login
+  before_script:
+    - az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+    - az account set --subscription $AZURE_SUBSCRIPTION_ID
+
+validate:
+  stage: validate
+  tags: [azurelocal]
+  <<: *azure_login
+  script:
+    - az deployment group validate
+        --resource-group $RESOURCE_GROUP
+        --template-file src/arm/azuredeploy.json
+        --parameters src/arm/azuredeploy.parameters.example.json
+    - az deployment group what-if
+        --resource-group $RESOURCE_GROUP
+        --template-file src/arm/azuredeploy.json
+        --parameters src/arm/azuredeploy.parameters.example.json
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      changes:
+        - src/arm/**/*
+        - config/**/*
+
+deploy:
+  stage: deploy
+  tags: [azurelocal]
+  <<: *azure_login
+  script:
+    - az deployment group create
+        --resource-group $RESOURCE_GROUP
+        --template-file src/arm/azuredeploy.json
+        --parameters src/arm/azuredeploy.parameters.example.json
+        --name "sofs-$(date +%Y%m%d%H%M%S)"
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - src/arm/**/*
+        - config/**/*
+      when: manual

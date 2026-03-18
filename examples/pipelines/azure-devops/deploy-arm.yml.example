@@ -1,0 +1,88 @@
+# deploy-arm.yml
+# Azure DevOps — Deploy SOFS infrastructure via ARM template
+#
+# REQUIREMENTS:
+#   - Self-hosted agent pool: AzureLocal
+#   - Azure CLI >= 2.50 on agent
+#   - Azure service connection: sofs-azure-connection
+#
+# SETUP:
+#   1. Copy to your Azure DevOps repo
+#   2. Create a service connection (Project Settings > Service connections > Azure Resource Manager)
+#   3. Create an environment 'production' with approval gates
+#
+# See docs/guides/cicd-pipelines.md for full walkthrough.
+# -------------------------------------------------------------------------
+# Example company: Infinite Improbability Corp (IIC)
+# -------------------------------------------------------------------------
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - src/arm/*
+      - config/*
+
+pool:
+  name: AzureLocal
+
+variables:
+  azureServiceConnection: sofs-azure-connection
+  resourceGroup: rg-sofs-azl-eus-01
+
+stages:
+  - stage: Validate
+    jobs:
+      - job: Validate
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Validate ARM Template'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az deployment group validate \
+                  --resource-group $(resourceGroup) \
+                  --template-file src/arm/azuredeploy.json \
+                  --parameters src/arm/azuredeploy.parameters.example.json
+
+          - task: AzureCLI@2
+            displayName: 'What-If Preview'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az deployment group what-if \
+                  --resource-group $(resourceGroup) \
+                  --template-file src/arm/azuredeploy.json \
+                  --parameters src/arm/azuredeploy.parameters.example.json
+
+  - stage: Deploy
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Deploy
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy ARM Template'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment group create \
+                        --resource-group $(resourceGroup) \
+                        --template-file src/arm/azuredeploy.json \
+                        --parameters src/arm/azuredeploy.parameters.example.json \
+                        --name "sofs-$(date +%Y%m%d%H%M%S)"
