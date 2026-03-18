@@ -15,13 +15,12 @@ This repository uses a **single central configuration file** — `config/variabl
 ## Naming Rules
 
 | Rule | Standard | Example |
-|------|----------|---------|
-| Top-level sections | `snake_case` | `azure_local`, `data_disks` |
-| Keys within sections | `snake_case` | `subscription_id`, `volume_size_gb` |
+|------|----------|--------|
+| Top-level sections | `snake_case` | `azure_local`, `networking` |
+| Keys within sections | `snake_case` | `subscription_id`, `resource_name` |
 | Pattern | `^[a-z][a-z0-9_]*$` | — |
 | Max length | 50 characters | — |
-| Per-resource maps | Zero-padded string keys | `"01"`, `"02"` |
-| Booleans | Descriptive names | `role_enabled: true` |
+| Booleans | Descriptive names | `monitoring_enabled: true` |
 | Secrets | `keyvault://` URI format | `keyvault://kv-iic-platform/admin-password` |
 
 ---
@@ -40,29 +39,27 @@ config/
 
 ## Key Vault Resolution
 
-Secrets are never stored in plaintext. Use this URI format:
+Secrets are never stored in plaintext:
 
 ```yaml
-credentials:
+security:
   admin_password: "keyvault://kv-iic-platform/admin-password"
+  domain_join_password: "keyvault://kv-iic-platform/domain-join"
 ```
-
-Scripts resolve `keyvault://` URIs at runtime via `Resolve-KeyVaultRef`.
 
 ---
 
 ## CI Validation
 
-Every PR validates `config/variables.example.yml` against `config/schema/variables.schema.json` using the `validate-config.yml` workflow. The JSON Schema enforces required sections and data types.
+Every PR validates `config/variables.example.yml` against `config/schema/variables.schema.json` using the `validate-config.yml` workflow.
 
 ---
 
 ## Detailed Reference
 
-For the complete variable catalog — every section, type, default, and deployment phase mapping — see:
+For the complete variable catalog see:
 
 - **[Variable Reference](../reference/variables.md)** — per-variable documentation
 - **[Variable Management Standard](https://azurelocal.cloud/docs/implementation/04-variable-management-standard)** — org-wide governance
 - **[Variable Management Suite](https://azurelocal.cloud/standards/variable-management/)** — registry, schema validation, workflows
-- Key Vault secret resolution
 - Tool-specific parameter mapping

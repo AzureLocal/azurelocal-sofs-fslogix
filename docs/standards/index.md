@@ -4,7 +4,7 @@ This repository follows the **org-wide AzureLocal standards** maintained on the 
 
 !!! info "Central Standards"
     The full standards suite is at [azurelocal.cloud/standards](https://azurelocal.cloud/standards/).
-    This section provides the key rules adapted for the SOFS + FSLogix solution.
+    This section provides the key rules adapted for this solution.
 
 ---
 
@@ -32,8 +32,6 @@ This repository follows the **org-wide AzureLocal standards** maintained on the 
 
 ## Repo-Specific Conventions
 
-This repository follows additional conventions specific to the SOFS + FSLogix solution:
-
-- **IaC tooling**: Bicep (primary), Terraform, ARM, PowerShell, Ansible
+- **IaC tooling**: Terraform, Bicep, ARM, PowerShell, Ansible
 - **Config file**: `config/variables.example.yml` — see [Variable Reference](../reference/variables.md)
 - **Fictional company**: Infinite Improbability Corp (IIC) — see [IIC Policy](examples.md)

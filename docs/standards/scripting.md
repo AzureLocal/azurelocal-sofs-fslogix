@@ -6,22 +6,16 @@
 
 ---
 
-## Runtime Requirement
-
-All scripts in this repository require **PowerShell 7+** (`pwsh`). Windows PowerShell 5.1 is not supported. Ensure `pwsh` is available on all target nodes before running any `Invoke-` script.
-
----
-
 ## Script Naming
 
 | Script Type | Pattern | Example |
 |-------------|---------|---------|
-| PowerShell Core | `Verb-Noun.ps1` | `New-SofsCluster.ps1` |
+| PowerShell Core | `Verb-Noun.ps1` | `Deploy-Solution.ps1` |
 | Azure PowerShell | `Verb-AzResource.ps1` | `New-AzKeyVault.ps1` |
-| Azure CLI (PowerShell) | `az-verb-resource.ps1` | `az-create-vnet.ps1` |
-| Azure CLI (Bash) | `az-verb-resource.sh` | `az-create-vnet.sh` |
-| Standalone (no config) | `Verb-Noun-Standalone.ps1` | `New-SofsCluster-Standalone.ps1` |
-| Remote/orchestration | `Invoke-<Task>.ps1` | `Invoke-DeployCluster.ps1` |
+| Azure CLI (PowerShell) | `az-verb-resource.ps1` | `az-deploy-resource.ps1` |
+| Azure CLI (Bash) | `az-verb-resource.sh` | `az-deploy-resource.sh` |
+| Standalone (no config) | `Verb-Noun-Standalone.ps1` | `Deploy-Solution-Standalone.ps1` |
+| Remote/orchestration | `Invoke-<Task>.ps1` | `Invoke-Deployment.ps1` |
 
 ---
 
@@ -29,7 +23,7 @@ All scripts in this repository require **PowerShell 7+** (`pwsh`). Windows Power
 
 | Mode | Config File | Dependencies | Use Case |
 |------|-------------|-------------|----------|
-| Config-driven (Options 2–4) | `config/variables.yml` | Config loader, helpers, Key Vault | Multi-environment automation, CI/CD |
+| Config-driven (Options 2-4) | `config/variables.yml` | Config loader, helpers, Key Vault | Multi-environment automation, CI/CD |
 | Standalone (Option 5) | Inline `#region CONFIGURATION` | None | Demos, single-use, external sharing |
 
 ### Config-Driven Rules
@@ -41,14 +35,12 @@ All scripts in this repository require **PowerShell 7+** (`pwsh`). Windows Power
 ### Standalone Rules
 
 - All variables in `#region CONFIGURATION` block at top
-- Variable names match `variables.yml` paths (e.g., `$azure_tenant_id`)
+- Variable names match `variables.yml` paths (e.g., `$subscription_id`)
 - Zero external dependencies — copy, paste, run
 
 ---
 
 ## `Invoke-` Script Requirements
-
-All scripts executing operations remotely via PSRemoting must implement:
 
 ### Required Parameters
 
@@ -65,15 +57,8 @@ All `Invoke-` scripts must use `[CmdletBinding()]` to enable `-Verbose` and `-De
 ### Credential Resolution Order
 
 1. **`-Credential` parameter** — if passed, use immediately
-2. **Key Vault** — read from `identity.accounts` in config; try `Az.KeyVault` module, fall back to `az` CLI
+2. **Key Vault** — read from config; try `Az.KeyVault`, fall back to `az` CLI
 3. **Interactive prompt** — `Get-Credential` with username pre-filled
-
-### PSRemoting Account Selection (SOFS-specific)
-
-| Phase | Node State | Account | Config Path |
-|-------|-----------|---------|------------|
-| Pre-cluster (phases 01–05) | Not domain-joined | Local Admin | `identity.accounts.account_local_admin_*` |
-| Post-cluster (phase 06+) | Domain-joined | LCM domain account | `identity.accounts.account_lcm_*` |
 
 ---
 
@@ -81,19 +66,18 @@ All `Invoke-` scripts must use `[CmdletBinding()]` to enable `-Verbose` and `-De
 
 - Log to `./logs/<task-name>/<timestamp>.log`
 - Use `Write-Verbose` for detailed output
-- Use `Write-Warning` for override notifications
 - Log format: `[YYYY-MM-DD HH:MM:SS] [LEVEL] Message`
 
 ---
 
-## SOFS-Specific Script Conventions
+## Solution Script Conventions
 
 | Convention | Rule |
 |-----------|------|
-| IaC tools | Bicep (primary), Terraform, ARM, PowerShell, Ansible |
+| IaC tools | Terraform, Bicep, ARM, PowerShell, Ansible |
 | Config source | `config/variables.yml` (single source of truth) |
 | Parameter derivation | All tool-specific param files derived from central config |
-| Idempotency | All scripts must be safe to re-run (`-WhatIf` for dry runs) |
+| Idempotency | All scripts must be safe to re-run |
 
 ---
 

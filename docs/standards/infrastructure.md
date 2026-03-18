@@ -8,7 +8,7 @@
 
 ## Overview
 
-Standards for Infrastructure as Code (IaC), Terraform state management, and deployment processes for the SOFS + FSLogix solution.
+Standards for Infrastructure as Code (IaC), Terraform state management, and deployment processes for AzureLocal solutions.
 
 ---
 
@@ -32,7 +32,7 @@ flowchart LR
 | Remote state | Store Terraform state in Azure Storage Account |
 | State locking | Enable locking during all operations |
 | Backup | Regular state file backups before destructive operations |
-| Naming | `sofs-<env>.tfstate` (e.g., `sofs-prod.tfstate`) |
+| Naming | `<solution>-<env>.tfstate` (e.g., `platform-prod.tfstate`) |
 
 ---
 
@@ -42,31 +42,21 @@ All tools must produce **identical infrastructure** when given the same configur
 
 | Tool | Primary Format | State Management |
 |------|---------------|-----------------|
-| Bicep | `.bicep` / `.bicepparam` | ARM deployment history |
 | Terraform | `.tf` / `.tfvars` | Remote state in Azure Storage |
+| Bicep | `.bicep` / `.bicepparam` | ARM deployment history |
 | ARM | `.json` | ARM deployment history |
 | PowerShell | `.ps1` | Config-driven, logged |
 | Ansible | `.yml` | Inventory-based |
 
 ---
 
-## SOFS-Specific Infrastructure
-
-| Convention | Rule |
-|-----------|------|
-| Primary IaC tool | Bicep |
-| Config source | `config/variables.yml` (single source of truth) |
-| Parameter derivation | All tool-specific param files derived from central config |
-| Deployment phases | Azure foundation → Domain join → Guest config (Phases 1–11) |
-| Storage design | Shared VHDs on Cluster Shared Volumes |
-
-### Deployment Phases
+## Deployment Phases
 
 | Phase | Scope | Tools |
 |-------|-------|-------|
-| Phase 1: Azure Foundation | Resource groups, networking, Key Vault | Bicep, Terraform, ARM |
-| Phase 2: Domain Join | AD join, OU placement | PowerShell, Ansible |
-| Phases 3–11: Guest Config | SOFS roles, volumes, FSLogix, permissions | PowerShell, Ansible |
+| Phase 1: Azure Foundation | Resource groups, networking, Key Vault, storage | Terraform, Bicep, ARM |
+| Phase 2: Compute & Workload | VMs, clusters, workload deployment | Terraform, PowerShell |
+| Phase 3: Configuration | Guest config, monitoring, policies | PowerShell, Ansible |
 
 ---
 

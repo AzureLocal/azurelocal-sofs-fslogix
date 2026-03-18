@@ -8,7 +8,7 @@
 
 ## Policy
 
-All examples, sample configurations, walkthroughs, and documentation across every AzureLocal repository use **one** fictional company: **Infinite Improbability Corp (IIC)**.
+All examples, sample configurations, and walkthroughs use **one** fictional company: **Infinite Improbability Corp (IIC)**.
 
 !!! warning "Mandatory"
     Never use `contoso`, `fabrikam`, `adventure-works`, `woodgrove`, `example.com`, or any real customer name.
@@ -27,50 +27,42 @@ All examples, sample configurations, walkthroughs, and documentation across ever
 | **NetBIOS Name** | `IMPROBABLE` |
 | **Entra ID Tenant** | `improbability.onmicrosoft.com` |
 | **Email Pattern** | `user@improbability.cloud` |
-| **Origin** | A nod to *The Hitchhiker's Guide to the Galaxy* |
 
 ---
 
-## SOFS Naming Patterns
-
-### Cluster & Nodes
-
-| Resource | Pattern | Example |
-|----------|---------|---------|
-| Cluster | `iic-clus<NN>` | `iic-clus01` |
-| Node | `iic-<clus>-n<NN>` | `iic-01-n01` through `iic-01-n06` |
-| iDRAC/BMC | `iic-<clus>-bmc<NN>` | `iic-01-bmc01` |
+## AzureLocal Naming Patterns
 
 ### Azure Resources
 
 | Resource | Pattern | Example |
 |----------|---------|---------|
-| Resource Group | `rg-iic-sofs-<##>` | `rg-iic-sofs-01` |
+| Resource Group | `rg-iic-<purpose>-<##>` | `rg-iic-platform-01` |
+| Virtual Network | `vnet-iic-<purpose>-<##>` | `vnet-iic-compute-01` |
+| Subnet | `snet-iic-<purpose>` | `snet-iic-management` |
+| Network Security Group | `nsg-iic-<purpose>` | `nsg-iic-compute` |
 | Key Vault | `kv-iic-<purpose>` | `kv-iic-platform` |
-| Storage Account | `stiic<purpose><##>` | `stiicwitness01` |
+| Storage Account | `stiic<purpose><##>` | `stiicdata01` |
 | Log Analytics | `law-iic-<purpose>-<##>` | `law-iic-monitor-01` |
+| Managed Identity | `id-iic-<purpose>` | `id-iic-deploy` |
 
 ### Active Directory
 
 | Resource | Pattern | Example |
 |----------|---------|---------|
-| OU path | `OU=<unit>,DC=iic,DC=local` | `OU=Servers,DC=iic,DC=local` |
+| OU path | `OU=<Purpose>,OU=Servers,DC=iic,DC=local` | — |
 | Service account | `svc.iic.<purpose>` | `svc.iic.deploy` |
-| Group | `grp-iic-<purpose>` | `grp-iic-sofs-admins` |
+| Group | `grp-iic-<purpose>` | `grp-iic-admins` |
 
 ### IP Addresses
 
 | Network | Range | Usage |
 |---------|-------|-------|
-| Management | `10.0.0.0/24` | `10.0.0.11`–`10.0.0.16` (nodes) |
-| Storage | `10.0.1.0/24` | `10.0.1.11`–`10.0.1.16` (RDMA/SMB) |
-| Compute | `10.0.2.0/24` | VM traffic |
+| Management | `10.0.0.0/24` | Node management |
+| Compute | `10.0.2.0/24` | Workload traffic |
 
 ---
 
 ## Real Identities
-
-These are **not** fictional — use for authorship and attribution:
 
 | Name | Usage |
 |------|-------|
@@ -84,37 +76,28 @@ These are **not** fictional — use for authorship and attribution:
 ### In `config/variables.example.yml`
 
 ```yaml
-azure:
+subscription:
   subscription_id: "00000000-0000-0000-0000-000000000000"
-  resource_group: "rg-iic-sofs-01"
+  tenant_id: "00000000-0000-0000-0000-000000000000"
   location: "eastus"
 
-keyvault:
-  name: "kv-iic-platform"
+security:
+  keyvault_name: "kv-iic-platform"
 
 azure_local:
-  cluster_name: "iic-clus01"
-  cluster_domain: "iic.local"
+  resource_group: "rg-iic-platform-01"
+  cluster_name: "azlocal-iic-01"
 ```
 
 ### In Documentation
 
-> Infinite Improbability Corp's production SOFS cluster (`iic-clus01`) serves
-> FSLogix profile containers for 500 AVD session hosts across six Azure Local nodes.
-
-### In Scripts
-
-```powershell
-# Example: Connect to IIC cluster
-$clusterName = "iic-clus01"
-$domain = "iic.local"
-$credential = Get-Secret -Vault "kv-iic-platform" -Name "svc-iic-deploy"
-```
+> Infinite Improbability Corp deploys Azure Local clusters using IIC naming patterns,
+> with all configuration driven from a single `config/variables.yml` file.
 
 ---
 
 ## Enforcement
 
 - **PR review**: Reviewers flag any use of `contoso`, `fabrikam`, or other non-IIC names
-- **Config validation**: `variables.example.yml` uses IIC naming patterns in all placeholders
-- **CI**: Vale linting rules can flag non-IIC fictional company names (when configured)
+- **Config validation**: `variables.example.yml` uses IIC naming in all placeholders
+- **CI**: Vale linting rules flag non-IIC fictional company names (when configured)

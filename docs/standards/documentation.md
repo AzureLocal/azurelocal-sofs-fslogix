@@ -21,10 +21,10 @@
 
 | Type | Convention | Pattern | Example |
 |------|-----------|---------|---------|
-| Directories | lowercase-with-hyphens | `^[a-z][a-z0-9-]*$` | `architecture/`, `getting-started/` |
-| Markdown (docs/) | lowercase with hyphens | `*.md` | `storage-design.md` |
+| Directories | lowercase-with-hyphens | `^[a-z][a-z0-9-]*$` | `guides/`, `reference/` |
+| Markdown (docs/) | lowercase with hyphens | `*.md` | `deployment-guide.md` |
 | Root files | UPPERCASE | — | `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` |
-| PowerShell scripts | PascalCase | `Verb-Noun.ps1` | `New-SofsCluster.ps1` |
+| PowerShell scripts | PascalCase | `Verb-Noun.ps1` | `Deploy-Solution.ps1` |
 | Config files | lowercase-with-hyphens | — | `variables.example.yml` |
 
 ---
@@ -37,7 +37,7 @@ This repo uses **MkDocs Material** with the following conventions:
 - **Code blocks**: Always include a language identifier (e.g., ` ```powershell `, ` ```yaml `)
 - **Code copy**: Enabled via `content.code.copy`
 - **Mermaid diagrams**: Supported via `pymdownx.superfences` custom fence
-- **Tables**: Use standard Markdown tables; use inline HTML only for complex layouts
+- **Tables**: Use standard Markdown tables
 - **Tabs**: Use `=== "Tab Name"` via `pymdownx.tabbed`
 
 ---
@@ -54,28 +54,11 @@ Every documentation page should include:
 ---
 ```
 
-For reference documents, include a metadata block:
-
-| Field | Example |
-|-------|---------|
-| Status | Active / Draft / Deprecated |
-| Applies To | SOFS + FSLogix solution |
-| Last Updated | 2026-03-17 |
-
----
-
-## Diagrams
-
-- Source format: `.drawio` files in `docs/diagrams/`
-- Export format: PNG at 2x scale for retina displays
-- Reference in Markdown: `![Alt text](../diagrams/filename.png)`
-- Keep `.drawio` source and `.png` export in sync
-
 ---
 
 ## Fictional Company — Infinite Improbability Corp (IIC)
 
-All examples, sample configs, and walkthroughs **must** use IIC. See the [Examples & IIC Policy](examples.md) page for the full reference card.
+All examples must use IIC. See the [Examples & IIC Policy](examples.md) page for the full reference card.
 
 | Never Use | Use Instead |
 |-----------|-------------|
@@ -89,5 +72,4 @@ All examples, sample configs, and walkthroughs **must** use IIC. See the [Exampl
 
 - [Naming Conventions (full reference)](https://azurelocal.cloud/standards/documentation/naming-conventions)
 - [Badge Library](https://azurelocal.cloud/standards/documentation/badge-library)
-- [Naming Conventions](naming.md)
 - [Scripting Standards](scripting.md)
