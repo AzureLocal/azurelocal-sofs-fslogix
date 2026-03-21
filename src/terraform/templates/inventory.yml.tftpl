@@ -31,6 +31,12 @@ all:
     sofs_vm_memory_mb: ${vm_memory_mb}
     sofs_admin_username: "${admin_username}"
     # sofs_admin_password: use ansible-vault or --extra-vars at runtime
+%{ if length(vm_ips) > 0 ~}
+    sofs_vm_ips:
+%{ for suffix, ip in vm_ips ~}
+      "${suffix}": "${ip}"
+%{ endfor ~}
+%{ endif ~}
 
     # --- Data disks ---
     sofs_data_disk_count: ${data_disk_count}

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "7025526361703900475"
+      "templateHash": "13948867944175277194"
     }
   },
   "parameters": {
@@ -153,13 +153,15 @@
     },
     "guestVolumeLayout": {
       "type": "string",
-      "defaultValue": "option_a",
+      "defaultValue": "single",
       "allowedValues": [
+        "single",
+        "triple",
         "option_a",
         "option_b"
       ],
       "metadata": {
-        "description": "Guest S2D volume layout: option_a (single volume/share) or option_b (three volumes/shares)"
+        "description": "Guest S2D volume layout. Canonical values: single, triple. Legacy aliases: option_a, option_b"
       }
     },
     "hostResiliency": {
@@ -188,173 +190,223 @@
       "type": "string",
       "defaultValue": "SOFS-Cluster",
       "metadata": {
-        "description": "Windows Failover Cluster name"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Windows Failover Cluster name (pass-through to guest config tool)"
       }
     },
     "clusterIp": {
       "type": "string",
       "metadata": {
-        "description": "Static IP for the cluster name object"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Static IP for the cluster name object (pass-through to guest config tool)"
       }
     },
     "accessPoint": {
       "type": "string",
       "defaultValue": "FSLogixSOFS",
       "metadata": {
-        "description": "Scale-Out File Server access point name (Option A)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Scale-Out File Server access point name — Single layout (pass-through to guest config tool)"
       }
     },
     "shareName": {
       "type": "string",
       "defaultValue": "FSLogix",
       "metadata": {
-        "description": "FSLogix SMB share name (Option A)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "FSLogix SMB share name — Single layout (pass-through to guest config tool)"
       }
     },
     "s2dVolumeName": {
       "type": "string",
       "defaultValue": "FSLogixData",
       "metadata": {
-        "description": "S2D volume friendly name (Option A)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "S2D volume friendly name — Single layout (pass-through to guest config tool)"
       }
     },
     "s2dVolumeSize": {
       "type": "string",
       "defaultValue": "5632GB",
       "metadata": {
-        "description": "S2D volume size string (Option A), e.g. \"5632GB\""
+        "phase": "guest",
+        "passThrough": true,
+        "description": "S2D volume size string — Single layout, e.g. \"5632GB\" (pass-through to guest config tool)"
       }
     },
     "s2dDataCopies": {
       "type": "int",
       "defaultValue": 2,
       "metadata": {
-        "description": "S2D mirror data copies (Option A): 2 for two-way, 3 for three-way"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "S2D mirror data copies — Single layout: 2 for two-way, 3 for three-way (pass-through to guest config tool)"
       }
     },
     "sofsRoleName": {
       "type": "string",
       "defaultValue": "FSLogixSOFS",
       "metadata": {
-        "description": "SOFS cluster role name"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "SOFS cluster role name (pass-through to guest config tool)"
       }
     },
     "s2dPoolName": {
       "type": "string",
       "defaultValue": "S2D on SOFS-Cluster",
       "metadata": {
-        "description": "S2D storage pool friendly name"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "S2D storage pool friendly name (pass-through to guest config tool)"
       }
     },
     "smbEncryption": {
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Enable SMB 3.x encryption on SOFS shares"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Enable SMB 3.x encryption on SOFS shares (pass-through to guest config tool)"
       }
     },
     "accessPointIp": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Static IP for the SOFS client access point"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Static IP for the SOFS client access point (pass-through to guest config tool)"
       }
     },
     "sofsShares": {
       "type": "array",
       "defaultValue": [],
       "metadata": {
-        "description": "Option B: list of SMB share definitions [{name, volume}]"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Triple layout: list of SMB share definitions [{name, volume}] (pass-through to guest config tool)"
       }
     },
     "s2dVolumes": {
       "type": "array",
       "defaultValue": [],
       "metadata": {
-        "description": "Option B: list of S2D volume definitions [{name, size_gb, data_copies}]"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Triple layout: list of S2D volume definitions [{name, size_gb, data_copies}] (pass-through to guest config tool)"
       }
     },
     "antiAffinityRule": {
       "type": "string",
       "defaultValue": "SOFS-AntiAffinity",
       "metadata": {
-        "description": "Anti-affinity rule name"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Anti-affinity rule name (pass-through to guest config tool)"
       }
     },
     "azlClusterName": {
       "type": "string",
       "metadata": {
-        "description": "Azure Local host cluster name"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Azure Local host cluster name (pass-through to guest config tool, used for anti-affinity)"
       }
     },
     "permissionsAdminGroup": {
       "type": "string",
       "defaultValue": "Domain Admins",
       "metadata": {
-        "description": "AD group for share administrative access"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "AD group for share administrative access (pass-through to guest config tool)"
       }
     },
     "permissionsUsersGroup": {
       "type": "string",
       "defaultValue": "AVD-Users",
       "metadata": {
-        "description": "AD group for share user access"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "AD group for share user access (pass-through to guest config tool)"
       }
     },
     "permissionsAvdUsersGroup": {
       "type": "string",
       "defaultValue": "AVD-Users",
       "metadata": {
-        "description": "AD group for AVD users (FSLogix profile access)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "AD group for AVD users (FSLogix profile access, pass-through to guest config tool)"
       }
     },
     "fslogixEnabled": {
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Whether FSLogix profile containers are enabled"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Whether FSLogix profile containers are enabled (pass-through to guest config tool)"
       }
     },
     "fslogixProfileSizeMb": {
       "type": "int",
       "defaultValue": 30000,
       "metadata": {
-        "description": "Maximum profile container size in MB (FSRM quota)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Maximum profile container size in MB, FSRM quota (pass-through to guest config tool)"
       }
     },
     "fslogixVolumeType": {
       "type": "string",
       "defaultValue": "VHDX",
       "metadata": {
-        "description": "Profile container format: VHDX or VHD"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Profile container format: VHDX or VHD (pass-through to guest config tool)"
       }
     },
     "cloudCacheEnabled": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Enable FSLogix Cloud Cache for multi-site DR"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Enable FSLogix Cloud Cache for multi-site DR (pass-through to guest config tool)"
       }
     },
     "cloudCacheAzureProvider": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
-        "description": "(Deprecated) Azure Blob connection string — use cloudCacheProviders instead"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "(Deprecated) Azure Blob connection string — use cloudCacheProviders instead (pass-through to guest config tool)"
       }
     },
     "cloudCacheProviders": {
       "type": "array",
       "defaultValue": [],
       "metadata": {
-        "description": "Additional Cloud Cache providers for CCDLocations (SMB providers auto-generated)"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "Additional Cloud Cache providers for CCDLocations, SMB providers auto-generated (pass-through to guest config tool)"
       }
     },
     "dnsServers": {
       "type": "array",
       "defaultValue": [],
       "metadata": {
-        "description": "DNS server IP addresses for guest cluster VMs"
+        "phase": "guest",
+        "passThrough": true,
+        "description": "DNS server IP addresses for guest cluster VMs (pass-through to guest config tool)"
       }
     },
     "vmIps": {
@@ -929,6 +981,9 @@
           "domainOuNodes": {
             "value": "[parameters('domainOuNodes')]"
           },
+          "vmIps": {
+            "value": "[parameters('vmIps')]"
+          },
           "tags": {
             "value": "[parameters('tags')]"
           }
@@ -940,7 +995,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "12202829425216515232"
+              "templateHash": "261939272944113923"
             }
           },
           "parameters": {
@@ -1020,6 +1075,13 @@
               "type": "object",
               "metadata": {
                 "description": "Per-VM storage path mapping: { \"01\": \"<ARM-ID>\", \"02\": \"<ARM-ID>\" }. Falls back to first entry if key not found."
+              }
+            },
+            "vmIps": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional map of VM suffix to static IP address: { \"01\": \"10.0.0.10\", \"02\": \"10.0.0.11\" }"
               }
             },
             "adminUsername": {
@@ -1112,11 +1174,7 @@
                 "ipConfigurations": [
                   {
                     "name": "[format('{0}-{1}-nic', parameters('vmPrefix'), padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0'))]",
-                    "properties": {
-                      "subnet": {
-                        "id": "[parameters('logicalNetworkId')]"
-                      }
-                    }
+                    "properties": "[union(createObject('subnet', createObject('id', parameters('logicalNetworkId'))), if(contains(parameters('vmIps'), padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0')), createObject('privateIPAddress', parameters('vmIps')[padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0')], 'privateIPAllocationMethod', 'Static'), createObject()))]"
                   }
                 ]
               }
@@ -1138,7 +1196,7 @@
               "properties": {
                 "diskSizeGB": "[parameters('dataDiskSizeGB')]",
                 "dynamic": true,
-                "containerId": "[if(contains(parameters('storagePathIds'), padLeft(string(add(div(range(0, mul(parameters('vmCount'), parameters('dataDiskCount')))[copyIndex()], parameters('dataDiskCount')), 1)), 2, '0')), parameters('storagePathIds')[padLeft(string(add(div(range(0, mul(parameters('vmCount'), parameters('dataDiskCount')))[copyIndex()], parameters('dataDiskCount')), 1)), 2, '0')], variables('defaultStoragePath'))]"
+                "containerId": "[coalesce(parameters('storagePathIds')[padLeft(string(add(div(range(0, mul(parameters('vmCount'), parameters('dataDiskCount')))[copyIndex()], parameters('dataDiskCount')), 1)), 2, '0')], variables('defaultStoragePath'))]"
               }
             },
             {
@@ -1182,7 +1240,7 @@
                   "imageReference": {
                     "id": "[parameters('galleryImageId')]"
                   },
-                  "vmConfigStoragePathId": "[if(contains(parameters('storagePathIds'), padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0')), parameters('storagePathIds')[padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0')], variables('defaultStoragePath'))]"
+                  "vmConfigStoragePathId": "[coalesce(parameters('storagePathIds')[padLeft(string(add(range(0, parameters('vmCount'))[copyIndex()], 1)), 2, '0')], variables('defaultStoragePath'))]"
                 },
                 "networkProfile": {
                   "networkInterfaces": [
@@ -6799,6 +6857,17 @@
     "witnessStorageAccountName": {
       "type": "string",
       "value": "[parameters('cloudWitnessName')]"
+    },
+    "phaseOwnership": {
+      "type": "object",
+      "metadata": {
+        "description": "Phase ownership metadata: Bicep handles Phases 1-2 (Azure provisioning). Guest Phases 3-11 are delegated to the guest_config tool."
+      },
+      "value": {
+        "azure_host": "Bicep (Phases 1-2: resource group, VMs, NICs, disks, domain join, cloud witness)",
+        "guest_config": "Delegated to PowerShell or Ansible (Phases 3-11)",
+        "guestVolumeLayout": "[parameters('guestVolumeLayout')]"
+      }
     }
   }
 }

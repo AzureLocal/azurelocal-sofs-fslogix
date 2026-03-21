@@ -49,8 +49,8 @@ After `terraform apply`, a fully-populated Ansible inventory is auto-generated �
 | File | Purpose |
 |------|---------|
 | `main.tf` | Provider configuration (azapi, azurerm, local) + AVM module calls |
-| `variables.tf` | All input variables (Azure, VM, domain join, SOFS, Option A/B, Cloud Cache) |
-| `locals.tf` | Computed values — VM names, disk flattening, pool calculations, Option A/B |
+| `variables.tf` | All input variables (Azure, VM, domain join, SOFS, single/triple layout, Cloud Cache) |
+| `locals.tf` | Computed values — VM names, disk flattening, pool calculations, single/triple layout |
 | `sofs.tf` | Arc machines, NICs, data disks, VM instances, domain join extensions |
 | `ansible-inventory.tf` | Generates Ansible inventory from Terraform outputs |
 | `ansible-controller.tf` | Optional Ansible controller VM (for `ansible_create` engine) |
@@ -91,7 +91,7 @@ Edit `terraform.tfvars` with values from your `config/variables.yml`. Key mappin
 | `domain.fqdn` | `domain_fqdn` |
 | `domain.join_username` | `domain_join_username` |
 | `domain.join_password` | `domain_join_password` |
-| `deployment.guest_volume_layout` | `guest_volume_layout` |
+| `deployment.guest_layout` | `guest_volume_layout` |
 | `deployment.guest_resiliency` | `guest_resiliency` |
 | `sofs.*` | `sofs_*` variables |
 | `fslogix.cloud_cache.providers` | `cloud_cache_providers` |
@@ -151,7 +151,7 @@ If `true`, VMs were deployed with DHCP and you need to update the inventory with
 
 Terraform does not know VM IPs at provision time when Azure Local assigns them via DHCP. Two options:
 
-**Option A — Pre-allocate IPs in tfvars (recommended):**
+**Option 1 — Pre-allocate IPs in tfvars (recommended):**
 
 ```hcl
 vm_ips = {
@@ -161,7 +161,7 @@ vm_ips = {
 }
 ```
 
-**Option B — Post-provision update:**
+**Option 2 — Post-provision update:**
 
 After VMs are created, discover IPs and update the generated Ansible inventory manually.
 
@@ -214,7 +214,7 @@ terraform test
 
 Test files in `tests/`:
 
-- `variables.tftest.hcl` — validates vm_count range (2–16), required variables, Option A/B defaults
+- `variables.tftest.hcl` — validates vm_count range (2–16), required variables, single/triple layout defaults
 - `locals.tftest.hcl` — validates VM name generation, disk flattening, pool calculations
 
 ---

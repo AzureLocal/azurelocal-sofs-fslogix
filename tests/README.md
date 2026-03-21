@@ -9,7 +9,7 @@ End-to-end validation, unit tests, and smoke tests for the SOFS deployment.
 | Script | Type | Description |
 |--------|------|-------------|
 | `Test-SOFSDeployment.ps1` | E2E Validator | Post-deployment validation: SMB shares, NTFS permissions, cluster health, S2D health, anti-affinity |
-| `Test-SOFSDeployment.Tests.ps1` | Pester Unit | 23 test suites covering config loading, parameter resolution, Option A/B, storage paths, FSRM, Cloud Cache |
+| `Test-SOFSDeployment.Tests.ps1` | Pester Unit | 23 test suites covering config loading, parameter resolution, single/triple layout, storage paths, FSRM, Cloud Cache |
 | `Test-ToolSmokeTests.ps1` | Pester Smoke | Pre-flight validation of all 10 scenarios across all 5 tools (no infra required) |
 | `VALIDATION-MATRIX.md` | Documentation | Tracks E2E test results for all scenario × tool-path combinations |
 | `terraform/` | Terraform Test | `.tftest.hcl` files for `terraform test` |
@@ -31,14 +31,14 @@ Invoke-Pester .\tests\Test-ToolSmokeTests.ps1 -Output Detailed
 ### Post-Deployment Validation
 
 ```powershell
-# Option A — single share
+# Single layout — single share
 .\tests\Test-SOFSDeployment.ps1 `
     -SOFSAccessPoint "FSLogixSOFS" `
     -ShareNames @("FSLogix") `
     -ClusterName "sofs-cluster" `
     -DomainNetBIOS "IIC"
 
-# Option B — three shares
+# Triple layout — three shares
 .\tests\Test-SOFSDeployment.ps1 `
     -SOFSAccessPoint "FSLogixSOFS" `
     -ShareNames @("Profiles", "ODFC", "AppData") `
@@ -90,7 +90,7 @@ Invoke-Pester .\tests\Test-ToolSmokeTests.ps1 -Output Detailed
 | Config generation | All 10 scenarios produce valid configs |
 | Data copies | Match guest resiliency setting |
 | IP addresses | Count matches VM count |
-| Share structure | Option A = 1 share, Option B = 3 shares |
+| Share structure | Single layout = 1 share, Triple layout = 3 shares |
 | No hardcoding | No scenario-specific constants in source |
 | PowerShell syntax | All .ps1 files parse without errors |
 | Terraform validate | `terraform validate` passes |

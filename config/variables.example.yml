@@ -23,8 +23,13 @@
 deployment:
   host_volume_layout: "three_volumes"      # three_volumes | single_volume
   host_resiliency: "two_way"               # two_way | three_way (host CSV mirror)
-  guest_volume_layout: "option_a"          # option_a (single volume) | option_b (three volumes)
+  guest_layout: "single"                   # single | triple (canonical)
+  guest_volume_layout: "single"            # legacy alias accepted: option_a -> single, option_b -> triple
   guest_resiliency: "two_way"              # two_way | three_way (S2D data copies in guest cluster)
+  cloud_cache_enabled: false               # Phase 0: whether Cloud Cache multi-site is active
+  # phase_ownership:                       # Optional: auto-populated by preflight scripts
+  #   azure_host: "bicep"                  # Tool handling Phases 1-2
+  #   guest_config: "powershell"           # Tool handling Phases 3-11
 
 
 # =============================================================================
@@ -111,8 +116,8 @@ dns_servers:
 # =============================================================================
 # SOFS (Scale-Out File Server)
 #
-# Option A (single share): use share_name
-# Option B (three shares): use shares list instead
+# Single layout (single share): use share_name
+# Triple layout (three shares): use shares list instead
 # =============================================================================
 sofs:
   role_name: "FSLogixSOFS"                  # SOFS cluster role name (Add-ClusterScaleOutFileServerRole)
@@ -126,10 +131,10 @@ sofs:
   continuous_availability: true            # CA flag on SMB shares (required for FSLogix)
   folder_enumeration_mode: "AccessBased"   # AccessBased | Unrestricted
 
-  # --- Option A: single share ---
+  # --- Single layout: single share ---
   share_name: "Profiles"
 
-  # --- Option B: three shares (uncomment and remove share_name above) ---
+  # --- Triple layout: three shares (uncomment and remove share_name above) ---
   # shares:
   #   - name: "Profiles"
   #     volume: "Profiles"
@@ -142,18 +147,18 @@ sofs:
 # =============================================================================
 # Storage Spaces Direct (S2D)
 #
-# Option A (single volume): use volume_name / volume_size_gb / data_copies
-# Option B (three volumes): use volumes list instead
+# Single layout (single volume): use volume_name / volume_size_gb / data_copies
+# Triple layout (three volumes): use volumes list instead
 # =============================================================================
 s2d:
   pool_name: "S2D on sofs-cluster"
 
-  # --- Option A: single volume ---
+  # --- Single layout: single volume ---
   volume_name: "FSLogixData"
   volume_size_gb: 2560
   data_copies: 2
 
-  # --- Option B: three volumes (uncomment and remove the three keys above) ---
+  # --- Triple layout: three volumes (uncomment and remove the three keys above) ---
   # volumes:
   #   - name: "Profiles"
   #     size_gb: 33485         # ~55% — profile containers
@@ -250,6 +255,19 @@ fslogix:
     # providers:
     #   - type: "azure"
     #     connectionString: "DefaultEndpointsProtocol=https;AccountName=stfslogixdr;..."
+
+
+# =============================================================================
+# FSRM (File Server Resource Manager)
+#
+# Auto-apply soft quotas on FSLogix share directories so each user profile
+# container is limited to fslogix.profile_size_mb. Requires FS-Resource-Manager
+# role (installed automatically by Phases 9b).
+# =============================================================================
+fsrm:
+  enabled: true                            # false to skip FSRM quota deployment
+  template_name: "FSLogix Profile Quota"   # FSRM quota template name
+  soft_limit: true                         # true = warn only; false = hard block
 
 
 # =============================================================================

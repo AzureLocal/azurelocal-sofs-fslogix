@@ -6,6 +6,12 @@
 
 Subscription-scope Bicep deployment that creates all Azure-side resources for the SOFS guest cluster using **Azure Verified Modules (AVM)** from the public Bicep registry for the resource group and cloud witness storage account.
 
+Microsoft references used for this implementation:
+
+- Bicep docs: https://learn.microsoft.com/azure/azure-resource-manager/bicep/
+- AVM overview: https://azure.github.io/Azure-Verified-Modules/
+- AVM Bicep quickstart: https://azure.github.io/Azure-Verified-Modules/usage/quickstart/bicep/
+
 ### Capability
 
 | Capability | Supported |
@@ -15,6 +21,14 @@ Subscription-scope Bicep deployment that creates all Azure-side resources for th
 | Per-VM storage path mapping | ✅ |
 | Guest OS configuration | Delegates to PS/Ansible |
 | AVM modules (RG + Storage) | ✅ |
+
+### Phase Ownership
+
+| Phase Group | Ownership |
+|-------------|-----------|
+| Phase 0 (decision tree) | Parameter validation only |
+| Phases 1-2 (Azure/Host plane) | Implemented in Bicep modules |
+| Phases 3-11 (Guest OS plane) | Delegated to PowerShell or Ansible |
 
 ---
 

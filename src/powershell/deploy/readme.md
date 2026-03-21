@@ -10,7 +10,7 @@ End-to-end PowerShell deployment for a Scale-Out File Server on Azure Local. The
 |------|-------------|
 | `Invoke-SOFSDeployment.ps1` | **Orchestrator** — Runs Deploy → waits for domain join → Configure in sequence. Tracks progress in a JSON state file so failed runs can be resumed. Supports `-Destroy`, `-SkipDeploy`, `-SkipConfigure`, and `-WhatIf` |
 | `Deploy-SOFS-Azure.ps1` | **Phase 1** — Deploys Azure Local resources (resource group, witness storage, NICs, VMs, data disks, domain-join extensions) using Azure CLI, driven by `config/variables.yml` |
-| `Configure-SOFS-Cluster.ps1` | **Phase 2** — Configures the guest cluster over WinRM: anti-affinity rules, failover clustering, S2D pool, cloud witness, mirror volumes, SOFS role, SMB shares, NTFS permissions, and deployment validation. Supports Option A (single share) and Option B (per-volume shares) |
+| `Configure-SOFS-Cluster.ps1` | **Phase 2** — Configures the guest cluster over WinRM: anti-affinity rules, failover clustering, S2D pool, cloud witness, mirror volumes, SOFS role, SMB shares, NTFS permissions, and deployment validation. Supports Single layout (single share) and Triple layout (per-volume shares) |
 | `Remove-SOFSDeployment.ps1` | **Teardown** — Removes all Azure resources in reverse order: extensions → VMs → data disks → NICs → witness storage → (optional) resource group |
 
 ## Prerequisites

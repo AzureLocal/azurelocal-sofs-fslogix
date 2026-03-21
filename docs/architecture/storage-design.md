@@ -97,7 +97,7 @@ Three data copies. Tolerates 2 simultaneous VM failures. Significantly higher ra
 
 The third decision is how to carve the usable S2D space into FSLogix volumes and shares. Both options use the same hardware, the same S2D pool, and the same total capacity.
 
-### Option A — Single Volume (Simple)
+### Single layout — Single Volume (Simple)
 
 One guest S2D volume holds all FSLogix data:
 
@@ -106,18 +106,18 @@ One guest S2D volume holds all FSLogix data:
 | `FSLogixData` | 5,632 GB (5.5 TB) | `Profiles` | Profile containers, ODFC containers, AppData |
 
 <figure markdown="span">
-  ![Three Host Volumes + Option A](../assets/images/sofs-arch-3vol-option-a.png)
-  <figcaption>Three host volumes with Option A: single FSLogix share</figcaption>
+  ![Three Host Volumes + Single layout](../assets/images/sofs-arch-3vol-single.png)
+  <figcaption>Three host volumes with Single layout: single FSLogix share</figcaption>
 </figure>
 
-**When to use Option A:**
+**When to use Single layout:**
 
 - Under ~500 users with low-density session hosts (under ~30 users per host)
 - Simpler to deploy — one volume, one share, one FSLogix GPO path
 - All free space is shared — no risk of one workload filling "its" volume while another has headroom
 - Fewer monitoring targets and backup jobs
 
-### Option B — Three Volumes (Granular)
+### Triple layout — Three Volumes (Granular)
 
 Separate guest S2D volumes for each FSLogix workload:
 
@@ -129,16 +129,16 @@ Separate guest S2D volumes for each FSLogix workload:
 | **Total** | **5,632 GB (5.5 TB)** | | |
 
 <figure markdown="span">
-  ![Three Host Volumes + Option B](../assets/images/sofs-arch-3vol-option-b.png)
-  <figcaption>Three host volumes with Option B: three FSLogix shares</figcaption>
+  ![Three Host Volumes + Triple layout](../assets/images/sofs-arch-3vol-triple.png)
+  <figcaption>Three host volumes with Triple layout: three FSLogix shares</figcaption>
 </figure>
 
-**When to use Option B:**
+**When to use Triple layout:**
 
 - 500+ users or high-density session hosts (50+ users per host)
 - Environments where Outlook/Teams cache churn is a known problem
 
-**Why Option B matters at scale:**
+**Why Triple layout matters at scale:**
 
 - **NTFS metadata isolation** — Each volume has its own MFT and change journal. Outlook OST writes hammering the ODFC change journal don't compete with profile writes for NTFS lock time on the Profiles volume.
 - **Logon storm resilience** — Heavy AppData syncs (Chrome profiles, specialized apps) only slow the AppData volume. The Profiles volume stays responsive — Start Menu and Desktop load fast for everyone else.
@@ -155,25 +155,25 @@ The three decisions combine into a specific architecture. Here are the most comm
 ### All Combinations — Single Host Volume
 
 <figure markdown="span">
-  ![Single Host Volume + Option A](../assets/images/sofs-arch-1vol-option-a.png)
-  <figcaption>Single host volume + Option A: simplest deployment</figcaption>
+  ![Single Host Volume + Single layout](../assets/images/sofs-arch-1vol-single.png)
+  <figcaption>Single host volume + Single layout: simplest deployment</figcaption>
 </figure>
 
 <br />
 
 <figure markdown="span">
-  ![Single Host Volume + Option B](../assets/images/sofs-arch-1vol-option-b.png)
-  <figcaption>Single host volume + Option B: share isolation without volume isolation</figcaption>
+  ![Single Host Volume + Triple layout](../assets/images/sofs-arch-1vol-triple.png)
+  <figcaption>Single host volume + Triple layout: share isolation without volume isolation</figcaption>
 </figure>
 
 ### Recommendation by Environment
 
 | Environment | Host Volumes | Guest Mirror | Share Model | Diagram |
 |-------------|-------------|-------------|------------|---------|
-| Under 50 users, personal desktops | Single or Three | Two-way | **Option A** | `sofs-arch-1vol-option-a` |
-| 50–500 users, mixed workloads | Three | Two-way | **Option A** | `sofs-arch-3vol-option-a` |
-| 500+ users, pooled session hosts | Three | Two-way | **Option B** | `sofs-arch-3vol-option-b` |
-| Maximum resiliency required | Three | Three-way | **Option B** | `sofs-arch-3vol-option-b` |
+| Under 50 users, personal desktops | Single or Three | Two-way | **Single layout** | `sofs-arch-1vol-option-a` |
+| 50–500 users, mixed workloads | Three | Two-way | **Single layout** | `sofs-arch-3vol-option-a` |
+| 500+ users, pooled session hosts | Three | Two-way | **Triple layout** | `sofs-arch-3vol-option-b` |
+| Maximum resiliency required | Three | Three-way | **Triple layout** | `sofs-arch-3vol-option-b` |
 
 ---
 

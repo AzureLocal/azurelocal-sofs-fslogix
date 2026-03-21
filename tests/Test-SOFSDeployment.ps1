@@ -14,15 +14,15 @@
       7. Write access test.
       8. (Optional) FSLogix registry settings on the local machine.
 
-    Supports both Option A (single share) and Option B (three shares).
+    Supports both Single layout (single share) and Triple layout (three shares).
 
 .PARAMETER SOFSAccessPoint
     SOFS client access point name (e.g., "FSLogixSOFS").
 
 .PARAMETER ShareNames
     Array of share names to validate.
-    Option A: @("FSLogix")
-    Option B: @("Profiles", "ODFC", "AppData")
+    Single layout: @("FSLogix")
+    Triple layout: @("Profiles", "ODFC", "AppData")
 
 .PARAMETER ClusterName
     Failover cluster name for S2D and cluster health checks.
@@ -43,12 +43,12 @@
     Expected S2D resiliency (2 = two-way mirror, 3 = three-way mirror).
 
 .EXAMPLE
-    # Option A — single share
+    # Single layout — single share
     .\Test-SOFSDeployment.ps1 -SOFSAccessPoint "FSLogixSOFS" -ShareNames @("FSLogix") `
         -ClusterName "sofs-cluster" -DomainNetBIOS "IIC"
 
 .EXAMPLE
-    # Option B — three shares
+    # Triple layout — three shares
     .\Test-SOFSDeployment.ps1 -SOFSAccessPoint "FSLogixSOFS" `
         -ShareNames @("Profiles", "ODFC", "AppData") `
         -ClusterName "sofs-cluster" -DomainNetBIOS "IIC"
@@ -102,7 +102,7 @@ function Add-Result {
 }
 
 $shareCount = $ShareNames.Count
-$layout = if ($shareCount -eq 1) { "Option A (single share)" } else { "Option B ($shareCount shares)" }
+$layout = if ($shareCount -eq 1) { "Single layout (single share)" } else { "Triple layout ($shareCount shares)" }
 
 Write-Host "=== SOFS E2E Validation ===" -ForegroundColor Cyan
 Write-Host "  Access Point : $SOFSAccessPoint"

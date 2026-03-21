@@ -11,8 +11,8 @@
 #   Phase 9c — Cloud Cache (optional)
 #   Phase 11 — Validation
 #
-# Supports Option A (single volume/share) and Option B (multiple)
-# via sofs_guest_volume_layout variable.
+# Supports canonical single/triple guest layout naming with
+# legacy option_a/option_b aliases.
 #
 # Usage:
 #   ansible-playbook -i inventory.yml configure-sofs-cluster.yml
@@ -75,7 +75,8 @@
     sofs_role_name: "{{ sofs_sofs_role_name | default(sofs_access_point) }}"
     smb_encryption: "{{ sofs_smb_encryption | default(true) }}"
     domain_netbios: "{{ sofs_domain_netbios }}"
-    guest_volume_layout: "{{ sofs_guest_volume_layout | default('option_a') }}"
+    guest_volume_layout_raw: "{{ sofs_guest_volume_layout | default('single') }}"
+    guest_volume_layout: "{{ 'single' if guest_volume_layout_raw in ['single', 'option_a'] else 'triple' if guest_volume_layout_raw in ['triple', 'option_b'] else guest_volume_layout_raw }}"
     anti_affinity_rule: "{{ sofs_anti_affinity_rule }}"
     azl_cluster_name: "{{ sofs_azl_cluster_name }}"
     vm_names: "{{ groups['sofs_nodes'] }}"
@@ -83,7 +84,7 @@
     admin_group: "{{ sofs_permissions_admin_group | default('Domain Admins') }}"
     users_group: "{{ sofs_permissions_users_group | default('AVD-Users') }}"
     avd_users_group: "{{ sofs_permissions_avd_users_group | default('AVD-Users') }}"
-    # Option B lists (empty defaults for Option A)
+    # Triple layout lists (empty defaults for Single layout)
     sofs_shares_list: "{{ sofs_shares | default([]) }}"
     s2d_volumes_list: "{{ sofs_s2d_volumes | default([]) }}"
     # FSLogix
@@ -93,6 +94,31 @@
     dns_servers: "{{ sofs_dns_servers | default([]) }}"
 
   tasks:
+    - name: "Phase 0 — Validate and emit guest layout decision"
+      ansible.builtin.assert:
+        that:
+          - guest_volume_layout in ['single', 'triple']
+        fail_msg: "Invalid guest layout '{{ guest_volume_layout_raw }}'. Use single/triple (legacy aliases option_a/option_b are also accepted)."
+
+    - name: "Phase 0 — Validate Cloud Cache prerequisites"
+      ansible.builtin.assert:
+        that:
+          - (sofs_cloud_cache_providers | default([]) | length > 0) or
+            (sofs_cloud_cache_azure_provider | default('') | length > 0)
+        fail_msg: >-
+          Cloud Cache is enabled but no providers configured.
+          Set fslogix.cloud_cache.providers[] or fslogix.cloud_cache.azure_provider in variables.yml.
+      when: sofs_cloud_cache_enabled | default(false) | bool
+
+    - name: "Phase 0 — Preflight ownership map"
+      ansible.builtin.debug:
+        msg: |
+          Phase 0 decision complete.
+          Input layout: {{ guest_volume_layout_raw }}
+          Canonical layout: {{ guest_volume_layout }}
+          Cloud Cache: {{ sofs_cloud_cache_enabled | default(false) }}
+          Phase ownership: Azure/Host = deploy-azure-resources.yml; Guest = configure-sofs-cluster.yml
+
     # -----------------------------------------------------------------
     # Phase 5: Install Roles and Features
     # -----------------------------------------------------------------
@@ -186,8 +212,8 @@
           Write-Output "AutoReplace disabled"
       when: inventory_hostname == groups['sofs_nodes'][0]
 
-    # --- Option A: Single volume ---
-    - name: "Phase 7 — Create S2D volume (Option A)"
+    # --- Single layout: Single volume ---
+    - name: "Phase 7 — Create S2D volume (Single layout)"
       ansible.windows.win_powershell:
         script: |
           $existing = Get-VirtualDisk -FriendlyName {{ s2d_volume_name }} -ErrorAction SilentlyContinue
@@ -205,10 +231,10 @@
           }
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_a'
+        - guest_volume_layout == 'single'
 
-    # --- Option B: Multiple volumes ---
-    - name: "Phase 7 — Create S2D volumes (Option B)"
+    # --- Triple layout: Multiple volumes ---
+    - name: "Phase 7 — Create S2D volumes (Triple layout)"
       ansible.windows.win_powershell:
         script: |
           $existing = Get-VirtualDisk -FriendlyName '{{ item.name }}' -ErrorAction SilentlyContinue
@@ -229,7 +255,7 @@
         label: "{{ item.name }}"
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_b'
+        - guest_volume_layout == 'triple'
         - s2d_volumes_list | length > 0
 
     # -----------------------------------------------------------------
@@ -249,8 +275,8 @@
           }
       when: inventory_hostname == groups['sofs_nodes'][0]
 
-    # --- Option A: Single share ---
-    - name: "Phase 8 — Create FSLogix SMB share (Option A)"
+    # --- Single layout: Single share ---
+    - name: "Phase 8 — Create FSLogix SMB share (Single layout)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -278,10 +304,10 @@
           }
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_a'
+        - guest_volume_layout == 'single'
 
-    # --- Option B: Multiple shares ---
-    - name: "Phase 8 — Create SMB shares (Option B)"
+    # --- Triple layout: Multiple shares ---
+    - name: "Phase 8 — Create SMB shares (Triple layout)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -312,14 +338,14 @@
         label: "{{ item.name }}"
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_b'
+        - guest_volume_layout == 'triple'
         - sofs_shares_list | length > 0
 
     # -----------------------------------------------------------------
     # Phase 9: NTFS Permissions
     # -----------------------------------------------------------------
-    # --- Option A ---
-    - name: "Phase 9 — Configure NTFS permissions (Option A)"
+    # --- Single layout ---
+    - name: "Phase 9 — Configure NTFS permissions (Single layout)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -347,10 +373,10 @@
           Write-Output "NTFS permissions configured for {{ share_name }}"
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_a'
+        - guest_volume_layout == 'single'
 
-    # --- Option B ---
-    - name: "Phase 9 — Configure NTFS permissions (Option B)"
+    # --- Triple layout ---
+    - name: "Phase 9 — Configure NTFS permissions (Triple layout)"
       ansible.windows.win_powershell:
         script: |
           $CSV = Get-ClusterSharedVolume -Cluster {{ cluster_name }} |
@@ -381,7 +407,7 @@
         label: "{{ item.name }}"
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
-        - guest_volume_layout == 'option_b'
+        - guest_volume_layout == 'triple'
         - sofs_shares_list | length > 0
 
     # --- SMB Encryption ---
@@ -393,23 +419,89 @@
       when: smb_encryption | bool
 
     # -----------------------------------------------------------------
+    # Phase 9b: FSRM Quota Support
+    # -----------------------------------------------------------------
+    # Installs File Server Resource Manager on all nodes and applies an
+    # auto-apply soft quota to each share directory. When a user profile
+    # folder is created, FSRM automatically applies the quota limit
+    # from fslogix_profile_size_mb.
+    - name: "Phase 9b — Install FS-Resource-Manager on all nodes"
+      ansible.windows.win_feature:
+        name:
+          - FS-Resource-Manager
+        include_management_tools: true
+        state: present
+      when: fslogix_enabled | bool and (fslogix_profile_size_mb | int) > 0
+
+    - name: "Phase 9b — Create FSRM quota template and apply to shares"
+      ansible.windows.win_powershell:
+        script: |
+          $templateName = "FSLogix Profile Quota"
+          $quotaBytes = [uint64]{{ fslogix_profile_size_mb }} * 1MB
+
+          # Create or update quota template (soft limit — warns but does not block)
+          $existing = Get-FsrmQuotaTemplate -Name $templateName -ErrorAction SilentlyContinue
+          if ($existing) {
+              Set-FsrmQuotaTemplate -Name $templateName -Size $quotaBytes -SoftLimit -ErrorAction Stop
+              Write-Output "Quota template '$templateName' updated to {{ fslogix_profile_size_mb }} MB."
+          } else {
+              New-FsrmQuotaTemplate -Name $templateName -Size $quotaBytes -SoftLimit -ErrorAction Stop
+              Write-Output "Quota template '$templateName' created ({{ fslogix_profile_size_mb }} MB, soft limit)."
+          }
+
+          {% if guest_volume_layout == 'single' %}
+          # Single layout: apply to the one share
+          $share = Get-SmbShare -Name '{{ share_name }}' -ScopeName '{{ access_point }}' -ErrorAction SilentlyContinue
+          if ($share) {
+              $autoQuotaPath = "$($share.Path)\*"
+              $existingQuota = Get-FsrmAutoQuota -Path $autoQuotaPath -ErrorAction SilentlyContinue
+              if ($existingQuota) {
+                  Set-FsrmAutoQuota -Path $autoQuotaPath -Template $templateName -ErrorAction Stop
+              } else {
+                  New-FsrmAutoQuota -Path $autoQuotaPath -Template $templateName -ErrorAction Stop
+              }
+              Write-Output "Auto-apply quota configured on \\{{ access_point }}\{{ share_name }}"
+          }
+          {% else %}
+          # Triple layout: apply to each share
+          {% for share in sofs_shares_list %}
+          $share_{{ loop.index }} = Get-SmbShare -Name '{{ share.name }}' -ScopeName '{{ access_point }}' -ErrorAction SilentlyContinue
+          if ($share_{{ loop.index }}) {
+              $aqPath = "$($share_{{ loop.index }}.Path)\*"
+              $existingQ = Get-FsrmAutoQuota -Path $aqPath -ErrorAction SilentlyContinue
+              if ($existingQ) {
+                  Set-FsrmAutoQuota -Path $aqPath -Template $templateName -ErrorAction Stop
+              } else {
+                  New-FsrmAutoQuota -Path $aqPath -Template $templateName -ErrorAction Stop
+              }
+              Write-Output "Auto-apply quota configured on \\{{ access_point }}\{{ share.name }}"
+          }
+          {% endfor %}
+          {% endif %}
+      when:
+        - inventory_hostname == groups['sofs_nodes'][0]
+        - fslogix_enabled | bool
+        - (fslogix_profile_size_mb | int) > 0
+
+    - name: "Phase 9b — FSRM skipped (fslogix disabled or profile_size_mb not set)"
+      ansible.builtin.debug:
+        msg: "FSRM quota support skipped — fslogix.enabled={{ fslogix_enabled }}, profile_size_mb={{ fslogix_profile_size_mb }}"
+      when: not (fslogix_enabled | bool) or (fslogix_profile_size_mb | int) <= 0
+
+    # -----------------------------------------------------------------
     # Phase 9c: Cloud Cache (optional)
     # -----------------------------------------------------------------
     # Builds CCDLocations from auto-generated SMB providers (one per share)
     # plus any additional providers from sofs_cloud_cache_providers[].
     # Falls back to legacy sofs_cloud_cache_azure_provider if providers
     # list is empty.
-    - name: "Phase 9c — Build CCDLocations value"
+    - name: "Phase 9c — Build CCDLocations SMB parts"
       ansible.builtin.set_fact:
         _cc_smb_parts: >-
-          {%- if guest_volume_layout == 'option_a' -%}
+          {%- if guest_volume_layout == 'single' -%}
             type=smb,connectionString=\\{{ access_point }}\{{ share_name }}
           {%- else -%}
             {{ sofs_shares_list | map(attribute='name') | map('regex_replace', '^(.*)$', 'type=smb,connectionString=\\\\' ~ access_point ~ '\\\\\\1') | join(';') }}
-          {%- endif -%}
-        _cc_extra_parts: >-
-          {%- if (sofs_cloud_cache_providers | default([])) | length > 0 -%}
-            {{ sofs_cloud_cache_providers | map('regex_replace', '^.*$', '') }}
           {%- endif -%}
       when:
         - inventory_hostname == groups['sofs_nodes'][0]
@@ -419,7 +511,7 @@
       ansible.builtin.set_fact:
         _cc_ccd_locations: >-
           {%- set parts = [] -%}
-          {%- if guest_volume_layout == 'option_a' -%}
+          {%- if guest_volume_layout == 'single' -%}
             {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ share_name) -%}
           {%- else -%}
             {%- for s in sofs_shares_list -%}
@@ -485,7 +577,7 @@
           Cluster:        {{ cluster_name }} ({{ cluster_ip }})
           Layout:         {{ guest_volume_layout }}
           SOFS Name:      {{ access_point }}
-          {% if guest_volume_layout == 'option_a' %}
+          {% if guest_volume_layout == 'single' %}
           Share:          \\{{ access_point }}\{{ share_name }}
           S2D Volume:     {{ s2d_volume_name }} ({{ s2d_volume_size }}, {{ s2d_data_copies }}-way mirror)
           {% else %}

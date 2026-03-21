@@ -30,7 +30,7 @@ storage_path_ids = {
 # Scenario examples:
 #   2-node, 2-way host, 2-way guest:  vm_count=2, host_resiliency="two_way", guest_resiliency="two_way"
 #   3-node, 3-way host, 3-way guest:  vm_count=3, host_resiliency="three_way", guest_resiliency="three_way"
-guest_volume_layout = "option_a"    # option_a (single volume) | option_b (three volumes)
+guest_volume_layout = "single"      # canonical: single | triple (legacy aliases: option_a | option_b)
 host_resiliency     = "two_way"     # two_way | three_way
 guest_resiliency    = "two_way"     # two_way | three_way
 
@@ -76,13 +76,13 @@ azl_cluster_name   = "AzLocalCluster"
 # --- S2D Configuration ---
 s2d_pool_name   = "S2D on SOFS-Cluster"
 
-# Option A settings (used when guest_volume_layout = "option_a"):
+# Single layout settings (used when guest_volume_layout = "single" or "option_a"):
 share_name      = "FSLogix"
 s2d_volume_name = "FSLogixData"
 s2d_volume_size = "5632GB"
 s2d_data_copies = 2
 
-# Option B settings (uncomment when guest_volume_layout = "option_b"):
+# Triple layout settings (uncomment when guest_volume_layout = "triple" or "option_b"):
 # sofs_shares = [
 #   { name = "Profiles", volume = "Profiles" },
 #   { name = "ODFC",     volume = "ODFC" },

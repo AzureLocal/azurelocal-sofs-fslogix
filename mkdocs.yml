@@ -60,6 +60,7 @@ nav:
       - Secrets Management: operations/secrets-management.md
   - Reference:
       - Variables: reference/variables.md
+      - Phase Ownership Matrix: reference/phase-ownership.md
       - SOFS Design & Deployment Guide: reference/sofs-design-and-deployment-guide.md
   - Standards:
       - Overview: standards/index.md

@@ -44,7 +44,7 @@ resource "local_sensitive_file" "ansible_inventory" {
     s2d_pool_name      = var.s2d_pool_name
     sofs_role_name     = var.sofs_role_name
     smb_encryption     = var.smb_encryption
-    guest_volume_layout = var.guest_volume_layout
+    guest_volume_layout = local.guest_volume_layout_canonical
     guest_resiliency   = var.guest_resiliency
     sofs_shares        = var.sofs_shares
     s2d_volumes        = var.s2d_volumes
@@ -64,6 +64,7 @@ resource "local_sensitive_file" "ansible_inventory" {
     cloud_cache_providers       = var.cloud_cache_providers
     dns_servers        = var.dns_servers
     winrm_transport    = var.winrm_transport
+    vm_ips             = var.vm_ips
     vm_hosts           = local.ansible_vm_hosts
   })
 

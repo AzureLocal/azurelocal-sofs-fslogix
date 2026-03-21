@@ -28,7 +28,7 @@ terraform init
 terraform test
 ```
 
-Validates AVM module references, variable mapping, domain join extension, per-VM storage paths, and Option A/B conditional logic.
+Validates AVM module references, variable mapping, domain join extension, per-VM storage paths, and single/triple layout conditional logic.
 
 ### Ansible (Molecule)
 
@@ -70,7 +70,7 @@ The `Test-SOFSDeployment.ps1` script validates the full SOFS deployment:
     -DomainNetBIOS "IIC"
 ```
 
-For Option B (three shares):
+For Triple layout (three shares):
 
 ```powershell
 .\tests\Test-SOFSDeployment.ps1 `
@@ -97,13 +97,13 @@ For Option B (three shares):
 
 From any machine on the compute network:
 
-=== "Option A — Single Share"
+=== "Single layout — Single Share"
 
     ```powershell
     Test-Path "\\FSLogixSOFS\FSLogix"
     ```
 
-=== "Option B — Three Shares"
+=== "Triple layout — Three Shares"
 
     ```powershell
     "Profiles", "ODFC", "AppData" | ForEach-Object {
@@ -247,8 +247,8 @@ All nodes should be `Up`. The quorum model should show `CloudWitness`.
 - [ ] NTFS permissions correct (test with a domain user account)
 - [ ] Failover test passed — share accessible during node drain
 - [ ] Test file created and read back after failover
-- [ ] Option A: single share (`FSLogix`) present
-- [ ] Option B: three shares (`Profiles`, `ODFC`, `AppData`) present
+- [ ] Single layout: single share (`FSLogix`) present
+- [ ] Triple layout: three shares (`Profiles`, `ODFC`, `AppData`) present
 - [ ] FSRM quotas applied (if configured)
 - [ ] Cloud Cache CCDLocations string matches providers config (if enabled)
 

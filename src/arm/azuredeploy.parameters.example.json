@@ -70,7 +70,7 @@
       "value": "sofscloudwitness"
     },
     "guestVolumeLayout": {
-      "value": "option_a"
+      "value": "single"
     },
     "hostResiliency": {
       "value": "two_way"

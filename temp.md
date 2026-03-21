@@ -1,5 +1,22 @@
 # SOFS Phase-Driven Compliance and Decision-Tree Plan
 
+## Implementation Progress (feature/epic-59-completion)
+
+Status snapshot (repository implementation):
+
+- Completed: canonical guest layout migration scaffolding (`single`/`triple`) with legacy alias compatibility (`option_a`/`option_b`) in schema, PowerShell, Terraform, Bicep, ARM parameters, and Ansible inventory/playbooks.
+- Completed: PowerShell Phase 0 preflight ownership logging and layout normalization with strict per-layout validation.
+- Completed: PowerShell triple-layout gating fix so single-layout-only fields are not required/resolved before branch decision.
+- Completed: Bicep/ARM parity update to support optional static NIC IP assignment (`vmIps`) in Azure Stack HCI NIC definitions.
+- Completed: Ansible Azure deployment static IP parity path (`sofs_vm_ips`) with deterministic NIC updates.
+- Completed: repo-wide markdown documentation terminology parity migration to canonical single/triple naming.
+- Completed: full test/evidence matrix refresh across task scopes (#67, #68, #69), including canonical layout naming, phase ownership clarity, and reproducible test evidence mapping.
+
+Note:
+
+- GitHub issue state transitions (reopen/close/edit on remote issues) are tracked as process tasks but require direct GitHub issue operations outside this local repository change set.
+
+
 ## Scope and Goal
 
 This report reframes deployment compliance around the architecture model in docs:

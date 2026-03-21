@@ -23,13 +23,13 @@ Each scenario references its matching architecture diagram so you can see exactl
 |----------|--------|-----------|
 | Host volume layout | **Single volume** | 5 users on personal desktops — the risk/complexity trade-off of three volumes isn't justified |
 | Guest S2D resiliency | **Two-way mirror** | Standard protection; Azure Local mirror underneath provides the second layer |
-| Guest share model | **Option A — single share** | 5 users generate negligible NTFS contention; one share is simplest |
+| Guest share model | **Single layout — Single Share** | 5 users generate negligible NTFS contention; one share is simplest |
 
 ### Architecture
 
 <figure markdown="span">
-  ![Scenario A — Single host volume, Option A single share](../assets/images/sofs-arch-1vol-option-a.png)
-  <figcaption>Single host volume with Option A — recommended for small environments</figcaption>
+  ![Scenario A — Single host volume, Single layout single share](../assets/images/sofs-arch-1vol-single.png)
+  <figcaption>Single host volume with Single layout — recommended for small environments</figcaption>
 </figure>
 
 ### Capacity Math
@@ -92,13 +92,13 @@ sofs:
 |----------|--------|-----------|
 | Host volume layout | **Three volumes** | 200 users on pooled desktops — SOFS availability is critical; fault isolation justified |
 | Guest S2D resiliency | **Two-way mirror** | Standard protection; three-way not justified for profile data |
-| Guest share model | **Option A — single share** | 200 users is below the 500-user threshold; Outlook/Teams usage is moderate |
+| Guest share model | **Single layout — Single Share** | 200 users is below the 500-user threshold; Outlook/Teams usage is moderate |
 
 ### Architecture
 
 <figure markdown="span">
-  ![Scenario B — Three host volumes, Option A single share](../assets/images/sofs-arch-3vol-option-a.png)
-  <figcaption>Three host volumes with Option A — fault isolation without share complexity</figcaption>
+  ![Scenario B — Three host volumes, Single layout single share](../assets/images/sofs-arch-3vol-single.png)
+  <figcaption>Three host volumes with Single layout — fault isolation without share complexity</figcaption>
 </figure>
 
 ### Capacity Math
@@ -159,13 +159,13 @@ sofs:
 |----------|--------|-----------|
 | Host volume layout | **Three volumes** | Non-negotiable at this scale — fault isolation is a hard requirement |
 | Guest S2D resiliency | **Two-way mirror** | Even at enterprise scale, the host-layer mirror provides sufficient protection |
-| Guest share model | **Option B — three shares** | 2000 users with heavy Outlook/Teams = significant NTFS metadata contention; split shares isolate workloads |
+| Guest share model | **Triple layout — Three Shares** | 2000 users with heavy Outlook/Teams = significant NTFS metadata contention; split shares isolate workloads |
 
 ### Architecture
 
 <figure markdown="span">
-  ![Scenario C — Three host volumes, Option B three shares](../assets/images/sofs-arch-3vol-option-b.png)
-  <figcaption>Three host volumes with Option B — maximum fault isolation and workload separation</figcaption>
+  ![Scenario C — Three host volumes, Triple layout three shares](../assets/images/sofs-arch-3vol-triple.png)
+  <figcaption>Three host volumes with Triple layout — maximum fault isolation and workload separation</figcaption>
 </figure>
 
 ### Capacity Math
@@ -179,7 +179,7 @@ sofs:
 | Total all users | 2000 × 27 GB | 54 TB |
 | Growth buffer (10%) | 54 TB × 1.1 | **~59.5 TB usable** |
 
-**Split across Option B volumes:**
+**Split across Triple layout volumes:**
 
 | Volume | Allocation | Size |
 |--------|------------|------|
@@ -215,7 +215,7 @@ data_disks:
   size_gb: 10240         # 10 TB per disk
 
 s2d:
-  # Option B — three volumes
+  # Triple layout — Three Volumes
   volumes:
     - name: "Profiles"
       size_gb: 33485     # 32.7 TB
@@ -249,7 +249,7 @@ sofs:
 | **Host pool type** | Personal | Pooled | Pooled (high-density) |
 | **Host volumes** | Single | Three | Three |
 | **Guest mirror** | Two-way | Two-way | Two-way |
-| **Share model** | Option A | Option A | Option B |
+| **Share model** | Single layout | Single layout | Triple layout |
 | **Usable space** | 60 GB | 4.4 TB | 59.5 TB |
 | **Raw physical disk** | ~1.5 TB | ~20 TB | ~241 TB |
 | **Diagram** | 1vol-option-a | 3vol-option-a | 3vol-option-b |

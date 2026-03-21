@@ -66,6 +66,9 @@ param galleryImageId string
 @description('Per-VM storage path mapping: { "01": "<ARM-ID>", "02": "<ARM-ID>" }. Falls back to first entry if key not found.')
 param storagePathIds object
 
+@description('Optional map of VM suffix to static IP address: { "01": "10.0.0.10", "02": "10.0.0.11" }')
+param vmIps object = {}
+
 // ---------------------------------------------------------------------------
 // Parameters — OS Credentials
 // ---------------------------------------------------------------------------
@@ -142,11 +145,14 @@ resource nics 'Microsoft.AzureStackHCI/networkInterfaces@2025-09-01-preview' = [
     ipConfigurations: [
       {
         name: '${vmPrefix}-${padLeft(string(i + 1), 2, '0')}-nic'
-        properties: {
+        properties: union({
           subnet: {
             id: logicalNetworkId
           }
-        }
+        }, contains(vmIps, padLeft(string(i + 1), 2, '0')) ? {
+          privateIPAddress: vmIps[padLeft(string(i + 1), 2, '0')]
+          privateIPAllocationMethod: 'Static'
+        } : {})
       }
     ]
   }
@@ -170,9 +176,7 @@ resource dataDisks 'Microsoft.AzureStackHCI/virtualHardDisks@2025-09-01-preview'
   properties: {
     diskSizeGB: dataDiskSizeGB
     dynamic: true
-    containerId: contains(storagePathIds, padLeft(string((j / dataDiskCount) + 1), 2, '0'))
-      ? storagePathIds[padLeft(string((j / dataDiskCount) + 1), 2, '0')]
-      : defaultStoragePath
+    containerId: storagePathIds[padLeft(string((j / dataDiskCount) + 1), 2, '0')] ?? defaultStoragePath
   }
 }]
 
@@ -209,9 +213,7 @@ resource vmInstances 'Microsoft.AzureStackHCI/virtualMachineInstances@2025-09-01
       imageReference: {
         id: galleryImageId
       }
-      vmConfigStoragePathId: contains(storagePathIds, padLeft(string(i + 1), 2, '0'))
-        ? storagePathIds[padLeft(string(i + 1), 2, '0')]
-        : defaultStoragePath
+      vmConfigStoragePathId: storagePathIds[padLeft(string(i + 1), 2, '0')] ?? defaultStoragePath
       dataDisks: [for d in range(0, dataDiskCount): {
         id: dataDisks[(i * dataDiskCount) + d].id
       }]

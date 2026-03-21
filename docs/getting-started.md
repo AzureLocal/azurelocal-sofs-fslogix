@@ -66,8 +66,8 @@ Before configuring anything, decide on three architecture choices:
 
 | Choice | Description | When to use |
 |--------|------------|-------------|
-| **Option B — Three shares** (recommended) | Separate Profiles, ODFC, AppData volumes and shares | 50+ users, production, independent sizing |
-| **Option A — Single share** | One volume, one share for all FSLogix data | Small deployments, PoC |
+| **Triple layout — Three Shares** (recommended) | Separate Profiles, ODFC, AppData volumes and shares | 50+ users, production, independent sizing |
+| **Single layout — Single Share** | One volume, one share for all FSLogix data | Small deployments, PoC |
 
 See [Architecture Overview](architecture/overview.md) for the full design rationale and [Scenarios](architecture/scenarios.md) for worked examples.
 
@@ -246,7 +246,7 @@ See [Validation](deployment/validation.md) for the complete procedure.
 
 After the SOFS is validated, configure FSLogix on your AVD session hosts:
 
-### FSLogix registry keys (Option B — three shares)
+### FSLogix registry keys (Triple layout — Three Shares)
 
 | Container | Registry Path | Value |
 |-----------|-------------- |-------|
