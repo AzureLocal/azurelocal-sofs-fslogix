@@ -151,7 +151,7 @@ This page covers common issues encountered during SOFS deployment and operation,
 | Symptom | Cause | Resolution |
 |---------|-------|------------|
 | S2D volume full | Profile growth exceeded planned capacity | Expand host volumes, then expand VM data disks, then expand S2D volume: `Resize-VirtualDisk` + `Resize-Partition` |
-| VHDX files larger than expected | Users storing large files in profile | Review profile content, consider ODFC containers (Option B) to separate Office data |
+| VHDX files larger than expected | Users storing large files in profile | Review profile content, consider ODFC containers (Triple layout) to separate Office data |
 | Dynamic disks consuming full allocation | All profile space has been written to at some point | Dynamic provisioning only helps for initial deployment — once data is written, space is consumed. Plan for steady-state, not day-one |
 
 ---

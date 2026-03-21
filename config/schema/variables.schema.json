@@ -4,17 +4,51 @@
   "title": "SOFS FSLogix Variables",
   "description": "Schema for config/variables.example.yml — validates required sections and key structure.",
   "type": "object",
+  "$defs": {
+    "examples": {
+      "single_2node_2way": {
+        "description": "2-node, two-way mirror, single layout",
+        "value": { "deployment": { "guest_layout": "single", "host_volume_layout": "three_volumes", "host_resiliency": "two_way", "guest_resiliency": "two_way" }, "vm": { "count": 2 } }
+      },
+      "triple_3node_3way": {
+        "description": "3-node, three-way mirror, triple layout",
+        "value": { "deployment": { "guest_layout": "triple", "host_volume_layout": "three_volumes", "host_resiliency": "three_way", "guest_resiliency": "three_way" }, "vm": { "count": 3 } }
+      },
+      "legacy_option_a": {
+        "description": "Legacy option_a alias (maps to single)",
+        "value": { "deployment": { "guest_volume_layout": "option_a" } }
+      },
+      "legacy_option_b": {
+        "description": "Legacy option_b alias (maps to triple)",
+        "value": { "deployment": { "guest_volume_layout": "option_b" } }
+      }
+    }
+  },
   "required": ["deployment", "azure", "keyvault", "azure_local", "vm", "data_disks", "domain", "dns_servers", "sofs", "s2d", "cloud_witness", "guest_config_engine", "tags"],
   "properties": {
     "deployment": {
       "type": "object",
-      "required": ["host_volume_layout", "host_resiliency", "guest_volume_layout", "guest_resiliency"],
+      "required": ["host_volume_layout", "host_resiliency", "guest_resiliency"],
       "properties": {
         "host_volume_layout": { "type": "string", "enum": ["three_volumes", "single_volume"] },
         "host_resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
-        "guest_volume_layout": { "type": "string", "enum": ["option_a", "option_b"] },
-        "guest_resiliency": { "type": "string", "enum": ["two_way", "three_way"] }
-      }
+        "guest_layout": { "type": "string", "enum": ["single", "triple"], "description": "Canonical guest layout selector." },
+        "guest_volume_layout": { "type": "string", "enum": ["single", "triple", "option_a", "option_b"], "description": "Legacy alias for deployment.guest_layout." },
+        "guest_resiliency": { "type": "string", "enum": ["two_way", "three_way"] },
+        "cloud_cache_enabled": { "type": "boolean", "description": "Phase 0 convenience flag mirroring fslogix.cloud_cache.enabled. Either location is accepted; tools prefer fslogix.cloud_cache.enabled as canonical source." },
+        "phase_ownership": {
+          "type": "object",
+          "description": "Optional Phase 0 metadata declaring which tool owns each phase. Auto-populated by preflight scripts.",
+          "properties": {
+            "azure_host": { "type": "string", "description": "Tool handling Phases 1-2 (e.g. Bicep, Terraform, deploy-azure-resources.yml)" },
+            "guest_config": { "type": "string", "description": "Tool handling Phases 3-11 (e.g. PowerShell, configure-sofs-cluster.yml)" }
+          }
+        }
+      },
+      "anyOf": [
+        { "required": ["guest_layout"] },
+        { "required": ["guest_volume_layout"] }
+      ]
     },
     "azure": {
       "type": "object",
@@ -44,9 +78,18 @@
         "custom_location_id": { "type": "string" },
         "logical_network_id": { "type": "string" },
         "gallery_image_name": { "type": "string" },
-        "storage_path_id": { "type": "string" },
-        "storage_path_ids": { "type": "object", "additionalProperties": { "type": "string" } }
-      }
+        "storage_path_id": { "type": "string", "description": "Legacy fallback path for single-volume host layout." },
+        "storage_path_ids": {
+          "type": "object",
+          "description": "Canonical map of per-VM storage path IDs keyed by node suffix (01, 02, ...).",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "anyOf": [
+        { "required": ["storage_path_ids"] },
+        { "required": ["storage_path_id"] }
+      ]
     },
     "vm": {
       "type": "object",
@@ -225,6 +268,15 @@
         }
       }
     },
+    "fsrm": {
+      "type": "object",
+      "description": "FSRM (File Server Resource Manager) quota settings for profile containers.",
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Enable FSRM auto-apply quotas on FSLogix share directories." },
+        "template_name": { "type": "string", "description": "FSRM quota template name.", "default": "FSLogix Profile Quota" },
+        "soft_limit": { "type": "boolean", "description": "Use soft limit (warn only) vs hard limit (block writes).", "default": true }
+      }
+    },
     "tags": {
       "type": "object",
       "additionalProperties": { "type": "string" }
@@ -244,7 +296,28 @@
       "if": {
         "properties": {
           "deployment": {
-            "properties": { "guest_volume_layout": { "const": "option_a" } },
+            "properties": {
+              "guest_layout": { "const": "single" }
+            },
+            "required": ["guest_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volume_name", "volume_size_gb", "data_copies"] },
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "share_name"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": {
+              "guest_volume_layout": { "enum": ["single", "option_a"] }
+            },
             "required": ["guest_volume_layout"]
           }
         },
@@ -261,7 +334,28 @@
       "if": {
         "properties": {
           "deployment": {
-            "properties": { "guest_volume_layout": { "const": "option_b" } },
+            "properties": {
+              "guest_layout": { "const": "triple" }
+            },
+            "required": ["guest_layout"]
+          }
+        },
+        "required": ["deployment"]
+      },
+      "then": {
+        "properties": {
+          "s2d": { "required": ["pool_name", "volumes"] },
+          "sofs": { "required": ["role_name", "cluster_name", "cluster_ip", "access_point_ip", "shares"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "deployment": {
+            "properties": {
+              "guest_volume_layout": { "enum": ["triple", "option_b"] }
+            },
             "required": ["guest_volume_layout"]
           }
         },

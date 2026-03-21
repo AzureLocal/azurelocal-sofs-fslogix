@@ -52,7 +52,8 @@ param domainOuCluster = 'OU=SOFS-Cluster,OU=Servers,DC=contoso,DC=local'
 param cloudWitnessName = 'sofscloudwitness'
 
 // --- Architecture Choices (determines which of the 10 scenarios) ---
-param guestVolumeLayout = 'option_a'
+// Canonical values: single | triple. Legacy aliases still accepted: option_a | option_b
+param guestVolumeLayout = 'single'
 param hostResiliency = 'two_way'
 param guestResiliency = 'two_way'
 
@@ -71,7 +72,7 @@ param accessPointIp = '192.168.211.61'
 param antiAffinityRule = 'SOFS-AntiAffinity'
 param azlClusterName = 'AzLocalCluster'
 
-// Option B (uncomment when guestVolumeLayout = 'option_b'):
+// Triple layout (uncomment when guestVolumeLayout = 'triple' or 'option_b'):
 // param sofsShares = [
 //   { name: 'Profiles', volume: 'Profiles' }
 //   { name: 'ODFC',     volume: 'ODFC' }

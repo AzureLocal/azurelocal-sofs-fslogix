@@ -1,7 +1,7 @@
 # Variables
 
 !!! info "This page has moved"
-    The complete variable reference — including all configuration sections, Option A/B examples, type information, defaults, and phase mapping — is now at **[Variable Reference](../reference/variables.md)**.
+    The complete variable reference — including all configuration sections, single/triple layout examples, type information, defaults, and phase mapping — is now at **[Variable Reference](../reference/variables.md)**.
 
 ## Quick Start
 

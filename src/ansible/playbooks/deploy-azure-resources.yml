@@ -30,6 +30,7 @@
     vm_count: "{{ sofs_vm_count | int }}"
     vm_processors: "{{ sofs_vm_processors | int }}"
     vm_memory_mb: "{{ sofs_vm_memory_mb | int }}"
+    vm_ips: "{{ sofs_vm_ips | default({}) }}"
     admin_username: "{{ sofs_admin_username }}"
     admin_password: "{{ sofs_admin_password }}"
     data_disk_count: "{{ sofs_data_disk_count | int }}"
@@ -116,6 +117,23 @@
       loop: "{{ range(1, vm_count | int + 1) | list }}"
       loop_control:
         label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}-nic"
+
+    - name: "Phase 1c — Apply static IPs to NICs when vm_ips are provided"
+      ansible.builtin.command: >
+        az resource update
+          --resource-group {{ resource_group }}
+          --resource-type Microsoft.AzureStackHCI/networkInterfaces
+          --name {{ vm_prefix }}-{{ '%02d' | format(item) }}-nic
+          --set properties.ipConfigurations[0].properties.privateIPAllocationMethod=Static
+          --set properties.ipConfigurations[0].properties.privateIPAddress={{ vm_ips['%02d' | format(item)] }}
+          --output none
+      loop: "{{ range(1, vm_count | int + 1) | list }}"
+      loop_control:
+        label: "{{ vm_prefix }}-{{ '%02d' | format(item) }}-nic={{ vm_ips['%02d' | format(item)] | default('') }}"
+      when:
+        - vm_ips is mapping
+        - vm_ips['%02d' | format(item)] is defined
+        - vm_ips['%02d' | format(item)] | length > 0
 
     # -----------------------------------------------------------------
     # Phase 1d: Create VMs (with per-VM storage path mapping)

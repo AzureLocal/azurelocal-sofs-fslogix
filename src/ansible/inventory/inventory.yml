@@ -31,6 +31,10 @@ all:
     sofs_vm_memory_mb: 8192
     sofs_admin_username: "LocalAdmin"
     # sofs_admin_password: !vault | (use ansible-vault encrypt_string)
+    sofs_vm_ips:
+      "01": "192.168.211.51"
+      "02": "192.168.211.52"
+      "03": "192.168.211.53"
 
     # --- Data disks ---
     sofs_data_disk_count: 4
@@ -40,11 +44,12 @@ all:
     sofs_cloud_witness_name: "stsofswitness01"
 
     # --- Architecture choices (determines which of the 10 scenarios) ---
-    sofs_guest_volume_layout: "option_a"   # option_a | option_b
+    # Canonical values: single | triple. Legacy aliases still accepted: option_a | option_b
+    sofs_guest_volume_layout: "single"
     sofs_host_resiliency: "two_way"        # two_way | three_way
     sofs_guest_resiliency: "two_way"       # two_way | three_way
 
-    # --- Guest cluster configuration (Option A) ---
+    # --- Guest cluster configuration (Single layout) ---
     sofs_cluster_name: "SOFS-Cluster"
     sofs_cluster_ip: "192.168.211.60"
     sofs_access_point: "FSLogixSOFS"
@@ -57,7 +62,7 @@ all:
     sofs_smb_encryption: true
     sofs_access_point_ip: "192.168.211.61"
 
-    # --- Option B: multiple volumes/shares (uncomment when layout = option_b) ---
+    # --- Triple layout: multiple volumes/shares (uncomment when layout = triple/option_b) ---
     # sofs_shares:
     #   - name: "Profiles"
     #     volume: "Profiles"

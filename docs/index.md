@@ -11,7 +11,7 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 ## Architecture at a Glance
 
-![SOFS Architecture — Three Volume Option B](assets/images/sofs-arch-3vol-option-b.png)
+![SOFS Architecture — Three Volume Triple layout](assets/images/sofs-arch-3vol-triple.png)
 
 Three Windows Server VMs form a guest **Storage Spaces Direct** cluster on Azure Local. An anti-affinity rule keeps each VM on a separate physical node for host-level resiliency. The guest S2D cluster presents a **Scale-Out File Server** role with continuously available SMB shares that FSLogix uses to store user profile VHDXs.
 

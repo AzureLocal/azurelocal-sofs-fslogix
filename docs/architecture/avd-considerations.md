@@ -40,7 +40,7 @@ How your AVD host pool is configured directly affects SOFS design choices.
 - Larger per-user VHDXs (users accumulate data over time)
 - Fewer users per host (typically 1:1)
 - **Low logon storm risk** — users log in throughout the day, not all at once
-- Design impact: Option A (single share) is almost always sufficient
+- Design impact: Single layout (single share) is almost always sufficient
 
 ### Pooled Desktops
 
@@ -49,7 +49,7 @@ How your AVD host pool is configured directly affects SOFS design choices.
 - Smaller per-user VHDXs but much higher I/O churn (profile load/unload on every session)
 - Many users per host (20–50 per VM is typical)
 - **High logon storm risk** — shift changes, morning starts, and maintenance windows create massive concurrent I/O
-- Design impact: Option B (split shares) becomes important at scale to isolate NTFS metadata contention
+- Design impact: Triple layout (split shares) becomes important at scale to isolate NTFS metadata contention
 
 ### Impact on SOFS Design
 
@@ -58,7 +58,7 @@ How your AVD host pool is configured directly affects SOFS design choices.
 | FSLogix criticality | Nice-to-have (local profile exists) | Mission-critical (no local state) |
 | Per-user VHDX size | 30–50 GB typical | 10–30 GB typical |
 | Concurrent logon I/O | Low (staggered) | High (storm) |
-| Recommended share model | Option A | Option A (<500 users) or Option B (500+) |
+| Recommended share model | Single layout | Single layout (<500 users) or Triple layout (500+) |
 | Capacity planning driver | VHDX size × users | IOPS during logon storms |
 
 ---
@@ -84,7 +84,7 @@ When 50 users on a single session host log in within a 5-minute window, the SOFS
 
 With 20 session hosts × 50 users = 1,000 concurrent logons, the SOFS sees a burst of 1,000 VHDX mount operations competing for NTFS lock time, change journal writes, and SMB credits.
 
-This is exactly the scenario where [Option B (split shares)](storage-design.md#option-b-three-volumes-granular) matters — separating Profiles, ODFC, and AppData volumes means Outlook cache writes don't compete with profile loads for NTFS metadata locks.
+This is exactly the scenario where [Triple layout (split shares)](storage-design.md#triple-layout-three-volumes-granular) matters — separating Profiles, ODFC, and AppData volumes means Outlook cache writes don't compete with profile loads for NTFS metadata locks.
 
 ---
 
@@ -151,7 +151,7 @@ The FSLogix `SizeInMBs` registry value sets the maximum VHDX size per user. Plan
 
 **What drives profile size:**
 
-- **Outlook OST** — The largest single contributor. A heavy Outlook user can have a 10–20 GB OST file. With Option B, this goes into the ODFC container instead of the profile container.
+- **Outlook OST** — The largest single contributor. A heavy Outlook user can have a 10–20 GB OST file. With Triple layout, this goes into the ODFC container instead of the profile container.
 - **OneDrive cache** — Files-On-Demand means only opened files consume VHDX space, but aggressive users can cache gigabytes
 - **Teams cache** — Meeting recordings, chat attachments, and media thumbnails accumulate
 - **Application data** — Chrome/Edge profiles, specialized application databases

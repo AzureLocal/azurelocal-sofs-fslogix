@@ -23,7 +23,7 @@ variables {
   custom_location_id  = "/subscriptions/00000000/resourceGroups/rg/providers/Microsoft.ExtendedLocation/customLocations/cl"
   logical_network_id  = "/subscriptions/00000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/logicalNetworks/ln"
   gallery_image_id    = "/subscriptions/00000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/marketplaceGalleryImages/img"
-  storage_path_ids    = { "01" = "/sub/rg/sp-01", "02" = "/sub/rg/sp-02", "03" = "/sub/rg/sp-03" }
+  storage_path_ids    = { "01" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/storageContainers/sp-01", "02" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/storageContainers/sp-02", "03" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/storageContainers/sp-03" }
   key_vault_name      = "kv-test"
   cloud_witness_name  = "stwitness01"
   cluster_name        = "SOFS-Test"
@@ -140,9 +140,25 @@ run "cloud_witness_name_too_long_fails" {
 }
 
 # ---------------------------------------------------------------------------
-# 5. guest_volume_layout — option_a or option_b only
+# 5. guest_volume_layout — canonical and legacy values accepted
 # ---------------------------------------------------------------------------
-run "guest_volume_layout_option_a_passes" {
+run "guest_volume_layout_single_passes" {
+  command = plan
+
+  variables {
+    guest_volume_layout = "single"
+  }
+}
+
+run "guest_volume_layout_triple_passes" {
+  command = plan
+
+  variables {
+    guest_volume_layout = "triple"
+  }
+}
+
+run "guest_volume_layout_option_a_alias_passes" {
   command = plan
 
   variables {
@@ -150,7 +166,7 @@ run "guest_volume_layout_option_a_passes" {
   }
 }
 
-run "guest_volume_layout_option_b_passes" {
+run "guest_volume_layout_option_b_alias_passes" {
   command = plan
 
   variables {
@@ -251,6 +267,14 @@ run "guest_config_engine_ansible_create_passes" {
   }
 }
 
+run "guest_config_engine_ansible_existing_passes" {
+  command = plan
+
+  variables {
+    guest_config_engine = "ansible_existing"
+  }
+}
+
 run "guest_config_engine_invalid_fails" {
   command = plan
 
@@ -291,5 +315,59 @@ run "winrm_transport_invalid_fails" {
 
   expect_failures = [
     var.winrm_transport,
+  ]
+}
+
+# ---------------------------------------------------------------------------
+# 10. storage_path_ids — non-empty, zero-padded keys, ARM ID values
+# ---------------------------------------------------------------------------
+run "storage_path_ids_valid_passes" {
+  command = plan
+
+  variables {
+    storage_path_ids = {
+      "01" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/storageContainers/sp-01"
+      "02" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.AzureStackHCI/storageContainers/sp-02"
+    }
+  }
+}
+
+run "storage_path_ids_empty_fails" {
+  command = plan
+
+  variables {
+    storage_path_ids = {}
+  }
+
+  expect_failures = [
+    var.storage_path_ids,
+  ]
+}
+
+run "storage_path_ids_bad_key_format_fails" {
+  command = plan
+
+  variables {
+    storage_path_ids = {
+      "1" = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/sp-01"
+    }
+  }
+
+  expect_failures = [
+    var.storage_path_ids,
+  ]
+}
+
+run "storage_path_ids_bad_value_format_fails" {
+  command = plan
+
+  variables {
+    storage_path_ids = {
+      "01" = "not-an-arm-id"
+    }
+  }
+
+  expect_failures = [
+    var.storage_path_ids,
   ]
 }

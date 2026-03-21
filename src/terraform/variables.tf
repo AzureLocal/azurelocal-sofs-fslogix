@@ -46,6 +46,21 @@ variable "storage_path_ids" {
   description = "Map of VM suffix (01, 02, 03) to Azure Local storage path ARM ID — spreads VMs across storage paths (wsfc_sofs_storage_path_ids)"
   type        = map(string)
   # Example: { "01" = "/subscriptions/.../sp-01", "02" = "/subscriptions/.../sp-02", "03" = "/subscriptions/.../sp-03" }
+
+  validation {
+    condition     = length(var.storage_path_ids) > 0
+    error_message = "storage_path_ids must contain at least one entry."
+  }
+
+  validation {
+    condition     = alltrue([for k, _ in var.storage_path_ids : can(regex("^[0-9]{2}$", k))])
+    error_message = "storage_path_ids keys must be zero-padded two-digit strings (e.g. \"01\", \"02\", \"03\")."
+  }
+
+  validation {
+    condition     = alltrue([for _, v in var.storage_path_ids : can(regex("^/subscriptions/[0-9a-fA-F-]+/", v))])
+    error_message = "storage_path_ids values must be valid ARM resource IDs starting with /subscriptions/{guid}/."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -137,13 +152,13 @@ variable "domain_ou_cluster" {
 # ---------------------------------------------------------------------------
 
 variable "guest_volume_layout" {
-  description = "Guest S2D volume layout: option_a (single volume/share) or option_b (three volumes/shares)"
+  description = "Guest S2D volume layout. Canonical values: single, triple. Legacy aliases: option_a -> single, option_b -> triple"
   type        = string
-  default     = "option_a"
+  default     = "single"
 
   validation {
-    condition     = contains(["option_a", "option_b"], var.guest_volume_layout)
-    error_message = "guest_volume_layout must be option_a or option_b."
+    condition     = contains(["single", "triple", "option_a", "option_b"], lower(var.guest_volume_layout))
+    error_message = "guest_volume_layout must be single, triple, option_a, or option_b."
   }
 }
 
@@ -310,17 +325,17 @@ variable "access_point" {
 }
 
 variable "share_name" {
-  description = "FSLogix SMB share name — Option A single share (wsfc_sofs_share_name)"
+  description = "FSLogix SMB share name — Single layout single share (wsfc_sofs_share_name)"
   type        = string
   default     = "FSLogix"
 }
 
 # ---------------------------------------------------------------------------
-# Option B: Multiple Shares / Volumes
+# Triple layout: Multiple Shares / Volumes
 # ---------------------------------------------------------------------------
 
 variable "sofs_shares" {
-  description = "Option B: list of SMB share definitions [{name, volume}] — used when guest_volume_layout = option_b"
+  description = "Triple layout: list of SMB share definitions [{name, volume}] — used when guest_volume_layout is triple/option_b"
   type = list(object({
     name   = string
     volume = string
@@ -329,7 +344,7 @@ variable "sofs_shares" {
 }
 
 variable "s2d_volumes" {
-  description = "Option B: list of S2D volume definitions [{name, size_gb, data_copies}] — used when guest_volume_layout = option_b"
+  description = "Triple layout: list of S2D volume definitions [{name, size_gb, data_copies}] — used when guest_volume_layout is triple/option_b"
   type = list(object({
     name        = string
     size_gb     = number

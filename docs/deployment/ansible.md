@@ -9,18 +9,18 @@ Two-playbook approach for deploying and configuring the SOFS guest cluster:
 | Playbook | Target | Description |
 |----------|--------|-------------|
 | `deploy-azure-resources.yml` | `localhost` | Creates Azure resources via Azure CLI including domain join |
-| `configure-sofs-cluster.yml` | `sofs_nodes` (WinRM) | Configures guest OS: anti-affinity, clustering, S2D, SOFS, shares, permissions, FSRM, Cloud Cache |
+| `configure-sofs-cluster.yml` | `sofs_nodes` (WinRM) | Configures guest OS: anti-affinity, clustering, S2D, SOFS, shares, permissions, Cloud Cache |
 
 ### Capability
 
 | Capability | Supported |
 |-----------|:---------:|
 | Azure resource provisioning | ✅ |
-| Domain join (JsonADDomainExtension) | ✅ (Phase 4) |
+| Domain join (JsonADDomainExtension) | ✅ (Phase 2) |
 | Anti-affinity rules | ✅ (Phase 3) |
 | Guest OS configuration (WinRM) | ✅ (Phases 3–11) |
-| Option A/B volume layouts | ✅ |
-| FSRM quotas | ✅ |
+| Single/triple layout handling | ✅ |
+| FSRM quotas | ❌ (use PowerShell path) |
 | Cloud Cache DR (multi-provider) | ✅ |
 
 ---
@@ -43,7 +43,7 @@ Two-playbook approach for deploying and configuring the SOFS guest cluster:
 
 | File | Purpose |
 |------|---------|
-| `inventory/inventory.yml` | Host inventory + all SOFS variables (Option A/B, permissions, Cloud Cache) |
+| `inventory/inventory.yml` | Host inventory + all SOFS variables (single/triple layout, permissions, Cloud Cache) |
 | `inventory/hosts.example.yml` | Example host inventory with `sofs_nodes` and `host_cluster` groups |
 | `playbooks/deploy-azure-resources.yml` | Playbook 1: Azure resource deployment + domain join |
 | `playbooks/configure-sofs-cluster.yml` | Playbook 2: Guest cluster configuration (Phases 3–11) |
@@ -117,14 +117,14 @@ ansible-playbook -i inventory.yml configure-sofs-cluster.yml \
 |-------|--------|
 | 3 | Create anti-affinity rule on Azure Local host cluster |
 | 4 | Verify domain join |
-| 5 | Install Failover-Clustering, FS-FileServer, FS-Resource-Manager, RSAT tools |
+| 5 | Install Failover-Clustering, FS-FileServer, RSAT tools |
 | 6 | Create failover cluster, configure cloud witness |
-| 7 | Enable S2D, apply guest tuning, create S2D volume(s) — Option A or Option B |
+| 7 | Enable S2D, apply guest tuning, create S2D volume(s) — Single layout or Triple layout |
 | 8 | Add SOFS role, create SMB shares (CA + ABE) |
 | 9 | Set NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
-| 9b | Configure FSRM quotas |
+| 9b | FSRM quotas (not implemented in current Ansible playbook) |
 | 9c | Configure Cloud Cache CCDLocations (multi-provider) |
-| 10 | Configure antivirus exclusions |
+| 10 | Antivirus exclusions (not implemented in current Ansible playbook) |
 | 11 | Run validation checks |
 
 ---
@@ -186,7 +186,7 @@ Ansible inventory variables correspond to the central `config/variables.yml` str
 | `s2d.data_copies` | `s2d_data_copies` |
 | `domain.fqdn` | `domain_fqdn` |
 | `domain.netbios` | `domain_netbios` |
-| `deployment.guest_volume_layout` | `sofs_guest_volume_layout` |
+| `deployment.guest_layout` | `sofs_guest_volume_layout` |
 | `deployment.guest_resiliency` | `sofs_guest_resiliency` |
 | `permissions.*` | `sofs_admin_group`, `sofs_users_group` |
 | `fslogix.cloud_cache.providers` | `sofs_cloud_cache_providers` |

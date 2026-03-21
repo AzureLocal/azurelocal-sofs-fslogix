@@ -193,6 +193,144 @@ jobs:
           echo "✅ ARM template matches Bicep source"
 
   # ---------------------------------------------------------------------------
+  # Contract Validation — cross-tool consistency checks
+  # ---------------------------------------------------------------------------
+  contract:
+    name: Contract Validation
+    needs: [schema, bicep]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml jsonschema
+
+      - name: Validate schema $defs.examples
+        run: |
+          python3 -c "
+          import json, sys
+          from jsonschema import validate, ValidationError
+
+          with open('config/schema/variables.schema.json') as f:
+              schema = json.load(f)
+
+          examples = schema.get('\$defs', {}).get('examples', {})
+          if not examples:
+              print('⚠️  No \$defs.examples in schema — skipping')
+              sys.exit(0)
+
+          failed = 0
+          for name, example in examples.items():
+              try:
+                  validate(instance=example, schema=schema)
+                  print(f'✅ Example \"{name}\" passes schema validation')
+              except ValidationError as e:
+                  print(f'❌ Example \"{name}\" failed: {e.message}')
+                  failed += 1
+
+          if failed:
+              sys.exit(1)
+          "
+
+      - name: Verify Bicep pass-through annotations exist
+        run: |
+          # Ensure guest-phase params have passThrough metadata
+          count=$(grep -c "passThrough: true" src/bicep/main.bicep || true)
+          echo "Found $count pass-through annotations in main.bicep"
+          if [ "$count" -lt 5 ]; then
+            echo "❌ Expected at least 5 pass-through parameter annotations"
+            exit 1
+          fi
+          echo "✅ Pass-through contract: $count annotated parameters"
+
+      - name: Verify ARM parity with pass-through params
+        run: |
+          # Pass-through params in Bicep should appear in ARM parameters
+          python3 -c "
+          import json, re
+
+          with open('src/arm/azuredeploy.json') as f:
+              arm = json.load(f)
+
+          with open('src/bicep/main.bicep') as f:
+              bicep = f.read()
+
+          # Find pass-through param names from Bicep
+          pattern = r'@metadata\(\{[^}]*passThrough:\s*true[^}]*\}\)\s*(?:@\w+[^\n]*\n\s*)*param\s+(\w+)'
+          pt_params = re.findall(pattern, bicep)
+          print(f'Pass-through params in Bicep: {len(pt_params)}')
+
+          # Verify each exists in ARM parameters
+          arm_params = set(arm.get('parameters', {}).keys())
+          missing = [p for p in pt_params if p not in arm_params]
+          if missing:
+              print(f'❌ Missing in ARM: {missing}')
+              exit(1)
+          print('✅ All pass-through params present in ARM template')
+          "
+
+      - name: Verify legacy alias normalization
+        run: |
+          python3 -c "
+          import yaml, sys
+
+          with open('config/variables.example.yml') as f:
+              data = yaml.safe_load(f)
+
+          layout = data.get('deployment', {}).get('guest_layout', '')
+          if layout not in ('single', 'triple'):
+              print(f'❌ variables.example.yml uses non-canonical layout: {layout}')
+              sys.exit(1)
+          print(f'✅ variables.example.yml uses canonical layout: {layout}')
+          "
+
+      - name: Verify documentation matrix freshness
+        run: |
+          python3 -c "
+          import sys, os
+
+          required_docs = {
+              'docs/reference/phase-ownership.md': [
+                  '## 11-Phase Deployment Model',
+                  '## Phase 0 Decision Tree',
+                  '## Pass-Through Parameter Contract',
+                  '## Legacy Naming Deprecation Timeline',
+                  '## Cross-Repository Dependencies',
+              ],
+              'tests/VALIDATION-MATRIX.md': [
+                  '## The 10 Scenarios',
+                  '## Validation Matrix',
+                  '## Phase Ownership by Tool',
+                  '## Pre-Flight Validation Report',
+              ],
+          }
+
+          failed = 0
+          for filepath, sections in required_docs.items():
+              if not os.path.exists(filepath):
+                  print(f'❌ Missing required doc: {filepath}')
+                  failed += 1
+                  continue
+
+              with open(filepath) as f:
+                  content = f.read()
+
+              missing = [s for s in sections if s not in content]
+              if missing:
+                  print(f'❌ {filepath} missing sections: {missing}')
+                  failed += 1
+              else:
+                  print(f'✅ {filepath} has all {len(sections)} required sections')
+
+          if failed:
+              sys.exit(1)
+          "
+
+  # ---------------------------------------------------------------------------
   # Ansible — ansible-lint + yamllint
   # ---------------------------------------------------------------------------
   ansible:

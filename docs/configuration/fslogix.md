@@ -11,9 +11,9 @@ FSLogix Profile Containers redirect user profiles into VHD/VHDX files stored on 
 
 ## Single Share vs Three Shares — When to Use Each
 
-The most important decision on this page is whether to put all FSLogix data on **one share** (Option A) or **three separate shares** (Option B). This choice is made during [storage design](../architecture/storage-design.md#decision-3-guest-volume-layout-share-model) and directly determines which registry keys you configure below.
+The most important decision on this page is whether to put all FSLogix data on **one share** (Single layout) or **three separate shares** (Triple layout). This choice is made during [storage design](../architecture/storage-design.md#decision-3-guest-volume-layout-share-model) and directly determines which registry keys you configure below.
 
-### Option A — Single Share
+### Single layout — Single Share
 
 | Attribute | Detail |
 |-----------|--------|
@@ -21,14 +21,14 @@ The most important decision on this page is whether to put all FSLogix data on *
 | **Guest S2D volumes** | 1 — `FSLogixData` |
 | **Best for** | Under ~500 users, low-density session hosts (< 30 users/host) |
 
-**Why choose Option A:**
+**Why choose Single layout:**
 
 - **Simplest to deploy** — one volume, one share, one FSLogix GPO path
 - **Shared free space** — no risk of one workload filling "its" volume while another has headroom
 - **Fewer monitoring targets** — one volume to watch, one backup job
 - **Lower operational overhead** — one set of NTFS permissions, one FSRM quota
 
-### Option B — Three Shares
+### Triple layout — Three Shares
 
 | Attribute | Detail |
 |-----------|--------|
@@ -36,7 +36,7 @@ The most important decision on this page is whether to put all FSLogix data on *
 | **Guest S2D volumes** | 3 — one per share |
 | **Best for** | 500+ users, high-density session hosts (50+ users/host), heavy Outlook/Teams |
 
-**Why choose Option B:**
+**Why choose Triple layout:**
 
 - **NTFS metadata isolation** — Each volume has its own MFT and change journal. Outlook OST write churn on the ODFC volume doesn't compete with profile writes for NTFS lock time on the Profiles volume.
 - **Logon storm resilience** — Heavy AppData syncs (Chrome profiles, specialized apps) only slow the AppData volume. Profiles stays responsive — Start Menu and Desktop load fast.
@@ -46,7 +46,7 @@ The most important decision on this page is whether to put all FSLogix data on *
 
 ### Quick Decision Table
 
-| Factor | Option A | Option B |
+| Factor | Single layout | Triple layout |
 |--------|----------|----------|
 | User count | < 500 | 500+ |
 | Session host density | < 30 users/host | 50+ users/host |
@@ -55,14 +55,14 @@ The most important decision on this page is whether to put all FSLogix data on *
 | Operational complexity | Lower | Higher (3× shares, permissions, backups) |
 | NTFS contention risk | Acceptable | Needs isolation |
 
-!!! tip "When in doubt, start with Option A"
-    You can always split later by adding ODFC and AppData volumes. Going from Option B back to Option A requires migrating all user data into a single volume — much harder.
+!!! tip "When in doubt, start with Single layout"
+    You can always split later by adding ODFC and AppData volumes. Going from Triple layout back to Single layout requires migrating all user data into a single volume — much harder.
 
 For worked examples of both options with real sizing, see [Deployment Scenarios](../architecture/scenarios.md).
 
 ---
 
-## Option A — Single Share
+## Single layout — Single Share
 
 All profile data (profile container, Office data, AppData) goes into one VHDX per user on a single share.
 
@@ -87,7 +87,7 @@ HKLM\SOFTWARE\FSLogix\Profiles
 
 ---
 
-## Option B — Three Shares
+## Triple layout — Three Shares
 
 Profile containers and Office Data File Containers (ODFC) are separated onto dedicated volumes.
 

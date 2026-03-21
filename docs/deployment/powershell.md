@@ -119,7 +119,7 @@ Comprehensive WinRM/PSRemoting-based script run from a management workstation. *
 | 5 | Install Failover-Clustering, FS-FileServer, FS-Resource-Manager, RSAT tools |
 | 5b | Add domain join account to local Administrators |
 | 6 | Validate cluster prerequisites, create failover cluster, configure cloud witness |
-| 7 | Clean data disks, enable S2D, apply guest tuning, create S2D volume(s) — Option A (single) or Option B (three) |
+| 7 | Clean data disks, enable S2D, apply guest tuning, create S2D volume(s) — Single layout (single) or Triple layout (three) |
 | 8 | Pre-stage AD objects, add SOFS Scale-Out File Server role, create SMB share(s) with CA + ABE |
 | 9 | Apply NTFS permissions (CREATOR OWNER, Domain Users, Domain Admins, SYSTEM) |
 | 9b | Configure FSRM quotas (soft quota at configured profile size) |
@@ -203,16 +203,16 @@ The scripts support all 10 SOFS deployment scenarios through `config/variables.y
 
 | # | Nodes | Host Mirror | Guest Mirror | Guest Layout | Key Config Values |
 |---|-------|-------------|-------------|-------------|------------------|
-| 1 | 2 | 2-way | 2-way | Option A | `vm.count=2`, `guest_resiliency=two_way`, `guest_volume_layout=option_a` |
-| 2 | 2 | 2-way | 2-way | Option B | `vm.count=2`, `guest_resiliency=two_way`, `guest_volume_layout=option_b` |
-| 3 | 2 | 3-way | 2-way | Option A | `vm.count=2`, `host_resiliency=three_way`, `guest_volume_layout=option_a` |
-| 4 | 2 | 3-way | 2-way | Option B | `vm.count=2`, `host_resiliency=three_way`, `guest_volume_layout=option_b` |
-| 5 | 3 | 2-way | 2-way | Option A | `vm.count=3`, `guest_resiliency=two_way`, `guest_volume_layout=option_a` |
-| 6 | 3 | 2-way | 2-way | Option B | `vm.count=3`, `guest_resiliency=two_way`, `guest_volume_layout=option_b` |
-| 7 | 3 | 2-way | 3-way | Option A | `vm.count=3`, `guest_resiliency=three_way`, `guest_volume_layout=option_a` |
-| 8 | 3 | 2-way | 3-way | Option B | `vm.count=3`, `guest_resiliency=three_way`, `guest_volume_layout=option_b` |
-| 9 | 3 | 3-way | 2-way | Option A | `vm.count=3`, `host_resiliency=three_way`, `guest_volume_layout=option_a` |
-| 10 | 3 | 3-way | 3-way | Option B | `vm.count=3`, `host_resiliency=three_way`, `guest_volume_layout=option_b` |
+| 1 | 2 | 2-way | 2-way | Single layout | `vm.count=2`, `guest_resiliency=two_way`, `guest_layout=single` |
+| 2 | 2 | 2-way | 2-way | Triple layout | `vm.count=2`, `guest_resiliency=two_way`, `guest_layout=triple` |
+| 3 | 2 | 3-way | 2-way | Single layout | `vm.count=2`, `host_resiliency=three_way`, `guest_layout=single` |
+| 4 | 2 | 3-way | 2-way | Triple layout | `vm.count=2`, `host_resiliency=three_way`, `guest_layout=triple` |
+| 5 | 3 | 2-way | 2-way | Single layout | `vm.count=3`, `guest_resiliency=two_way`, `guest_layout=single` |
+| 6 | 3 | 2-way | 2-way | Triple layout | `vm.count=3`, `guest_resiliency=two_way`, `guest_layout=triple` |
+| 7 | 3 | 2-way | 3-way | Single layout | `vm.count=3`, `guest_resiliency=three_way`, `guest_layout=single` |
+| 8 | 3 | 2-way | 3-way | Triple layout | `vm.count=3`, `guest_resiliency=three_way`, `guest_layout=triple` |
+| 9 | 3 | 3-way | 2-way | Single layout | `vm.count=3`, `host_resiliency=three_way`, `guest_layout=single` |
+| 10 | 3 | 3-way | 3-way | Triple layout | `vm.count=3`, `host_resiliency=three_way`, `guest_layout=triple` |
 
 ---
 
@@ -227,8 +227,8 @@ The PowerShell scripts support all deployment combinations through `config/varia
 | Single host volume | `azure_local.storage_path_id` with one entry |
 | Two-way guest mirror | `deployment.guest_resiliency: two_way` |
 | Three-way guest mirror | `deployment.guest_resiliency: three_way` |
-| Option A (single volume/share) | `deployment.guest_volume_layout: option_a` |
-| Option B (three volumes/shares) | `deployment.guest_volume_layout: option_b` |
+| Single layout (single volume/share) | `deployment.guest_layout: single` |
+| Triple layout (three volumes/shares) | `deployment.guest_layout: triple` |
 | FSRM quotas | `fslogix.profile_size_mb` (auto-creates soft quota) |
 | Cloud Cache DR | `fslogix.cloud_cache.providers[]` (multi-provider) |
 | SMB encryption | `sofs.smb_encryption: true/false` |

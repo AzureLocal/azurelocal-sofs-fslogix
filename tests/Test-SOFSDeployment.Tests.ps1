@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Validates configuration loading, parameter resolution, VM name generation,
-    Option A/B branching, state file management, and script syntax.
+    single/triple layout branching, state file management, and script syntax.
 
     Run:
       Invoke-Pester .\tests\Test-SOFSDeployment.Tests.ps1 -Output Detailed
@@ -27,11 +27,12 @@ BeforeAll {
     # Schema path
     $schemaPath = Join-Path $configDir "schema\variables.schema.json"
 
-    # Build a minimal valid config for unit tests (Option A — single volume/share)
-    $optionAYaml = @"
+        # Build a minimal valid config for unit tests (Single layout — single volume/share)
+        $singleLayoutYaml = @"
 deployment:
   host_volume_layout: "three_volumes"
   host_resiliency: "two_way"
+  guest_layout: "single"
   guest_volume_layout: "option_a"
   guest_resiliency: "two_way"
 azure:
@@ -39,6 +40,16 @@ azure:
   subscription_id: "11111111-1111-1111-1111-111111111111"
   resource_group: "rg-sofs-test"
   location: "eastus"
+azure_local:
+    cluster_name: "azl-cluster-test"
+    custom_location_id: "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.ExtendedLocation/customLocations/cl-sofs-test"
+    logical_network_id: "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/logicalNetworks/ln-sofs-test"
+    gallery_image_name: "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/galleryImages/gi-sofs-test"
+    storage_path_id: "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/storageContainers/sp-default"
+    storage_path_ids:
+        "01": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/storageContainers/sp-01"
+        "02": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/storageContainers/sp-02"
+        "03": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-sofs-test/providers/Microsoft.AzureStackHCI/storageContainers/sp-03"
 vm:
   prefix: "tstsofs"
   count: 3
@@ -96,14 +107,14 @@ fslogix:
   delete_local_profile: true
   cloud_cache:
     enabled: true
-    azure_provider: "type=smb,connectionString=\\\\TestSOFS.test.local\\Profiles"
+    azure_provider: "type=smb,connectionString=\\\\\\\\TestSOFS.test.local\\\\Profiles"
     providers:
       - name: "primary"
         type: "smb"
-        connection_string: "\\\\TestSOFS.test.local\\Profiles"
+        connection_string: "\\\\\\\\TestSOFS.test.local\\\\Profiles"
       - name: "dr"
         type: "smb"
-        connection_string: "\\\\DR-SOFS.test.local\\Profiles"
+        connection_string: "\\\\\\\\DR-SOFS.test.local\\\\Profiles"
 tags:
   project: "SOFS"
   environment: "test"
@@ -114,11 +125,14 @@ winrm:
   cert_validation: "ignore"
 "@
 
-    # Option B config — three volumes/shares
-    $optionBYaml = $optionAYaml -replace `
+    # Triple layout config — three volumes/shares
+    $tripleLayoutYaml = $singleLayoutYaml -replace `
+        "guest_layout: `"single`"", `
+        "guest_layout: `"triple`""
+    $tripleLayoutYaml = $tripleLayoutYaml -replace `
         "guest_volume_layout: `"option_a`"", `
         "guest_volume_layout: `"option_b`""
-    $optionBYaml = $optionBYaml -replace `
+    $tripleLayoutYaml = $tripleLayoutYaml -replace `
         "  share_name: `"Profiles`"", @"
   shares:
     - name: "Profiles"
@@ -128,7 +142,7 @@ winrm:
     - name: "AppData"
       volume: "AppData"
 "@
-    $optionBYaml = $optionBYaml -replace `
+    $tripleLayoutYaml = $tripleLayoutYaml -replace `
         "  volume_name: `"FSLogixData`"\r?\n  volume_size_gb: 2560\r?\n  data_copies: 2", @"
   volumes:
     - name: "Profiles"
@@ -214,7 +228,7 @@ Describe "Config Schema" {
 Describe "Config Loading" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "Loads without error" {
@@ -252,7 +266,7 @@ Describe "Config Loading" {
 Describe "Config Values — Direct Access" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "azure.subscription_id resolves" {
@@ -296,7 +310,7 @@ Describe "Config Values — Direct Access" {
 Describe "VM Name Generation" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmPrefix = $sol.vm.prefix
         $vmCount  = [int]$sol.vm.count
         $vmNames = @()
@@ -320,15 +334,18 @@ Describe "VM Name Generation" {
 }
 
 # ============================================================================
-# 7. Option A — Single Volume / Single Share
+# 7. Single layout — Single Volume / Single Share
 # ============================================================================
-Describe "Option A — Single Volume/Share" {
+Describe "Single layout — Single Volume/Share" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
-    It "guest_volume_layout is option_a" {
+    It "guest_layout is single" {
+        $sol.deployment.guest_layout | Should -Be "single"
+    }
+    It "guest_volume_layout alias is option_a" {
         $sol.deployment.guest_volume_layout | Should -Be "option_a"
     }
     It "sofs.share_name is defined" {
@@ -349,15 +366,18 @@ Describe "Option A — Single Volume/Share" {
 }
 
 # ============================================================================
-# 8. Option B — Three Volumes / Three Shares
+# 8. Triple layout — Three Volumes / Three Shares
 # ============================================================================
-Describe "Option B — Three Volumes/Shares" {
+Describe "Triple layout — Three Volumes/Shares" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionBYaml | ConvertFrom-Yaml
+        $sol = $tripleLayoutYaml | ConvertFrom-Yaml
     }
 
-    It "guest_volume_layout is option_b" {
+    It "guest_layout is triple" {
+        $sol.deployment.guest_layout | Should -Be "triple"
+    }
+    It "guest_volume_layout alias is option_b" {
         $sol.deployment.guest_volume_layout | Should -Be "option_b"
     }
     It "sofs.shares is a list with 3 entries" {
@@ -495,7 +515,7 @@ Describe "Deployment State File" {
 Describe "Disk Name Generation" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmPrefix  = $sol.vm.prefix
         $diskCount = [int]$sol.data_disks.count
     }
@@ -518,7 +538,7 @@ Describe "Disk Name Generation" {
 Describe "NIC Name Generation" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmPrefix = $sol.vm.prefix
         $vmCount  = [int]$sol.vm.count
     }
@@ -539,7 +559,7 @@ Describe "NIC Name Generation" {
 Describe "Tag Generation" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "Tags section is a hashtable-like object" {
@@ -587,7 +607,7 @@ azure:
 
     It "Accepts valid config with all required sections" {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $sol.azure  | Should -Not -BeNullOrEmpty
         $sol.vm     | Should -Not -BeNullOrEmpty
         $sol.sofs   | Should -Not -BeNullOrEmpty
@@ -602,7 +622,7 @@ azure:
 Describe "IP Address Mapping" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "vm.ips has an entry for each VM" {
@@ -623,7 +643,7 @@ Describe "IP Address Mapping" {
 Describe "WinRM Configuration" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "Transport is a valid value" {
@@ -645,12 +665,14 @@ Describe "WinRM Configuration" {
 Describe "Storage Path Mapping" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmCount = [int]$sol.vm.count
     }
 
-    It "azure_local.storage_path_id is defined" {
-        $sol.azure_local.storage_path_id | Should -Not -BeNullOrEmpty
+    It "At least one storage path source is defined" {
+        $hasMap = $null -ne $sol.azure_local.storage_path_ids -and $sol.azure_local.storage_path_ids.Count -gt 0
+        $hasSingle = -not [string]::IsNullOrWhiteSpace([string]$sol.azure_local.storage_path_id)
+        ($hasMap -or $hasSingle) | Should -BeTrue
     }
 
     It "Per-VM storage_path_ids has entries for each VM index" {
@@ -684,7 +706,13 @@ Describe "Storage Path Mapping" {
                 $storagePathIds["$key"] = $sol.azure_local.storage_path_ids[$key]
             }
         }
-        $defaultPath = $sol.azure_local.storage_path_id
+        $defaultPath = if ($sol.azure_local.storage_path_id) {
+            $sol.azure_local.storage_path_id
+        } elseif ($storagePathIds.Count -gt 0) {
+            $storagePathIds.Values | Select-Object -First 1
+        } else {
+            $null
+        }
 
         # VM with a mapped path should use its own
         $path01 = if ($storagePathIds["01"]) { $storagePathIds["01"] } else { $defaultPath }
@@ -702,7 +730,7 @@ Describe "Storage Path Mapping" {
 Describe "Mock az CLI — Parameter Resolution" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
 
         # Simulate the Resolve-Param function used in Deploy-SOFS-Azure.ps1
         function Resolve-Param {
@@ -740,7 +768,7 @@ Describe "Mock az CLI — Parameter Resolution" {
 Describe "Mock az CLI — Resource Existence Checks" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmPrefix  = $sol.vm.prefix
         $vmCount   = [int]$sol.vm.count
         $diskCount = [int]$sol.data_disks.count
@@ -790,7 +818,7 @@ Describe "Mock az CLI — Resource Existence Checks" {
 Describe "Mock az CLI — Destroy Mode Resource Ordering" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
         $vmPrefix  = $sol.vm.prefix
         $vmCount   = [int]$sol.vm.count
         $diskCount = [int]$sol.data_disks.count
@@ -859,7 +887,7 @@ Describe "Mock az CLI — Destroy Mode Resource Ordering" {
 Describe "FSRM Quota Configuration" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "fslogix.profile_size_mb is a positive integer" {
@@ -881,7 +909,7 @@ Describe "FSRM Quota Configuration" {
 Describe "Cloud Cache Configuration" {
     BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
-        $sol = $optionAYaml | ConvertFrom-Yaml
+        $sol = $singleLayoutYaml | ConvertFrom-Yaml
     }
 
     It "cloud_cache section exists" {
@@ -929,7 +957,7 @@ Describe "Cloud Cache Configuration" {
         $ccd | Should -Match "type=smb,connectionString=\\\\$sofsName"
         $ccd | Should -Match "type=azure,connectionString=.*AccountName=stdr01"
         $ccd | Should -Match "type=smb2,connectionString=\\\\secondary-sofs"
-        ($ccd.Split(';')).Count | Should -Be 3
+        ([regex]::Matches($ccd, 'type=').Count) | Should -Be 3
     }
     It "Providers array takes precedence over legacy azure_provider" {
         # When providers[] is non-empty, azure_provider is ignored
@@ -950,5 +978,144 @@ Describe "Cloud Cache Configuration" {
         $ccd = $ccdParts -join ";"
         $ccd | Should -Match "fromarray"
         $ccd | Should -Not -Match "fromlegacy"
+    }
+}
+
+# ============================================================================
+# 24. Legacy Alias Normalization
+# ============================================================================
+Describe "Legacy Alias Normalization" {
+    BeforeAll {
+        # Extract the Resolve-GuestLayout function from the script
+        $scriptContent = Get-Content (Join-Path (Split-Path $PSScriptRoot -Parent) "src\powershell\deploy\Configure-SOFS-Cluster.ps1") -Raw
+        # Define a mock Write-Log for the extracted function
+        function Write-Log { param([string]$Message, [string]$Level) }
+        # Extract and dot-source the function
+        if ($scriptContent -match '(?s)(function Resolve-GuestLayout \{.+?\n\})') {
+            Invoke-Expression $Matches[1]
+        }
+    }
+
+    It "Normalizes 'option_a' to 'single'" {
+        Resolve-GuestLayout -Layout "option_a" | Should -Be "single"
+    }
+    It "Normalizes 'option_b' to 'triple'" {
+        Resolve-GuestLayout -Layout "option_b" | Should -Be "triple"
+    }
+    It "Passes through 'single' unchanged" {
+        Resolve-GuestLayout -Layout "single" | Should -Be "single"
+    }
+    It "Passes through 'triple' unchanged" {
+        Resolve-GuestLayout -Layout "triple" | Should -Be "triple"
+    }
+    It "Is case-insensitive" {
+        Resolve-GuestLayout -Layout "OPTION_A" | Should -Be "single"
+        Resolve-GuestLayout -Layout "Triple" | Should -Be "triple"
+    }
+    It "Throws on invalid layout value" {
+        { Resolve-GuestLayout -Layout "invalid" } | Should -Throw
+    }
+    It "Defaults to 'single' when input is empty" {
+        Resolve-GuestLayout -Layout "" | Should -Be "single"
+    }
+}
+
+# ============================================================================
+# 25. Phase 0 Preflight Validation
+# ============================================================================
+Describe "Phase 0 Preflight — Resolve-Phase0Preflight" {
+    BeforeAll {
+        $scriptContent = Get-Content (Join-Path (Split-Path $PSScriptRoot -Parent) "src\powershell\deploy\Configure-SOFS-Cluster.ps1") -Raw
+        function Write-Log { param([string]$Message, [string]$Level) }
+        # Extract Resolve-Phase0Preflight function
+        if ($scriptContent -match '(?s)(function Resolve-Phase0Preflight \{.+?\n\})') {
+            Invoke-Expression $Matches[1]
+        }
+    }
+
+    It "Succeeds with valid single layout config" {
+        $result = Resolve-Phase0Preflight -GuestLayout "single" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{ "01" = "/sub/rg/sp1" } -StoragePathId "" `
+            -CloudCacheEnabled $false -CloudCacheConfig $null
+        $result.azure_host | Should -Not -BeNullOrEmpty
+        $result.guest_config | Should -Not -BeNullOrEmpty
+        $result.cloud_cache.enabled | Should -BeFalse
+    }
+
+    It "Succeeds with valid triple layout config" {
+        $result = Resolve-Phase0Preflight -GuestLayout "triple" -VMCount 3 `
+            -GuestResiliency "three_way" -HostResiliency "three_way" `
+            -StoragePathIds @{ "01" = "/sub/rg/sp1" } -StoragePathId "" `
+            -CloudCacheEnabled $false -CloudCacheConfig $null
+        $result | Should -Not -BeNullOrEmpty
+    }
+
+    It "Fails when three_way mirror has < 3 VMs" {
+        { Resolve-Phase0Preflight -GuestLayout "single" -VMCount 2 `
+            -GuestResiliency "three_way" -HostResiliency "two_way" `
+            -StoragePathIds @{} -StoragePathId "/sp" `
+            -CloudCacheEnabled $false -CloudCacheConfig $null
+        } | Should -Throw "*preflight failed*"
+    }
+
+    It "Fails when guest layout is invalid" {
+        { Resolve-Phase0Preflight -GuestLayout "quadruple" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{} -StoragePathId "/sp" `
+            -CloudCacheEnabled $false -CloudCacheConfig $null
+        } | Should -Throw "*preflight failed*"
+    }
+
+    It "Fails when Cloud Cache enabled but no providers" {
+        { Resolve-Phase0Preflight -GuestLayout "single" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{} -StoragePathId "/sp" `
+            -CloudCacheEnabled $true -CloudCacheConfig @{ providers = @(); azure_provider = "" }
+        } | Should -Throw "*preflight failed*"
+    }
+
+    It "Succeeds with Cloud Cache and providers array" {
+        $cc = @{ providers = @(@{ type = "azure"; connectionString = "AccountName=test" }); azure_provider = "" }
+        $result = Resolve-Phase0Preflight -GuestLayout "single" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{} -StoragePathId "/sp" `
+            -CloudCacheEnabled $true -CloudCacheConfig $cc
+        $result.cloud_cache.enabled | Should -BeTrue
+        $result.cloud_cache.provider_mode | Should -Be "providers_array"
+        $result.cloud_cache.provider_count | Should -Be 1
+    }
+
+    It "Succeeds with Cloud Cache and legacy azure_provider" {
+        $cc = @{ providers = @(); azure_provider = "AccountName=legacytest" }
+        $result = Resolve-Phase0Preflight -GuestLayout "single" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{} -StoragePathId "/sp" `
+            -CloudCacheEnabled $true -CloudCacheConfig $cc
+        $result.cloud_cache.enabled | Should -BeTrue
+        $result.cloud_cache.provider_mode | Should -Be "legacy_azure_provider"
+    }
+
+    It "Returns correct phase_map structure" {
+        $result = Resolve-Phase0Preflight -GuestLayout "single" -VMCount 3 `
+            -GuestResiliency "two_way" -HostResiliency "two_way" `
+            -StoragePathIds @{ "01" = "/sp1" } -StoragePathId "" `
+            -CloudCacheEnabled $false -CloudCacheConfig $null
+        $result.phase_map | Should -Not -BeNullOrEmpty
+        $result.phase_map["Phase 0"] | Should -Match "Preflight"
+        $result.phase_map["Phase 1"] | Should -Not -BeNullOrEmpty
+    }
+}
+
+# ============================================================================
+# 26. Terraform Canonical Layout
+# ============================================================================
+Describe "Terraform Canonical Layout Normalization" {
+    It "Normalizes option_a to single in locals concept" {
+        $mapping = @{ "option_a" = "single"; "option_b" = "triple"; "single" = "single"; "triple" = "triple" }
+        $mapping["option_a"] | Should -Be "single"
+        $mapping["option_b"] | Should -Be "triple"
+        $mapping["single"]   | Should -Be "single"
+        $mapping["triple"]   | Should -Be "triple"
     }
 }

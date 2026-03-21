@@ -126,9 +126,9 @@ param cloudWitnessName string
 // Parameters — Deployment Architecture Choices
 // ---------------------------------------------------------------------------
 
-@description('Guest S2D volume layout: option_a (single volume/share) or option_b (three volumes/shares)')
-@allowed(['option_a', 'option_b'])
-param guestVolumeLayout string = 'option_a'
+@description('Guest S2D volume layout. Canonical values: single, triple. Legacy aliases: option_a, option_b')
+@allowed(['single', 'triple', 'option_a', 'option_b'])
+param guestVolumeLayout string = 'single'
 
 @description('Host CSV mirror: two_way or three_way')
 @allowed(['two_way', 'three_way'])
@@ -140,94 +140,122 @@ param guestResiliency string = 'two_way'
 
 // ---------------------------------------------------------------------------
 // Parameters — Guest Cluster Configuration
+// These parameters are NOT consumed by Azure resource deployment (Phases 1-2).
+// They exist as pass-through metadata for downstream guest configuration tools
+// (PowerShell, Ansible) that execute Phases 3-11.
 // ---------------------------------------------------------------------------
 
-@description('Windows Failover Cluster name')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Windows Failover Cluster name (pass-through to guest config tool)')
 param clusterName string = 'SOFS-Cluster'
 
-@description('Static IP for the cluster name object')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Static IP for the cluster name object (pass-through to guest config tool)')
 param clusterIp string
 
-@description('Scale-Out File Server access point name (Option A)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Scale-Out File Server access point name — Single layout (pass-through to guest config tool)')
 param accessPoint string = 'FSLogixSOFS'
 
-@description('FSLogix SMB share name (Option A)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('FSLogix SMB share name — Single layout (pass-through to guest config tool)')
 param shareName string = 'FSLogix'
 
-@description('S2D volume friendly name (Option A)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('S2D volume friendly name — Single layout (pass-through to guest config tool)')
 param s2dVolumeName string = 'FSLogixData'
 
-@description('S2D volume size string (Option A), e.g. "5632GB"')
+@metadata({ phase: 'guest', passThrough: true })
+@description('S2D volume size string — Single layout, e.g. "5632GB" (pass-through to guest config tool)')
 param s2dVolumeSize string = '5632GB'
 
-@description('S2D mirror data copies (Option A): 2 for two-way, 3 for three-way')
+@metadata({ phase: 'guest', passThrough: true })
+@description('S2D mirror data copies — Single layout: 2 for two-way, 3 for three-way (pass-through to guest config tool)')
 param s2dDataCopies int = 2
 
-@description('SOFS cluster role name')
+@metadata({ phase: 'guest', passThrough: true })
+@description('SOFS cluster role name (pass-through to guest config tool)')
 param sofsRoleName string = 'FSLogixSOFS'
 
-@description('S2D storage pool friendly name')
+@metadata({ phase: 'guest', passThrough: true })
+@description('S2D storage pool friendly name (pass-through to guest config tool)')
 param s2dPoolName string = 'S2D on SOFS-Cluster'
 
-@description('Enable SMB 3.x encryption on SOFS shares')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Enable SMB 3.x encryption on SOFS shares (pass-through to guest config tool)')
 param smbEncryption bool = true
 
-@description('Static IP for the SOFS client access point')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Static IP for the SOFS client access point (pass-through to guest config tool)')
 param accessPointIp string = ''
 
-@description('Option B: list of SMB share definitions [{name, volume}]')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Triple layout: list of SMB share definitions [{name, volume}] (pass-through to guest config tool)')
 param sofsShares array = []
 
-@description('Option B: list of S2D volume definitions [{name, size_gb, data_copies}]')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Triple layout: list of S2D volume definitions [{name, size_gb, data_copies}] (pass-through to guest config tool)')
 param s2dVolumes array = []
 
-@description('Anti-affinity rule name')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Anti-affinity rule name (pass-through to guest config tool)')
 param antiAffinityRule string = 'SOFS-AntiAffinity'
 
-@description('Azure Local host cluster name')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Azure Local host cluster name (pass-through to guest config tool, used for anti-affinity)')
 param azlClusterName string
 
 // ---------------------------------------------------------------------------
-// Parameters — Permissions
+// Parameters — Permissions (pass-through to guest config tool, Phases 8-9)
 // ---------------------------------------------------------------------------
 
-@description('AD group for share administrative access')
+@metadata({ phase: 'guest', passThrough: true })
+@description('AD group for share administrative access (pass-through to guest config tool)')
 param permissionsAdminGroup string = 'Domain Admins'
 
-@description('AD group for share user access')
+@metadata({ phase: 'guest', passThrough: true })
+@description('AD group for share user access (pass-through to guest config tool)')
 param permissionsUsersGroup string = 'AVD-Users'
 
-@description('AD group for AVD users (FSLogix profile access)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('AD group for AVD users (FSLogix profile access, pass-through to guest config tool)')
 param permissionsAvdUsersGroup string = 'AVD-Users'
 
 // ---------------------------------------------------------------------------
-// Parameters — FSLogix
+// Parameters — FSLogix (pass-through to guest config tool, Phases 9c-10)
 // ---------------------------------------------------------------------------
 
-@description('Whether FSLogix profile containers are enabled')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Whether FSLogix profile containers are enabled (pass-through to guest config tool)')
 param fslogixEnabled bool = true
 
-@description('Maximum profile container size in MB (FSRM quota)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Maximum profile container size in MB, FSRM quota (pass-through to guest config tool)')
 param fslogixProfileSizeMb int = 30000
 
-@description('Profile container format: VHDX or VHD')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Profile container format: VHDX or VHD (pass-through to guest config tool)')
 param fslogixVolumeType string = 'VHDX'
 
-@description('Enable FSLogix Cloud Cache for multi-site DR')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Enable FSLogix Cloud Cache for multi-site DR (pass-through to guest config tool)')
 param cloudCacheEnabled bool = false
 
 @secure()
-@description('(Deprecated) Azure Blob connection string — use cloudCacheProviders instead')
+@metadata({ phase: 'guest', passThrough: true })
+@description('(Deprecated) Azure Blob connection string — use cloudCacheProviders instead (pass-through to guest config tool)')
 param cloudCacheAzureProvider string = ''
 
-@description('Additional Cloud Cache providers for CCDLocations (SMB providers auto-generated)')
+@metadata({ phase: 'guest', passThrough: true })
+@description('Additional Cloud Cache providers for CCDLocations, SMB providers auto-generated (pass-through to guest config tool)')
 param cloudCacheProviders array = []
 
 // ---------------------------------------------------------------------------
-// Parameters — DNS
+// Parameters — DNS (pass-through to guest config tool)
 // ---------------------------------------------------------------------------
 
-@description('DNS server IP addresses for guest cluster VMs')
+@metadata({ phase: 'guest', passThrough: true })
+@description('DNS server IP addresses for guest cluster VMs (pass-through to guest config tool)')
 param dnsServers array = []
 
 // ---------------------------------------------------------------------------
@@ -284,6 +312,7 @@ module sofsVMs './sofs-resources.bicep' = {
     domainJoinAccount: domainJoinAccount
     domainJoinPassword: domainJoinPassword
     domainOuNodes: domainOuNodes
+    vmIps: vmIps
     tags: tags
   }
 }
@@ -316,3 +345,10 @@ output deployedVMs array = sofsVMs.outputs.deployedVMs
 output totalDataDisks int = sofsVMs.outputs.totalDataDisks
 output s2dPoolSizeGB int = sofsVMs.outputs.s2dPoolSizeGB
 output witnessStorageAccountName string = cloudWitnessName
+
+@description('Phase ownership metadata: Bicep handles Phases 1-2 (Azure provisioning). Guest Phases 3-11 are delegated to the guest_config tool.')
+output phaseOwnership object = {
+  azure_host: 'Bicep (Phases 1-2: resource group, VMs, NICs, disks, domain join, cloud witness)'
+  guest_config: 'Delegated to PowerShell or Ansible (Phases 3-11)'
+  guestVolumeLayout: guestVolumeLayout
+}

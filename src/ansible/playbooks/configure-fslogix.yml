@@ -17,7 +17,8 @@
     fslogix_profile_size_mb: "{{ sofs_fslogix_profile_size_mb | default(30000) | int }}"
     fslogix_volume_type: "{{ sofs_fslogix_volume_type | default('VHDX') }}"
     cloud_cache_enabled: "{{ sofs_cloud_cache_enabled | default(false) | bool }}"
-    guest_volume_layout: "{{ sofs_guest_volume_layout | default('option_a') }}"
+    guest_volume_layout_raw: "{{ sofs_guest_volume_layout | default('single') }}"
+    guest_volume_layout: "{{ 'single' if guest_volume_layout_raw in ['single', 'option_a'] else 'triple' if guest_volume_layout_raw in ['triple', 'option_b'] else guest_volume_layout_raw }}"
     sofs_shares_list: "{{ sofs_shares | default([]) }}"
 
   tasks:
@@ -87,7 +88,7 @@
       ansible.builtin.set_fact:
         _cc_ccd_locations: >-
           {%- set parts = [] -%}
-          {%- if guest_volume_layout == 'option_a' -%}
+          {%- if guest_volume_layout == 'single' -%}
             {%- set _ = parts.append('type=smb,connectionString=\\\\' ~ access_point ~ '\\' ~ share_name) -%}
           {%- else -%}
             {%- for s in sofs_shares_list -%}

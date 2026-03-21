@@ -9,6 +9,12 @@
 
 The ARM template is **compiled from Bicep** (`az bicep build`) and deploys all the same Azure-side resources. This ensures feature parity — any capability added to Bicep is automatically available in ARM.
 
+Microsoft references used for this implementation:
+
+- ARM template deployments: https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-cli
+- Bicep docs (source of ARM compilation): https://learn.microsoft.com/azure/azure-resource-manager/bicep/
+- AVM overview: https://azure.github.io/Azure-Verified-Modules/
+
 ### Capability
 
 | Capability | Supported |
@@ -17,6 +23,14 @@ The ARM template is **compiled from Bicep** (`az bicep build`) and deploys all t
 | Domain join (JsonADDomainExtension) | ✅ |
 | Per-VM storage path mapping | ✅ |
 | Guest OS configuration | Delegates to PS/Ansible |
+
+### Phase Ownership
+
+| Phase Group | Ownership |
+|-------------|-----------|
+| Phase 0 (decision tree) | Parameter validation only |
+| Phases 1-2 (Azure/Host plane) | Implemented by compiled ARM template |
+| Phases 3-11 (Guest OS plane) | Delegated to PowerShell or Ansible |
 
 ---
 

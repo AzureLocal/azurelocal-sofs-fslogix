@@ -255,21 +255,42 @@ function Resolve-Param {
     return $null
 }
 
+function Resolve-GuestLayout {
+    param([string]$Layout)
+
+    $normalized = if ($Layout) { $Layout.ToLowerInvariant() } else { "single" }
+    switch ($normalized) {
+        "single"   { return "single" }
+        "option_a" {
+            Write-Log "Legacy guest layout value 'option_a' detected. Use 'single' going forward." "WARN"
+            return "single"
+        }
+        "triple"   { return "triple" }
+        "option_b" {
+            Write-Log "Legacy guest layout value 'option_b' detected. Use 'triple' going forward." "WARN"
+            return "triple"
+        }
+        default {
+            throw "Invalid deployment guest layout '$Layout'. Allowed values: single, triple (legacy aliases: option_a, option_b)."
+        }
+    }
+}
+
 $VMPrefix               = Resolve-Param $VMPrefix               $sol.vm.prefix                    "VMPrefix"
 $GuestClusterName       = Resolve-Param $GuestClusterName       $sol.sofs.cluster_name            "GuestClusterName"
 $GuestClusterIP         = Resolve-Param $GuestClusterIP         $sol.sofs.cluster_ip              "GuestClusterIP"
 $SOFSAccessPoint        = Resolve-Param $SOFSAccessPoint        $sol.sofs.role_name               "SOFSAccessPoint"
 $SOFSAccessPointIP      = Resolve-Param $SOFSAccessPointIP      $sol.sofs.access_point_ip         "SOFSAccessPointIP" $false
-$FSLogixShareName       = Resolve-Param $FSLogixShareName       $sol.sofs.share_name              "FSLogixShareName"
+$FSLogixShareName       = Resolve-Param $FSLogixShareName       $sol.sofs.share_name              "FSLogixShareName" $false
 $WitnessStorageAccount  = Resolve-Param $WitnessStorageAccount  $sol.cloud_witness.name           "WitnessStorageAccount"
-$S2DVolumeName          = Resolve-Param $S2DVolumeName          $sol.s2d.volume_name              "S2DVolumeName"
+$S2DVolumeName          = Resolve-Param $S2DVolumeName          $sol.s2d.volume_name              "S2DVolumeName" $false
 $DomainFQDN             = Resolve-Param $DomainFQDN             $sol.domain.fqdn                  "DomainFQDN"
 $DomainNetBIOS          = Resolve-Param $DomainNetBIOS          $sol.domain.netbios               "DomainNetBIOS"
 
 # Integer params: 0 = not set via param, use config
 if ($VMCount -le 0)              { $VMCount              = [int]$sol.vm.count                  }
-if ($S2DVolumeSizeGB -le 0)      { $S2DVolumeSizeGB      = [int]$sol.s2d.volume_size_gb         }
-if ($S2DNumberOfDataCopies -le 0) { $S2DNumberOfDataCopies = [int]$sol.s2d.data_copies            }
+if ($S2DVolumeSizeGB -le 0 -and $sol.s2d.volume_size_gb)      { $S2DVolumeSizeGB      = [int]$sol.s2d.volume_size_gb }
+if ($S2DNumberOfDataCopies -le 0 -and $sol.s2d.data_copies)   { $S2DNumberOfDataCopies = [int]$sol.s2d.data_copies }
 
 $S2DVolumeSize = "${S2DVolumeSizeGB}GB"
 
@@ -278,9 +299,26 @@ $WitnessEndpoint = if ($sol.cloud_witness.endpoint -and $sol.cloud_witness.endpo
 } else { "core.windows.net" }
 
 # Deployment architecture choices
-$GuestVolumeLayout = if ($sol.deployment.guest_volume_layout) { $sol.deployment.guest_volume_layout } else { "option_a" }
-$S2DVolumes        = $sol.s2d.volumes       # array for Option B (null for Option A)
-$SOFSShares        = $sol.sofs.shares       # array for Option B (null for Option A)
+$GuestVolumeLayoutRaw = if ($sol.deployment.guest_layout) {
+    $sol.deployment.guest_layout
+} elseif ($sol.deployment.guest_volume_layout) {
+    $sol.deployment.guest_volume_layout
+} else {
+    "single"
+}
+$GuestVolumeLayout = Resolve-GuestLayout -Layout $GuestVolumeLayoutRaw
+$S2DVolumes        = $sol.s2d.volumes       # array for Triple layout (null for Single layout)
+$SOFSShares        = $sol.sofs.shares       # array for Triple layout (null for Single layout)
+
+if ($GuestVolumeLayout -eq "single") {
+    if (-not $FSLogixShareName) { throw "deployment guest layout 'single' requires sofs.share_name (or FSLogixShareName parameter)." }
+    if (-not $S2DVolumeName) { throw "deployment guest layout 'single' requires s2d.volume_name (or S2DVolumeName parameter)." }
+    if ($S2DVolumeSizeGB -le 0) { throw "deployment guest layout 'single' requires s2d.volume_size_gb (or S2DVolumeSizeGB parameter)." }
+    if ($S2DNumberOfDataCopies -le 0) { throw "deployment guest layout 'single' requires s2d.data_copies (or S2DNumberOfDataCopies parameter)." }
+} else {
+    if (-not $S2DVolumes -or $S2DVolumes.Count -eq 0) { throw "deployment guest layout 'triple' requires s2d.volumes[]." }
+    if (-not $SOFSShares -or $SOFSShares.Count -eq 0) { throw "deployment guest layout 'triple' requires sofs.shares[]." }
+}
 
 # SMB share settings from config
 $SMBEncryption       = if ($null -ne $sol.sofs.smb_encryption)          { [bool]$sol.sofs.smb_encryption }          else { $true }
@@ -351,6 +389,7 @@ Write-Log "VMs:               $($VMNames -join ', ')"
 Write-Log "Anti-affinity:     $AntiAffinityEnabled"
 Write-Log "Volume Layout:     $GuestVolumeLayout"
 Write-Log "WinRM Transport:   $WinRMTransport"
+Write-Log "Phase 0 ownership: Azure/Host=Deploy-SOFS-Azure.ps1 ; Guest=Configure-SOFS-Cluster.ps1"
 
 # ===========================================================================
 # CREDENTIAL RESOLUTION — param > Key Vault > HARD FAIL (no prompts)
@@ -482,6 +521,128 @@ if ($WhatIf) {
 }
 
 # ===========================================================================
+# PHASE 0: Decision-Tree Preflight
+# Validates the Phase 0 contract before any execution phase runs.
+# Emits a structured phase ownership map and detects unsupported combos.
+# ===========================================================================
+
+function Resolve-Phase0Preflight {
+    <#
+    .SYNOPSIS
+        Validates Phase 0 contract and returns a structured phase ownership map.
+    .DESCRIPTION
+        Checks that the deployment configuration is internally consistent:
+        - Guest layout is resolved to a canonical value (single/triple)
+        - Storage path input is unambiguous
+        - Resiliency requirements are met by VM count
+        - Cloud Cache prerequisites are satisfied when enabled
+        Returns a hashtable with the validated decision tree results.
+    #>
+    param(
+        [string]$GuestLayout,
+        [int]$VMCount,
+        [string]$GuestResiliency,
+        [string]$HostResiliency,
+        [object]$StoragePathIds,
+        [string]$StoragePathId,
+        [bool]$CloudCacheEnabled,
+        [object]$CloudCacheConfig
+    )
+
+    $ownership = @{
+        azure_host   = "Deploy-SOFS-Azure.ps1 / Bicep / Terraform (Phases 1-2)"
+        guest_config = "Configure-SOFS-Cluster.ps1 (Phases 3-11)"
+        phase_map    = [ordered]@{
+            "Phase 0"  = "Preflight validation (this function)"
+            "Phase 1"  = "Azure resource provisioning (azure_host tool)"
+            "Phase 2"  = "VM bootstrap + domain join (azure_host tool)"
+            "Phase 3"  = "Anti-affinity rules (guest_config tool)"
+            "Phase 5"  = "Role/feature installation (guest_config tool)"
+            "Phase 6"  = "Failover cluster creation (guest_config tool)"
+            "Phase 7"  = "S2D enable + volume creation (guest_config tool)"
+            "Phase 8"  = "SOFS role + share creation (guest_config tool)"
+            "Phase 9"  = "Permissions + FSRM + Cloud Cache (guest_config tool)"
+            "Phase 10" = "AV exclusion guidance (guest_config tool)"
+            "Phase 11" = "Deployment validation (guest_config tool)"
+        }
+    }
+
+    $errors = @()
+
+    # Validate guest layout
+    if ($GuestLayout -notin @("single", "triple")) {
+        $errors += "Guest layout '$GuestLayout' is not a canonical value (single/triple)."
+    }
+
+    # Validate resiliency vs VM count
+    if ($GuestResiliency -eq "three_way" -and $VMCount -lt 3) {
+        $errors += "Guest resiliency 'three_way' requires at least 3 VMs (have $VMCount)."
+    }
+    if ($HostResiliency -eq "three_way" -and $VMCount -lt 3) {
+        $errors += "Host resiliency 'three_way' requires at least 3 VMs (have $VMCount)."
+    }
+
+    # Validate storage path is unambiguous
+    $hasMap = ($null -ne $StoragePathIds -and $StoragePathIds.Count -gt 0)
+    $hasSingular = (-not [string]::IsNullOrEmpty($StoragePathId))
+    if ($hasMap -and $hasSingular) {
+        Write-Log "  Both storage_path_ids (map) and storage_path_id (singular) are set. Map takes precedence." "WARN"
+    }
+    if (-not $hasMap -and -not $hasSingular) {
+        Write-Log "  No storage path IDs configured — Azure provisioning tool will need them." "WARN"
+    }
+
+    # Validate Cloud Cache prerequisites
+    if ($CloudCacheEnabled) {
+        $hasProviders = ($CloudCacheConfig -and $CloudCacheConfig.providers -and $CloudCacheConfig.providers.Count -gt 0)
+        $hasLegacy = ($CloudCacheConfig -and $CloudCacheConfig.azure_provider -and $CloudCacheConfig.azure_provider -ne "")
+        if (-not $hasProviders -and -not $hasLegacy) {
+            $errors += "Cloud Cache enabled but no providers configured. Set fslogix.cloud_cache.providers[] or fslogix.cloud_cache.azure_provider."
+        }
+        $ownership["cloud_cache"] = @{
+            enabled       = $true
+            provider_mode = if ($hasProviders) { "providers_array" } elseif ($hasLegacy) { "legacy_azure_provider" } else { "none" }
+            provider_count = if ($hasProviders) { $CloudCacheConfig.providers.Count } elseif ($hasLegacy) { 1 } else { 0 }
+        }
+    } else {
+        $ownership["cloud_cache"] = @{ enabled = $false; provider_mode = "disabled"; provider_count = 0 }
+    }
+
+    if ($errors.Count -gt 0) {
+        foreach ($e in $errors) { Write-Log "Phase 0 FAIL: $e" "FAIL" }
+        throw "Phase 0 preflight failed with $($errors.Count) error(s). Fix configuration before proceeding."
+    }
+
+    return $ownership
+}
+
+Write-Log "Phase 0 — Decision-Tree Preflight" "HEADER"
+
+$GuestResiliencyValue = if ($sol.deployment.guest_resiliency) { $sol.deployment.guest_resiliency } else { "two_way" }
+$HostResiliencyValue  = if ($sol.deployment.host_resiliency)  { $sol.deployment.host_resiliency }  else { "two_way" }
+$StoragePathIds       = $sol.azure_local.storage_path_ids
+$StoragePathId        = $sol.azure_local.storage_path_id
+
+$phase0Result = Resolve-Phase0Preflight `
+    -GuestLayout $GuestVolumeLayout `
+    -VMCount $VMCount `
+    -GuestResiliency $GuestResiliencyValue `
+    -HostResiliency $HostResiliencyValue `
+    -StoragePathIds $StoragePathIds `
+    -StoragePathId $StoragePathId `
+    -CloudCacheEnabled ($FSLogixConfig -and $FSLogixConfig.cloud_cache -and $FSLogixConfig.cloud_cache.enabled) `
+    -CloudCacheConfig ($FSLogixConfig.cloud_cache)
+
+Write-Log "  Azure/Host tool: $($phase0Result.azure_host)" "PASS"
+Write-Log "  Guest config tool: $($phase0Result.guest_config)" "PASS"
+Write-Log "  Cloud Cache: enabled=$($phase0Result.cloud_cache.enabled), mode=$($phase0Result.cloud_cache.provider_mode), providers=$($phase0Result.cloud_cache.provider_count)" "INFO"
+Write-Log "  Phase ownership:" "INFO"
+foreach ($phase in $phase0Result.phase_map.GetEnumerator()) {
+    Write-Log "    $($phase.Key): $($phase.Value)"
+}
+Write-Log "Phase 0 preflight passed." "PASS"
+
+# ===========================================================================
 # HELPER FUNCTIONS
 # ===========================================================================
 
@@ -547,6 +708,30 @@ function Wait-ForNodeOnline {
         return $false
     }
 }
+
+# ===========================================================================
+# PHASE 2→3 BOUNDARY: Verify VMs are reachable before guest phases
+# ===========================================================================
+
+Write-Log "Phase 2→3 Boundary — Verifying VMs are reachable (Phases 1-2 must be complete)" "HEADER"
+
+$unreachable = @()
+foreach ($VMName in $VMNames) {
+    $reachable = Test-WSMan -ComputerName $VMName -ErrorAction SilentlyContinue
+    if (-not $reachable) {
+        $unreachable += $VMName
+        Write-Log "  [$VMName] NOT reachable via WinRM" "WARN"
+    } else {
+        Write-Log "  [$VMName] Reachable via WinRM" "PASS"
+    }
+}
+
+if ($unreachable.Count -gt 0) {
+    Write-Log "The following VMs are not reachable: $($unreachable -join ', '). Ensure Phases 1-2 (Azure provisioning) completed successfully and VMs are domain-joined." "FAIL"
+    throw "Phase 2→3 boundary check failed: $($unreachable.Count) VM(s) unreachable. Guest phases cannot proceed."
+}
+
+Write-Log "All $($VMNames.Count) VMs reachable — proceeding with guest phases." "PASS"
 
 # ===========================================================================
 # PHASE 3: Configure Anti-Affinity Rules on Azure Local Cluster
@@ -861,13 +1046,13 @@ Invoke-OnFirstNode -ScriptBlock {
     }
 }
 
-# Create S2D volume(s) — Option A: single volume, Option B: multiple volumes
+# Create S2D volume(s) — Single layout: single volume, Triple layout: multiple volumes
 $S2DPoolName = if ($sol.s2d.pool_name -and $sol.s2d.pool_name -ne "") {
     $sol.s2d.pool_name
 } else { "S2D on $GuestClusterName" }
 
-if ($GuestVolumeLayout -eq 'option_b' -and $S2DVolumes -and $S2DVolumes.Count -gt 0) {
-    Write-Log "Option B — Creating $($S2DVolumes.Count) S2D volumes..."
+if ($GuestVolumeLayout -eq 'triple' -and $S2DVolumes -and $S2DVolumes.Count -gt 0) {
+    Write-Log "Triple layout — Creating $($S2DVolumes.Count) S2D volumes..."
     foreach ($volDef in $S2DVolumes) {
         $volName   = $volDef.name
         $volSizeGB = [int]$volDef.size_gb
@@ -894,7 +1079,7 @@ if ($GuestVolumeLayout -eq 'option_b' -and $S2DVolumes -and $S2DVolumes.Count -g
         }
     }
 } else {
-    # Option A — single volume
+    # Single layout — single volume
     $volumeExists = $false
     try {
         $existingVolume = Invoke-OnFirstNode -ScriptBlock {
@@ -933,8 +1118,8 @@ Write-Log "S2D enabled and volume(s) ready." "PASS"
 $plainPass8   = $Credential.GetNetworkCredential().Password
 $domainUser8  = $Credential.UserName
 
-# Build share definitions for Phase 8 (Option A: single share, Option B: multiple shares)
-if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares -and $SOFSShares.Count -gt 0) {
+# Build share definitions for Phase 8 (Single layout: single share, Triple layout: multiple shares)
+if ($GuestVolumeLayout -eq 'triple' -and $SOFSShares -and $SOFSShares.Count -gt 0) {
     $phase8ShareDefs = @($SOFSShares | ForEach-Object { @{n=$_.name; v=$_.volume} })
 } else {
     $phase8ShareDefs = @(@{n=$FSLogixShareName; v=$S2DVolumeName})
@@ -1714,7 +1899,7 @@ Write-Log "========================================" "HEADER"
 Write-Log "  Guest Cluster:       $GuestClusterName ($GuestClusterIP)"
 Write-Log "  SOFS Access Point:   $SOFSAccessPoint"
 Write-Log "  Volume Layout:       $GuestVolumeLayout"
-if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares) {
+if ($GuestVolumeLayout -eq 'triple' -and $SOFSShares) {
     foreach ($sn in $phase8ShareNames) { Write-Log "  FSLogix Share:       \\$SOFSAccessPoint\$sn" }
 } else {
     Write-Log "  FSLogix Share:       \\$SOFSAccessPoint\$FSLogixShareName"
@@ -1728,7 +1913,7 @@ Write-Log ""
 Write-Log "NEXT STEPS:" "HEADER"
 Write-Log "  1. Configure AV exclusions (see Phase 10 guidance above)"
 Write-Log "  2. When deploying AVD session hosts, set FSLogix VHDLocations to:"
-if ($GuestVolumeLayout -eq 'option_b' -and $SOFSShares) {
+if ($GuestVolumeLayout -eq 'triple' -and $SOFSShares) {
     foreach ($sn in $phase8ShareNames) { Write-Log "     \\$SOFSAccessPoint\$sn" }
 } else {
     Write-Log "     \\$SOFSAccessPoint\$FSLogixShareName"

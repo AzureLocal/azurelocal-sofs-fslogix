@@ -60,13 +60,13 @@ function Set-FSLogixNTFS {
 }
 ```
 
-=== "Option A — Single Share"
+=== "Single layout — Single Share"
 
     ```powershell
     Set-FSLogixNTFS -SharePath "C:\ClusterStorage\FSLogixData\Profiles"
     ```
 
-=== "Option B — Three Shares"
+=== "Triple layout — Three Shares"
 
     ```powershell
     Set-FSLogixNTFS -SharePath "C:\ClusterStorage\Profiles\Profiles"
@@ -112,7 +112,7 @@ Set-SmbServerConfiguration -EncryptData $true -Force
 
 ---
 
-## Option A vs Option B Permissions
+## Single vs Triple Layout Permissions
 
 The NTFS ACL model is identical for both options — the same four ACEs are applied to each share root. The difference is only in the number of shares:
 

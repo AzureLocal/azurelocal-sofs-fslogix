@@ -84,3 +84,13 @@ output "ansible_controller_admin_username" {
       : null
   )
 }
+
+output "guest_volume_layout_canonical" {
+  description = "Normalized guest volume layout (single/triple). Legacy aliases option_a/option_b are mapped to canonical values."
+  value       = local.guest_volume_layout_canonical
+}
+
+output "phase_ownership" {
+  description = "Phase ownership metadata documenting which tool owns each deployment phase"
+  value       = local.phase_ownership
+}

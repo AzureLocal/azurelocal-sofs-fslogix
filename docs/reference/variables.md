@@ -17,7 +17,7 @@ All deployment tools read from a single central configuration file: `config/vari
 deployment:
   host_volume_layout: "three_volumes"
   host_resiliency: "two_way"
-  guest_volume_layout: "option_a"
+  guest_layout: "single"
   guest_resiliency: "two_way"
 ```
 
@@ -25,7 +25,7 @@ deployment:
 |----------|------|:--------:|-------------|---------|-------------|--------|
 | `deployment.host_volume_layout` | string | **Yes** | Host CSV layout — three volumes for fault isolation or one shared volume | `three_volumes` | `three_volumes`, `single_volume` | 1 |
 | `deployment.host_resiliency` | string | **Yes** | Host mirror level — three-way requires 3+ nodes | `two_way` | `two_way`, `three_way` | 1 |
-| `deployment.guest_volume_layout` | string | **Yes** | Guest S2D + share model — Option A (single) or Option B (three) | `option_a` | `option_a`, `option_b` | 7–8 |
+| `deployment.guest_layout` | string | **Yes** | Guest S2D + share model — Single layout (single) or Triple layout (three) | `single` | `single`, `triple` | 7–8 |
 | `deployment.guest_resiliency` | string | **Yes** | Guest S2D mirror level — three-way requires 3+ nodes | `two_way` | `two_way`, `three_way` | 7 |
 
 ### Deployment Path Decision Tree
@@ -37,11 +37,11 @@ flowchart TD
     B -->|single_volume| D[Use storage_path_id — all VMs on one CSV]
     C --> HR{host_resiliency?}
     D --> HR
-    HR -->|two_way| E{guest_volume_layout?}
+    HR -->|two_way| E{guest_layout?}
     HR -->|three_way| E2["vm.count ≥ 3 required"]
-    E2 --> E{guest_volume_layout?}
-    E -->|option_a| F[Read: s2d.volume_name, s2d.volume_size_gb, sofs.share_name]
-    E -->|option_b| G[Read: s2d.volumes list, sofs.shares list]
+    E2 --> E{guest_layout?}
+    E -->|single| F[Read: s2d.volume_name, s2d.volume_size_gb, sofs.share_name]
+    E -->|triple| G[Read: s2d.volumes list, sofs.shares list]
     F --> GR{guest_resiliency?}
     G --> GR
     GR -->|two_way| I[Two-way mirror — 2× raw]
@@ -50,7 +50,7 @@ flowchart TD
 
 **Variable activation by path:**
 
-| Variable | `option_a` | `option_b` |
+| Variable | `single` | `triple` |
 |----------|:----------:|:----------:|
 | `s2d.volume_name` | ✅ Active | — Ignored |
 | `s2d.volume_size_gb` | ✅ Active | — Ignored |
@@ -144,8 +144,8 @@ azure_local:
 | `azure_local.custom_location_id` | string | **Yes** | Custom location resource ID for Arc VM placement | — | 2 |
 | `azure_local.logical_network_id` | string | **Yes** | Compute logical network resource ID for NIC creation | — | 2 |
 | `azure_local.gallery_image_name` | string | **Yes** | Gallery image resource ID (Windows Server 2025 DC Azure Edition Core Gen2) | — | 2 |
-| `azure_local.storage_path_id` | string | Option A | Storage path for single-volume deployments (all VMs on one volume) | — | 2 |
-| `azure_local.storage_path_ids` | map | Option B | Per-VM storage paths keyed by node number for three-volume deployments (fault isolation) | — | 2 |
+| `azure_local.storage_path_id` | string | Single layout | Storage path for single-volume deployments (all VMs on one volume) | — | 2 |
+| `azure_local.storage_path_ids` | map | Triple layout | Per-VM storage paths keyed by node number for three-volume deployments (fault isolation) | — | 2 |
 
 !!! tip "storage_path_id vs. storage_path_ids"
     Use `storage_path_id` (singular) when all VMs share one host volume. Use `storage_path_ids` (plural, keyed by node number) when each VM has its own host volume for fault isolation. The deployment tools check which one is populated and behave accordingly.
@@ -239,7 +239,7 @@ dns_servers:
 
 ## SOFS Configuration
 
-=== "Option A — Single Share"
+=== "Single layout — Single Share"
 
     ```yaml
     sofs:
@@ -256,7 +256,7 @@ dns_servers:
       folder_enumeration_mode: "AccessBased"
     ```
 
-=== "Option B — Three Shares"
+=== "Triple layout — Three Shares"
 
     ```yaml
     sofs:
@@ -291,10 +291,10 @@ dns_servers:
 | `sofs.caching_mode` | string | No | BranchCache caching mode for shares | `None` | 8 |
 | `sofs.continuous_availability` | boolean | No | Enable SMB Continuous Availability on shares | `true` | 8 |
 | `sofs.folder_enumeration_mode` | string | No | Access-based enumeration mode for share security | `AccessBased` | 8 |
-| `sofs.share_name` | string | Option A | Single SMB share name | `Profiles` | 8 |
-| `sofs.shares` | list | Option B | List of shares, each mapped to its own S2D volume | — | 8 |
-| `sofs.shares[].name` | string | Option B | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
-| `sofs.shares[].volume` | string | Option B | S2D volume that backs this share (must match `s2d.volumes[].name`) | — | 8 |
+| `sofs.share_name` | string | Single layout | Single SMB share name | `Profiles` | 8 |
+| `sofs.shares` | list | Triple layout | List of shares, each mapped to its own S2D volume | — | 8 |
+| `sofs.shares[].name` | string | Triple layout | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
+| `sofs.shares[].volume` | string | Triple layout | S2D volume that backs this share (must match `s2d.volumes[].name`) | — | 8 |
 
 !!! tip "Which option?"
     See [FSLogix Configuration — Single Share vs Three Shares](../configuration/fslogix.md#single-share-vs-three-shares-when-to-use-each) for guidance on when to use each model.
@@ -303,7 +303,7 @@ dns_servers:
 
 ## Storage Spaces Direct (S2D)
 
-=== "Option A — Single Volume"
+=== "Single layout — Single Volume"
 
     ```yaml
     s2d:
@@ -312,7 +312,7 @@ dns_servers:
       data_copies: 2
     ```
 
-=== "Option B — Three Volumes"
+=== "Triple layout — Three Volumes"
 
     ```yaml
     s2d:
@@ -331,19 +331,19 @@ dns_servers:
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
 | `s2d.pool_name` | string | No | S2D storage pool friendly name | `S2D on sofs-cluster` | 7 |
-| `s2d.volume_name` | string | Option A | Single guest S2D volume name | `FSLogixData` | 7 |
-| `s2d.volume_size_gb` | integer | Option A | Single guest S2D volume size — your usable FSLogix space target | — | 7 |
-| `s2d.data_copies` | integer | Option A | `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way | `2` | 7 |
-| `s2d.volumes` | list | Option B | List of guest S2D volumes — one per FSLogix workload | — | 7 |
-| `s2d.volumes[].name` | string | Option B | Volume name (must match `sofs.shares[].volume`) | — | 7 |
-| `s2d.volumes[].size_gb` | integer | Option B | Volume size in GB per-workload — from [Capacity Planning](../architecture/capacity-planning.md) | — | 7 |
-| `s2d.volumes[].data_copies` | integer | Option B | Per-volume mirror level (typically all match) | `2` | 7 |
+| `s2d.volume_name` | string | Single layout | Single guest S2D volume name | `FSLogixData` | 7 |
+| `s2d.volume_size_gb` | integer | Single layout | Single guest S2D volume size — your usable FSLogix space target | — | 7 |
+| `s2d.data_copies` | integer | Single layout | `NumberOfDataCopies` — **2** for two-way mirror, **3** for three-way | `2` | 7 |
+| `s2d.volumes` | list | Triple layout | List of guest S2D volumes — one per FSLogix workload | — | 7 |
+| `s2d.volumes[].name` | string | Triple layout | Volume name (must match `sofs.shares[].volume`) | — | 7 |
+| `s2d.volumes[].size_gb` | integer | Triple layout | Volume size in GB per-workload — from [Capacity Planning](../architecture/capacity-planning.md) | — | 7 |
+| `s2d.volumes[].data_copies` | integer | Triple layout | Per-volume mirror level (typically all match) | `2` | 7 |
 
 !!! danger "data_copies defaults matter"
     S2D defaults to three-way mirror on a 3-node cluster. You must explicitly set `data_copies: 2` for a two-way mirror. Getting this wrong silently consumes 50% more raw capacity.
 
-!!! note "Option B volume sizing"
-    A typical split for Option B is ~55% Profiles, ~35% ODFC, ~10% AppData. Adjust based on your user personas — heavy Outlook users need more ODFC space. See [Scenario C](../architecture/scenarios.md#scenario-c-enterprise-2000-users-high-density-pooled) for a worked example.
+!!! note "Triple layout volume sizing"
+    A typical split for Triple layout is ~55% Profiles, ~35% ODFC, ~10% AppData. Adjust based on your user personas — heavy Outlook users need more ODFC space. See [Scenario C](../architecture/scenarios.md#scenario-c-enterprise-2000-users-high-density-pooled) for a worked example.
 
 ---
 
@@ -444,8 +444,8 @@ tags:
 | Three-way host mirror | `deployment.host_resiliency: "three_way"`, `vm.count` ≥ 3 |
 | Two-way guest mirror | `deployment.guest_resiliency: "two_way"`, `s2d.data_copies: 2` |
 | Three-way guest mirror | `deployment.guest_resiliency: "three_way"`, `s2d.data_copies: 3`, `vm.count` ≥ 3 |
-| Option A (single share) | `deployment.guest_volume_layout: "option_a"`, `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
-| Option B (three shares) | `deployment.guest_volume_layout: "option_b"`, `sofs.shares[]`, `s2d.volumes[]` |
+| Single layout (single share) | `deployment.guest_layout: "single"`, `sofs.share_name`, `s2d.volume_name`, `s2d.volume_size_gb` |
+| Triple layout (three shares) | `deployment.guest_layout: "triple"`, `sofs.shares[]`, `s2d.volumes[]` |
 | Profile sizing | `data_disks.size_gb` (derived from capacity planning) |
 | Sovereign cloud | `cloud_witness.endpoint` (override default `core.windows.net`) |
 

@@ -19,18 +19,18 @@ BeforeAll {
     $repoRoot  = Split-Path $PSScriptRoot -Parent
 
     # All 10 SOFS scenarios:
-    # vm_count × host_resiliency × guest_resiliency × guest_volume_layout
+    # vm_count × host_resiliency × guest_resiliency × guest_layout
     $scenarios = @(
-        @{ Name = "2n-2h-2g-A"; VmCount = 2; HostRes = "two_way";   GuestRes = "two_way";   Layout = "option_a" }
-        @{ Name = "2n-2h-3g-A"; VmCount = 2; HostRes = "two_way";   GuestRes = "three_way"; Layout = "option_a" }
-        @{ Name = "2n-3h-2g-A"; VmCount = 2; HostRes = "three_way"; GuestRes = "two_way";   Layout = "option_a" }
-        @{ Name = "2n-3h-3g-A"; VmCount = 2; HostRes = "three_way"; GuestRes = "three_way"; Layout = "option_a" }
-        @{ Name = "3n-2h-2g-A"; VmCount = 3; HostRes = "two_way";   GuestRes = "two_way";   Layout = "option_a" }
-        @{ Name = "2n-2h-2g-B"; VmCount = 2; HostRes = "two_way";   GuestRes = "two_way";   Layout = "option_b" }
-        @{ Name = "2n-2h-3g-B"; VmCount = 2; HostRes = "two_way";   GuestRes = "three_way"; Layout = "option_b" }
-        @{ Name = "2n-3h-2g-B"; VmCount = 2; HostRes = "three_way"; GuestRes = "two_way";   Layout = "option_b" }
-        @{ Name = "2n-3h-3g-B"; VmCount = 2; HostRes = "three_way"; GuestRes = "three_way"; Layout = "option_b" }
-        @{ Name = "3n-2h-2g-B"; VmCount = 3; HostRes = "two_way";   GuestRes = "two_way";   Layout = "option_b" }
+        @{ Name = "2n-2h-2g-single"; VmCount = 2; HostRes = "two_way";   GuestRes = "two_way";   Layout = "single" }
+        @{ Name = "2n-2h-3g-single"; VmCount = 2; HostRes = "two_way";   GuestRes = "three_way"; Layout = "single" }
+        @{ Name = "2n-3h-2g-single"; VmCount = 2; HostRes = "three_way"; GuestRes = "two_way";   Layout = "single" }
+        @{ Name = "2n-3h-3g-single"; VmCount = 2; HostRes = "three_way"; GuestRes = "three_way"; Layout = "single" }
+        @{ Name = "3n-2h-2g-single"; VmCount = 3; HostRes = "two_way";   GuestRes = "two_way";   Layout = "single" }
+        @{ Name = "2n-2h-2g-triple"; VmCount = 2; HostRes = "two_way";   GuestRes = "two_way";   Layout = "triple" }
+        @{ Name = "2n-2h-3g-triple"; VmCount = 2; HostRes = "two_way";   GuestRes = "three_way"; Layout = "triple" }
+        @{ Name = "2n-3h-2g-triple"; VmCount = 2; HostRes = "three_way"; GuestRes = "two_way";   Layout = "triple" }
+        @{ Name = "2n-3h-3g-triple"; VmCount = 2; HostRes = "three_way"; GuestRes = "three_way"; Layout = "triple" }
+        @{ Name = "3n-2h-2g-triple"; VmCount = 3; HostRes = "two_way";   GuestRes = "two_way";   Layout = "triple" }
     )
 
     function Build-TestConfig {
@@ -45,7 +45,8 @@ BeforeAll {
             deployment = @{
                 host_volume_layout  = "three_volumes"
                 host_resiliency     = $Scenario.HostRes
-                guest_volume_layout = $Scenario.Layout
+                guest_layout        = $Scenario.Layout
+                guest_volume_layout = if ($Scenario.Layout -eq "single") { "option_a" } else { "option_b" }
                 guest_resiliency    = $Scenario.GuestRes
             }
             azure = @{
@@ -103,13 +104,13 @@ BeforeAll {
             }
         }
 
-        # Option A — single volume/share
-        if ($Scenario.Layout -eq "option_a") {
+        # Single layout — single volume/share
+        if ($Scenario.Layout -eq "single") {
             $config.sofs["share_name"] = "FSLogix"
             $config.s2d["volume_name"] = "FSLogixData"
             $config.s2d["volume_size_gb"] = 2560
         }
-        # Option B — three volumes/shares
+        # Triple layout — three volumes/shares
         else {
             $config.sofs["shares"] = @(
                 @{ name = "Profiles"; volume = "Profiles" }
@@ -136,7 +137,8 @@ Describe "Scenario Config Generation" {
             $config = Build-TestConfig -Scenario $scenario
             $config | Should -Not -BeNullOrEmpty
             $config.vm.count | Should -Be $scenario.VmCount
-            $config.deployment.guest_volume_layout | Should -Be $scenario.Layout
+            $config.deployment.guest_layout | Should -Be $scenario.Layout
+            $config.deployment.guest_volume_layout | Should -Be $(if ($scenario.Layout -eq 'single') { 'option_a' } else { 'option_b' })
             $config.deployment.guest_resiliency | Should -Be $scenario.GuestRes
         }
     }
@@ -150,7 +152,7 @@ Describe "Data Copies match Resiliency" {
         It "$($scenario.Name): data_copies matches guest_resiliency" {
             $config = Build-TestConfig -Scenario $scenario
             $expectedCopies = if ($scenario.GuestRes -eq "three_way") { 3 } else { 2 }
-            if ($scenario.Layout -eq "option_a") {
+            if ($scenario.Layout -eq "single") {
                 $config.s2d.data_copies | Should -Be $expectedCopies
             }
             else {
@@ -175,13 +177,13 @@ Describe "IP Address Count per Scenario" {
 }
 
 # ============================================================================
-# 4. Option A vs Option B share counts
+# 4. Single layout vs Triple layout share counts
 # ============================================================================
 Describe "Share Count per Layout" {
     foreach ($scenario in $scenarios) {
         It "$($scenario.Name): correct share structure" {
             $config = Build-TestConfig -Scenario $scenario
-            if ($scenario.Layout -eq "option_a") {
+            if ($scenario.Layout -eq "single") {
                 $config.sofs.share_name | Should -Be "FSLogix"
                 $config.sofs.ContainsKey("shares") | Should -Be $false
             }
@@ -220,8 +222,9 @@ Describe "PowerShell Script Syntax" {
 
     foreach ($script in (Get-ChildItem -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "src\powershell") -Filter "*.ps1" -Recurse -ErrorAction SilentlyContinue)) {
         It "No syntax errors in $($script.Name)" {
+            $tokens = $null
             $parseErrors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$null, [ref]$parseErrors)
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$parseErrors)
             $parseErrors.Count | Should -Be 0
         }
     }
@@ -279,12 +282,12 @@ Describe "ARM Template Validation" {
 # ============================================================================
 Describe "Expected S2D Pool Sizes" {
     # Usable capacity calculation:
-    # Option A: volume_size_gb / data_copies * vm_count disks
-    # Option B: sum of volume sizes
+    # Single layout: volume_size_gb / data_copies * vm_count disks
+    # Triple layout: sum of volume sizes
     foreach ($scenario in $scenarios) {
         It "$($scenario.Name): has valid pool size config" {
             $config = Build-TestConfig -Scenario $scenario
-            if ($scenario.Layout -eq "option_a") {
+            if ($scenario.Layout -eq "single") {
                 $config.s2d.volume_size_gb | Should -BeGreaterThan 0
             }
             else {
@@ -292,5 +295,22 @@ Describe "Expected S2D Pool Sizes" {
                 $totalSize | Should -BeGreaterThan 0
             }
         }
+    }
+}
+
+# ============================================================================
+# 11. Legacy layout aliases remain supported
+# ============================================================================
+Describe "Legacy guest_volume_layout Aliases" {
+    It "single canonical maps to option_a alias" {
+        $config = Build-TestConfig -Scenario @{ VmCount = 3; HostRes = 'two_way'; GuestRes = 'two_way'; Layout = 'single' }
+        $config.deployment.guest_layout | Should -Be 'single'
+        $config.deployment.guest_volume_layout | Should -Be 'option_a'
+    }
+
+    It "triple canonical maps to option_b alias" {
+        $config = Build-TestConfig -Scenario @{ VmCount = 3; HostRes = 'two_way'; GuestRes = 'two_way'; Layout = 'triple' }
+        $config.deployment.guest_layout | Should -Be 'triple'
+        $config.deployment.guest_volume_layout | Should -Be 'option_b'
     }
 }

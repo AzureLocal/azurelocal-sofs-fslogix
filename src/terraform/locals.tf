@@ -3,6 +3,32 @@
 # =============================================================================
 
 locals {
+  # Normalize guest layout: option_a -> single, option_b -> triple
+  guest_volume_layout_canonical = (
+    lower(var.guest_volume_layout) == "option_a" ? "single" :
+    lower(var.guest_volume_layout) == "option_b" ? "triple" :
+    lower(var.guest_volume_layout)
+  )
+
+  # Phase ownership metadata — documents which tool owns each deployment phase
+  phase_ownership = {
+    azure_host   = "Terraform (Phases 1-2: resource provisioning + domain join)"
+    guest_config = var.guest_config_engine == "ansible_create" || var.guest_config_engine == "ansible_existing" ? "Ansible (Phases 3-11)" : "PowerShell (Phases 3-11)"
+    phase_map = {
+      "Phase 0"  = "Preflight validation (this plan)"
+      "Phase 1"  = "Azure resource provisioning (Terraform)"
+      "Phase 2"  = "VM bootstrap + domain join (Terraform)"
+      "Phase 3"  = "Anti-affinity rules (${var.guest_config_engine})"
+      "Phase 5"  = "Role/feature install (${var.guest_config_engine})"
+      "Phase 6"  = "Failover cluster (${var.guest_config_engine})"
+      "Phase 7"  = "S2D volumes (${var.guest_config_engine})"
+      "Phase 8"  = "SOFS role + shares (${var.guest_config_engine})"
+      "Phase 9"  = "Permissions + FSRM (${var.guest_config_engine})"
+      "Phase 10" = "AV guidance (${var.guest_config_engine})"
+      "Phase 11" = "Validation (${var.guest_config_engine})"
+    }
+  }
+
   # Build VM name list: SOFS-01, SOFS-02, SOFS-03, ...
   vm_names = [for i in range(var.vm_count) : format("%s-%02d", var.vm_prefix, i + 1)]
 

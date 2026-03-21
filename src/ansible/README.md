@@ -5,7 +5,7 @@
 ## Overview
 
 End-to-end Ansible deployment covering Phases 1–11 of the SOFS/FSLogix solution.
-Supports all 10 scenarios via `sofs_guest_volume_layout` (Option A / B) and
+Supports all 10 scenarios via `sofs_guest_volume_layout` (single/triple layout) and
 resiliency settings.
 
 | Playbook | Target | Phases |
