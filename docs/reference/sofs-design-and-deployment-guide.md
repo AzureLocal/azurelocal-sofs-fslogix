@@ -24,7 +24,7 @@
     </tr>
     <tr style="background:#CCE4FF;">
       <td style="padding:8px; text-align:left;">**Customer**</td>
-      <td style="padding:8px; text-align:left;">Infinite Improbability Corp (IIC)</td>
+      <td style="padding:8px; text-align:left;">Contoso (IIC)</td>
     </tr>
   </tbody>
 </table>
@@ -1005,11 +1005,11 @@ All resources follow Azure Cloud Adoption Framework (CAF) and IIC standards.
   <tbody>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">**Company**</td>
-      <td style="padding:8px; text-align:left;">Infinite Improbability Corp</td>
+      <td style="padding:8px; text-align:left;">Contoso</td>
     </tr>
     <tr style="background:#CCE4FF;">
       <td style="padding:8px; text-align:left;">**Domain**</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud`</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud`</td>
     </tr>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">**NetBIOS**</td>
@@ -1045,7 +1045,7 @@ All resources follow Azure Cloud Adoption Framework (CAF) and IIC standards.
 
 ### Single AD Domain Model
 
-IIC uses a **single Active Directory domain** for everything — Azure Local host nodes, SOFS VMs, and AVD session hosts are all joined to `improbability.cloud`. There is no separate management domain.
+IIC uses a **single Active Directory domain** for everything — Azure Local host nodes, SOFS VMs, and AVD session hosts are all joined to `contoso.cloud`. There is no separate management domain.
 
 Since the SOFS cluster and AVD users are in the same domain, **Kerberos authentication to the SMB shares is native** — no cross-domain trust is needed.
 
@@ -1061,22 +1061,22 @@ Since the SOFS cluster and AVD users are in the same domain, **Kerberos authenti
   <tbody>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">Azure Local host nodes</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud` domain member</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud` domain member</td>
       <td style="padding:8px; text-align:left;">N/A (infrastructure)</td>
     </tr>
     <tr style="background:#CCE4FF;">
       <td style="padding:8px; text-align:left;">SOFS VMs</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud` domain member</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud` domain member</td>
       <td style="padding:8px; text-align:left;">N/A (they are the server)</td>
     </tr>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">AVD session hosts</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud` domain member</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud` domain member</td>
       <td style="padding:8px; text-align:left;">Kerberos — native (same domain)</td>
     </tr>
     <tr style="background:#CCE4FF;">
       <td style="padding:8px; text-align:left;">User at logon</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud` domain user</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud` domain user</td>
       <td style="padding:8px; text-align:left;">Kerberos TGS for `\\iic-fslogix`</td>
     </tr>
   </tbody>
@@ -1244,7 +1244,7 @@ Each SOFS VM is deployed from the **Windows Server 2025 Datacenter: Azure Editio
     </tr>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">**Domain**</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud`</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud`</td>
     </tr>
     <tr style="background:#CCE4FF;">
       <td style="padding:8px; text-align:left;">**Placement**</td>
@@ -1529,7 +1529,7 @@ Users never see a mapped drive or UNC path — the **FSLogix agent** (`frxsvc.ex
 
 ### Identity Model
 
-On Azure Local, AVD session hosts **must be AD domain-joined**. Pure Entra ID join is not supported for Azure Local Arc VMs. Since all components are in the `improbability.cloud` domain, Kerberos authentication is automatic.
+On Azure Local, AVD session hosts **must be AD domain-joined**. Pure Entra ID join is not supported for Azure Local Arc VMs. Since all components are in the `contoso.cloud` domain, Kerberos authentication is automatic.
 
 **Hybrid Entra ID Join** (domain-joined + registered in Entra ID) is also supported and recommended for SSO to the AVD gateway. It does not change the SOFS authentication path.
 
@@ -1585,7 +1585,7 @@ HKLM\SOFTWARE\Policies\FSLogix\ODFC
 
 ### Active Directory and DNS
 
-- Active Directory domain environment (`improbability.cloud`)
+- Active Directory domain environment (`contoso.cloud`)
 - DNS configured for the domain
 - A **domain account with permissions to:**
   - Create Computer Objects in the target OU (required for the failover cluster CNO and the SOFS access point)
@@ -1946,7 +1946,7 @@ Get-ClusterGroup -Cluster "iic-clus01" |
 Run this on **each SOFS VM** (via RDP, Azure Arc remote access, or `Invoke-Command`):
 
 ```powershell
-$domain = "improbability.cloud"
+$domain = "contoso.cloud"
 $ouPath = "OU=SOFS,OU=Azure Local,DC=improbability,DC=cloud"
 $credential = Get-Credential -Message "Enter domain join credentials"
 
@@ -1963,7 +1963,7 @@ Add-Computer -DomainName $domain `
 > $nodes = "iic-sofs-01","iic-sofs-02","iic-sofs-03"
 > foreach ($node in $nodes) {
 >     Invoke-Command -ComputerName $node -ScriptBlock {
->         Add-Computer -DomainName "improbability.cloud" `
+>         Add-Computer -DomainName "contoso.cloud" `
 >                      -OUPath "OU=SOFS,OU=Azure Local,DC=improbability,DC=cloud" `
 >                      -Credential $using:cred `
 >                      -Restart -Force
@@ -1981,7 +1981,7 @@ After reboot, on each SOFS VM:
 (Get-WmiObject Win32_ComputerSystem).Domain
 hostname
 Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "169.*" }
-Resolve-DnsName improbability.cloud
+Resolve-DnsName contoso.cloud
 ```
 
 ### 4.3 — IP Address Reference
@@ -2534,7 +2534,7 @@ Get-VirtualDisk -CimSession "iic-sofs" |
     </tr>
     <tr style="background:#E6F2FF;">
       <td style="padding:8px; text-align:left;">**AD domain**</td>
-      <td style="padding:8px; text-align:left;">`improbability.cloud` / `IMPROBABLE`</td>
+      <td style="padding:8px; text-align:left;">`contoso.cloud` / `IMPROBABLE`</td>
       <td style="padding:8px; text-align:left;">Single domain for all components</td>
     </tr>
     <tr style="background:#CCE4FF;">

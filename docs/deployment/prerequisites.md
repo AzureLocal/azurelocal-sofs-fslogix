@@ -75,7 +75,7 @@ This is **not always included** and depends on:
 
 ### Domain Requirements
 
-- Active Directory domain environment (e.g., `improbability.cloud`)
+- Active Directory domain environment (e.g., `contoso.cloud`)
 - DNS configured and functional for the domain
 - Domain controllers reachable from the compute network where SOFS VMs will reside
 

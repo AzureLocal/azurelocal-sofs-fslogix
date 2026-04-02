@@ -11,7 +11,7 @@ $ShareName    = "FSLogixProfiles"         # SMB share name
 $SharePath    = "C:\ClusterStorage\Volume1\FSLogixProfiles"  # Path on the CSV
 
 # Active Directory settings
-$DomainFQDN   = "iic.local"               # AD domain FQDN
+$DomainFQDN   = "contoso.local"               # AD domain FQDN
 $OUPath       = "OU=Servers,DC=iic,DC=local"      # OU for the SOFS computer object
 
 # FSLogix / AVD settings

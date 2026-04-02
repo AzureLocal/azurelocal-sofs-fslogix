@@ -70,7 +70,7 @@ flowchart TD
 | Per-VM maps | Zero-padded string keys | `"01"`, `"02"`, `"03"` |
 | Booleans | Descriptive name | `role_enabled: true` |
 | Secrets | `keyvault://` URI | `keyvault://kv-name/secret-name` |
-| Example values | IIC fictional identity | `iic.local`, `rg-iic-sofs-01`, `kv-iic-platform` |
+| Example values | IIC fictional identity | `contoso.local`, `rg-iic-sofs-01`, `kv-iic-platform` |
 
 ---
 
@@ -204,7 +204,7 @@ data_disks:
 
 ```yaml
 domain:
-  fqdn: "iic.local"
+  fqdn: "contoso.local"
   netbios: "IIC"
   join_username: "svc.domainjoin"
   join_password: "keyvault://kv-platform-prod/domain-join-password"
@@ -214,7 +214,7 @@ domain:
 
 | Variable | Type | Required | Description | Default | Phases |
 |----------|------|:--------:|-------------|---------|--------|
-| `domain.fqdn` | string | **Yes** | Active Directory domain FQDN | `iic.local` | 3–4 |
+| `domain.fqdn` | string | **Yes** | Active Directory domain FQDN | `contoso.local` | 3–4 |
 | `domain.netbios` | string | **Yes** | NetBIOS domain name (used in share permissions: `NETBIOS\Domain Users`) | `IIC` | 8, 10 |
 | `domain.join_username` | string | **Yes** | Service account for domain join operations | — | 4 |
 | `domain.join_password` | string | **Yes** | Key Vault URI for the domain join password | — | 4 |

@@ -97,7 +97,7 @@ data_disks:
 # Domain
 # =============================================================================
 domain:
-  fqdn: "iic.local"
+  fqdn: "contoso.local"
   netbios: "IIC"
   join_username: "svc.domainjoin"
   join_password: "keyvault://kv-platform-prod/domain-join-password"

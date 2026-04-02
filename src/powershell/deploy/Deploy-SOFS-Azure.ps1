@@ -212,12 +212,18 @@ $repoRoot = (Get-Location).Path
 if ($SolutionConfigPath -eq "") {
     # Primary: new central config; Fallback: legacy solution config
     $primaryPath = Join-Path $repoRoot "config\variables.yml"
+    $examplePath = Join-Path $repoRoot "config\variables.example.yml"
     $legacyPath  = Join-Path $repoRoot "solutions\sofs\solution-sofs.yml"
     if     (Test-Path $primaryPath) { $SolutionConfigPath = $primaryPath }
+    elseif (Test-Path $examplePath) {
+        Copy-Item -Path $examplePath -Destination $primaryPath -Force
+        Write-Log "Config not found. Created $primaryPath from template." "WARN"
+        $SolutionConfigPath = $primaryPath
+    }
     elseif (Test-Path $legacyPath)  { $SolutionConfigPath = $legacyPath; Write-Log "Using legacy config path: $legacyPath" "WARN" }
     else {
         Write-Log "Config not found. Expected: config\variables.yml" "FAIL"
-        Write-Log "Copy config\variables.example.yml to config\variables.yml and fill in your values." "FAIL"
+        Write-Log "Template also missing: config\variables.example.yml" "FAIL"
         exit 1
     }
 }
