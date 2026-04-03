@@ -25,7 +25,7 @@ BeforeAll {
     $invokeScript    = Join-Path $deployDir "Invoke-SOFSDeployment.ps1"
 
     # Schema path
-    $schemaPath = Join-Path $configDir "schema\variables.schema.json"
+    $schemaPath = Join-Path $configDir "variables\schema\variables.schema.json"
 
         # Build a minimal valid config for unit tests (Single layout — single volume/share)
         $singleLayoutYaml = @"

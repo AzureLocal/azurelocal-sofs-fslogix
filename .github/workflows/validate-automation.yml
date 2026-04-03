@@ -220,7 +220,7 @@ jobs:
           import json, sys
           from jsonschema import validate, ValidationError
 
-          with open('config/schema/variables.schema.json') as f:
+          with open('config/variables/schema/variables.schema.json') as f:
               schema = json.load(f)
 
           examples = schema.get('\$defs', {}).get('examples', {})
@@ -283,7 +283,7 @@ jobs:
           python3 -c "
           import yaml, sys
 
-          with open('config/variables.example.yml') as f:
+          with open('config/variables/variables.example.yml') as f:
               data = yaml.safe_load(f)
 
           layout = data.get('deployment', {}).get('guest_layout', '')
