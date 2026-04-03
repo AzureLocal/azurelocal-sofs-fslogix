@@ -64,7 +64,7 @@ locals {
   # Per-VM storage path lookup: vm_name -> storage_path_id
   vm_storage_path = {
     for i in range(var.vm_count) : local.vm_names[i] =>
-      lookup(var.storage_path_ids, format("%02d", i + 1), values(var.storage_path_ids)[0])
+    lookup(var.storage_path_ids, format("%02d", i + 1), values(var.storage_path_ids)[0])
   }
 
   # Total pool calculations

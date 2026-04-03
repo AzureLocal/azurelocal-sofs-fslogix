@@ -162,9 +162,9 @@ data "external" "domain_join_password" {
   program = [
     "az", "keyvault", "secret", "show",
     "--vault-name", var.key_vault_name,
-    "--name",       var.key_vault_secret_domain_join_password,
-    "--query",      "{value: value}",
-    "-o",           "json"
+    "--name", var.key_vault_secret_domain_join_password,
+    "--query", "{value: value}",
+    "-o", "json"
   ]
 }
 

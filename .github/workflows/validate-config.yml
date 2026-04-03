@@ -44,15 +44,15 @@ jobs:
           import yaml, json, sys
           from jsonschema import validate, ValidationError
 
-          with open('config/variables.example.yml') as f:
+          with open('config/variables/variables.example.yml') as f:
               data = yaml.safe_load(f)
 
-          with open('config/schema/variables.schema.json') as f:
+          with open('config/variables/schema/variables.schema.json') as f:
               schema = json.load(f)
 
           try:
               validate(instance=data, schema=schema)
-              print('✅ config/variables.example.yml passes schema validation')
+            print('✅ config/variables/variables.example.yml passes schema validation')
           except ValidationError as e:
               print(f'❌ Schema validation failed: {e.message}')
               print(f'   Path: {\" > \".join(str(p) for p in e.absolute_path)}')

@@ -9,8 +9,8 @@ data "external" "admin_password" {
   program = [
     "az", "keyvault", "secret", "show",
     "--vault-name", var.key_vault_name,
-    "--name",       var.key_vault_secret_admin_password,
-    "--query",      "{value: value}",
-    "-o",           "json"
+    "--name", var.key_vault_secret_admin_password,
+    "--query", "{value: value}",
+    "-o", "json"
   ]
 }

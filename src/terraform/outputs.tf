@@ -64,8 +64,8 @@ output "ansible_controller_private_ip" {
     var.guest_config_engine == "ansible_create"
     ? azurerm_network_interface.ansible_controller[0].private_ip_address
     : var.guest_config_engine == "ansible_existing"
-      ? var.ansible_existing_controller_ip
-      : null
+    ? var.ansible_existing_controller_ip
+    : null
   )
 }
 
@@ -80,8 +80,8 @@ output "ansible_controller_admin_username" {
     var.guest_config_engine == "ansible_create"
     ? var.ansible_controller_admin_username
     : var.guest_config_engine == "ansible_existing"
-      ? var.ansible_existing_controller_user
-      : null
+    ? var.ansible_existing_controller_user
+    : null
   )
 }
 
