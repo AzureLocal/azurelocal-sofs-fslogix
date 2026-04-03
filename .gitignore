@@ -60,5 +60,5 @@ build/
 site/
 
 # Project management and temp working files
-project_management/
+repo-management/
 temp/

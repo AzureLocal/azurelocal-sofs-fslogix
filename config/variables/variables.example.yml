@@ -18,7 +18,7 @@
 # Deployment Architecture Choices
 #
 # These high-level decisions determine which deployment path the tools follow.
-# See docs/standards/automation.md for the Deployment Path Matrix.
+# See standards/automation.md for the Deployment Path Matrix.
 # =============================================================================
 deployment:
   host_volume_layout: "three_volumes"      # three_volumes | single_volume

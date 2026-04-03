@@ -70,7 +70,7 @@ Examples:
 
 ### Infrastructure as Code
 
-- Terraform and Bicep files should follow the conventions in `docs/standards/`
+- Terraform and Bicep files should follow the conventions in `standards/`
 - Use variables for all environment-specific values — no hardcoded IPs, names, or paths
 
 ### Testing
