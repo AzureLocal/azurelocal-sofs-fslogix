@@ -52,7 +52,7 @@ jobs:
 
           try:
               validate(instance=data, schema=schema)
-            print('✅ config/variables/variables.example.yml passes schema validation')
+              print('✅ config/variables/variables.example.yml passes schema validation')
           except ValidationError as e:
               print(f'❌ Schema validation failed: {e.message}')
               print(f'   Path: {\" > \".join(str(p) for p in e.absolute_path)}')
