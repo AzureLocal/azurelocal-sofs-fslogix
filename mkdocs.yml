@@ -100,7 +100,6 @@ markdown_extensions:
 
 plugins:
   - search
-  - sitemap
 
 extra:
   analytics:
