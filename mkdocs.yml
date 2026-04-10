@@ -1,5 +1,6 @@
 site_name: Azure Local SOFS for FSLogix
 site_description: Infrastructure-as-Code and automation for deploying a Scale Out File Server on Azure Local for FSLogix profile containers
+site_author: Azure Local Cloud
 site_url: https://azurelocal.github.io/azurelocal-sofs-fslogix/
 repo_url: https://github.com/AzureLocal/azurelocal-sofs-fslogix
 repo_name: AzureLocal/azurelocal-sofs-fslogix
@@ -118,5 +119,5 @@ extra:
   homepage: https://azurelocal.cloud
 
 copyright: >-
-  Copyright &copy; 2025 Azure Local. Designed and maintained by
+  Copyright &copy; 2026 Azure Local. Designed and maintained by
   <a href="https://www.hybridsolutions.cloud">Hybrid Cloud Solutions</a>.
