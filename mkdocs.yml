@@ -10,13 +10,13 @@ theme:
   palette:
     - scheme: default
       primary: blue
-      accent: light blue
+      accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
       primary: blue
-      accent: light blue
+      accent: blue
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -29,8 +29,8 @@ theme:
     - content.code.annotate
     - search.suggest
     - search.highlight
-  logo: assets/images/sofs-fslogix-icon.svg
-  favicon: assets/images/sofs-fslogix-icon.svg
+  logo: assets/images/azurelocal-sofs-fslogix-icon.svg
+  favicon: assets/images/azurelocal-sofs-fslogix-icon.svg
   icon:
     repo: fontawesome/brands/github
 

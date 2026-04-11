@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A86D8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#003A70;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#001A3A" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="200" height="200" rx="38" ry="38" fill="url(#bgGrad)"/>
+
+  <g opacity="0.08" stroke="white" stroke-width="0.8">
+    <line x1="0" y1="50" x2="200" y2="50"/>
+    <line x1="0" y1="100" x2="200" y2="100"/>
+    <line x1="0" y1="150" x2="200" y2="150"/>
+    <line x1="50" y1="0" x2="50" y2="200"/>
+    <line x1="100" y1="0" x2="100" y2="200"/>
+    <line x1="150" y1="0" x2="150" y2="200"/>
+  </g>
+
+  <g transform="translate(100,32)" filter="url(#shadow)">
+    <polygon points="0,-14 14,-5 10,12 0,7 -10,12 -14,-5" fill="#9B59B6" stroke="#7D3C98" stroke-width="0.8"/>
+    <text x="0" y="3" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="9" fill="white">F</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <circle cx="100" cy="100" r="46" fill="white"/>
+    <circle cx="100" cy="100" r="38" fill="url(#bgGrad)"/>
+
+    <!-- FSLogix profile disk stack (3 VHD layers) -->
+    <!-- Top layer (VHD with profile) -->
+    <rect x="76" y="80" width="48" height="11" rx="2" fill="#9B59B6" opacity="0.85"/>
+    <ellipse cx="100" cy="80" rx="24" ry="4.5" fill="#B07CC6" opacity="0.85"/>
+    <!-- Profile head on top layer -->
+    <circle cx="100" cy="76" r="3.5" fill="white" opacity="0.90"/>
+    <path d="M94,80 Q100,77.5 106,80" fill="none" stroke="white" stroke-width="1.3" opacity="0.90"/>
+
+    <!-- Middle layer -->
+    <rect x="76" y="94" width="48" height="11" rx="2" fill="#9B59B6" opacity="0.60"/>
+    <ellipse cx="100" cy="94" rx="24" ry="4.5" fill="#B07CC6" opacity="0.60"/>
+
+    <!-- Bottom layer -->
+    <rect x="76" y="108" width="48" height="11" rx="2" fill="#9B59B6" opacity="0.38"/>
+    <ellipse cx="100" cy="108" rx="24" ry="4.5" fill="#B07CC6" opacity="0.38"/>
+
+    <circle cx="100" cy="100" r="38" fill="none" stroke="white" stroke-width="1.5" opacity="0.2"/>
+  </g>
+
+  <text x="100" y="168" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="bold" font-size="13" fill="white" letter-spacing="1" opacity="0.95">AZURE LOCAL</text>
+  <text x="100" y="186" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="bold" font-size="11" fill="#9B59B6" letter-spacing="1" opacity="0.95">SOFS · FSLOGIX</text>
+</svg>

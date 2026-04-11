@@ -1,5 +1,7 @@
 # Azure Local SOFS for FSLogix
 
+![Azure Local SOFS for FSLogix](assets/images/azurelocal-sofs-fslogix-banner.svg)
+
 !!! warning "Under Active Development"
     This repository is a work in progress. Scripts, templates, and automation are **not guaranteed to work** at this time. Use at your own risk and expect breaking changes.
 
