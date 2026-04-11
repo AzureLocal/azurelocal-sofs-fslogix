@@ -29,6 +29,8 @@ theme:
     - content.code.annotate
     - search.suggest
     - search.highlight
+  logo: assets/images/sofs-fslogix-icon.svg
+  favicon: assets/images/sofs-fslogix-icon.svg
   icon:
     repo: fontawesome/brands/github
 
