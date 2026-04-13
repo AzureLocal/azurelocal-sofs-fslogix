@@ -65,16 +65,6 @@ nav:
       - Variables: reference/variables.md
       - Phase Ownership Matrix: reference/phase-ownership.md
       - SOFS Design & Deployment Guide: reference/sofs-design-and-deployment-guide.md
-  - Standards:
-      - Overview: standards/index.md
-      - Documentation: standards/documentation.md
-      - Scripting: standards/scripting.md
-      - Variables: standards/variables.md
-      - Naming Conventions: standards/naming.md
-      - Solutions: standards/solutions.md
-      - Infrastructure: standards/infrastructure.md
-      - Automation: standards/automation.md
-      - Examples & IIC: standards/examples.md
   - Roadmap: roadmap.md
   - Contributing: contributing.md
 
