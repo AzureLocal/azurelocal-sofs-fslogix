@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-![Azure Local SOFS for FSLogix](docs/assets/images/azurelocal-sofs-fslogix-banner.svg)
+This repo contains the IaC templates, configuration, and deployment scripts for provisioning Scale-Out File Server (SOFS) on Azure Local as a high-availability FSLogix profile storage backend for Azure Virtual Desktop. It covers ARM templates, Bicep modules, Ansible playbooks, and PowerShell deployment scripts. It is not an application repo — it contains no runtime code, only infrastructure definitions and deployment automation.
 
 ---
 
@@ -40,7 +40,7 @@ Key rules:
 
 | Fact | Value |
 |---|---|
-| Primary language | Markdown / Python (MkDocs) |
+| Primary language | ARM / Bicep / PowerShell 7 |
 | GitHub org | AzureLocal |
 | Azure login | kris@hybridsolutions.cloud |
 | Key Vault | kv-hcs-vault-01 |
@@ -53,7 +53,7 @@ Key rules:
 | `AZURE_DEVOPS_EXT_PAT` | kv-hcs-vault-01 via Load-HCSEnvironment.ps1 | ADO CLI (`az boards`, `az devops`) |
 Load before starting a session:
 ```powershell
-. E:\git\platform\scripts\Load-HCSEnvironment.ps1
+. D:\git\platform\scripts\Load-HCSEnvironment.ps1
 ```
 
 ### Build and test commands
@@ -147,9 +147,11 @@ azurelocal-sofs-fslogix/
 
 ## Subagents available in this repo
 
-- `azurelocal-sofs-fslogix-engineer` (model: sonnet) — Expert in `azurelocal-sofs-fslogix`: deep knowledge of this repo's structure, conventions, and development workflow.
+- `azurelocal-sofs-fslogix-engineer` (model: sonnet) — IaC engineer for SOFS/FSLogix deployment: ARM templates, Bicep modules, Ansible playbooks, PowerShell deployment scripts.
 
-User-level agents (available in every repo session): `triage-lookup`, `markdown-prose-editor`, `azurelocal-domain-expert`, `mkdocs-material-doctor`, `turner-module-scaffold-engineer`, `mms-2026-demo-presenter`.
+User-level agents (every repo): `triage-lookup`, `markdown-prose-editor`, `azurelocal-domain-expert`, `mkdocs-material-doctor`, `turner-module-scaffold-engineer`, `mms-2026-demo-presenter`.
+
+Platform repo agents (when working in `D:\git\platform`): `orchestration-pm`, `security-waf-caf`, `terraform-validator`, `bicep-validator`, `arm-validator`, `ansible-linter`, `powershell-linter`, `reviewer`, `security-reviewer`, `documenter`, `coder`, `planner`, `operator`, `investigator`, `test-writer`, `router`.
 
 ---
 
@@ -160,3 +162,15 @@ kris@hybridsolutions.cloud
 Senior Product Technology Architect, TierPoint | Microsoft MVP (Azure) | MCT
 Owner, Hybrid Cloud Solutions LLC — hybridsolutions.cloud
 Country Cloud Boy — thisismydemo.cloud
+
+---
+
+## HCS Orchestration Profile
+
+**Validation profile:** iac-arm — see `D:\git\platform\profiles\iac-arm.yaml`
+
+This repo is a **pilot** for the `iac-arm` type in the HCS multi-agent orchestration system.
+Run `/dispatch iac-arm` (or `/dispatch` for all pilots) to validate this repo.
+
+**Repo-specific notes for validators:**
+Entry point: `src/arm/azuredeploy.json`. Parameters file: `src/arm/azuredeploy.parameters.example.json`. ARM-TTK must pass. No `az deployment` commands in this repo — templates only.

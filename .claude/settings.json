@@ -2,9 +2,36 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "pwsh -NonInteractive -File D:/git/azurelocal/azurelocal-sofs-fslogix/.claude/hooks/block-secrets.ps1" },
+          { "type": "command", "command": "pwsh -NonInteractive -File D:/git/azurelocal/azurelocal-sofs-fslogix/.claude/hooks/validate-path.ps1" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "pwsh -NonInteractive -File D:/git/azurelocal/azurelocal-sofs-fslogix/.claude/hooks/log-tokens.ps1" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "pwsh -NonInteractive -File D:/git/azurelocal/azurelocal-sofs-fslogix/.claude/hooks/summarize-session.ps1" }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git status:*)",
@@ -15,14 +42,17 @@
       "Bash(gh run:*)",
       "Bash(gh api:*)",
       "Bash(gh workflow:*)",
+      "Bash(gh release:*)",
+      "Bash(pwsh -NoProfile -Command ':*)",
+      "Bash(pwsh -NoProfile -File ':*)",
+      "Bash(pwsh -NonInteractive -Command ':*)",
+      "Bash(pwsh -NonInteractive -File ':*)",
+      "Read(//d/git/azurelocal/azurelocal-sofs-fslogix/**)",
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:learn.microsoft.com)",
-      "WebFetch(domain:dev.azure.com)",
-      "Bash(mkdocs:*)",
-      "Bash(pip:*)",
-      "Bash(python:*)"
+      "WebFetch(domain:dev.azure.com)"
     ]
   }
 }
