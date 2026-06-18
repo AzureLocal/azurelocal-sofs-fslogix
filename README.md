@@ -16,7 +16,7 @@ Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (S
 
 Three Windows Server VMs form a guest Storage Spaces Direct cluster on Azure Local, presenting a Scale-Out File Server role with continuously available SMB shares for FSLogix profile containers. Anti-affinity rules keep each VM on a separate physical node for host-level resiliency.
 
-For the AVD session-host side of the deployment, see the sister repository: [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/aurelocal-avd).
+For the AVD session-host side of the deployment, see the sister repository: [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/azurelocal-avd).
 
 ---
 
@@ -110,7 +110,7 @@ See [CONTRIBUTING.md](./docs/contributing.md) for coding standards, branch strat
 
 | Repository | Description |
 |------------|-------------|
-| [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/aurelocal-avd) | Azure Virtual Desktop session host deployment on Azure Local |
+| [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/azurelocal-avd) | Azure Virtual Desktop session host deployment on Azure Local |
 
 ---
 
