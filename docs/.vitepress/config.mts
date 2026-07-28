@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  ignoreDeadLinks: true,
   base: '/azurelocal-sofs-fslogix/',
-  title: "azurelocal-sofs-fslogix Documentation",
+  title: "Azure Local SOFS for FSLogix",
   description: "Governed centrally by HCS Platform Engineering standards",
   themeConfig: {
+    logo: '/assets/images/azurelocal-sofs-fslogix-icon.svg',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Architecture', link: '/architecture' },
@@ -27,5 +29,6 @@ export default defineConfig({
     }
   }
 })
+
 
 
