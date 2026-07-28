@@ -39,9 +39,10 @@ If your AD environment restricts dynamic Computer Object creation, pre-stage the
 
 ### Licensing
 
-!!! warning "Verify your licensing"
-    Each SOFS VM requires a **Windows Server 2025 Datacenter** license. If your Azure Local hosts are licensed with Windows Server Datacenter with Software Assurance or an active Azure Local subscription that includes Windows Server guest licensing, guest VM rights may already cover the SOFS VMs. **Check with your Microsoft licensing contact** — this is not always included and depends on how the Azure Local cluster was purchased and licensed.
-
+> [!WARNING]
+> **Verify your licensing**
+> Each SOFS VM requires a **Windows Server 2025 Datacenter** license. If your Azure Local hosts are licensed with Windows Server Datacenter with Software Assurance or an active Azure Local subscription that includes Windows Server guest licensing, guest VM rights may already cover the SOFS VMs. **Check with your Microsoft licensing contact** — this is not always included and depends on how the Azure Local cluster was purchased and licensed.
+>
 ---
 
 ## Step 1: Make Design Decisions
@@ -81,9 +82,10 @@ Copy the example configuration and fill in your values:
 cp config/variables.example.yml config/variables.yml
 ```
 
-!!! danger "Never commit variables.yml"
-    `variables.yml` contains environment-specific values and Key Vault references. It is excluded by `.gitignore`.
-
+> [!CAUTION]
+> **Never commit variables.yml**
+> `variables.yml` contains environment-specific values and Key Vault references. It is excluded by `.gitignore`.
+>
 Edit `config/variables.yml` and set at minimum:
 
 | Section | Key variables |
@@ -154,9 +156,10 @@ Choose one tool to create the resource group, NICs, Arc VMs, data disks, and clo
 
     See [Ansible Deployment](deployment/ansible.md) for full details.
 
-!!! note "Host volume creation is a prerequisite"
-    Azure-side tools create VMs and disks but **not** the host CSV volumes. Create host volumes on the Azure Local cluster directly before running Phase 1. See the [SOFS Design & Deployment Guide](reference/sofs-design-and-deployment-guide.md) Phase 1 for the exact `New-Volume` commands.
-
+> [!NOTE]
+> **Host volume creation is a prerequisite**
+> Azure-side tools create VMs and disks but **not** the host CSV volumes. Create host volumes on the Azure Local cluster directly before running Phase 1. See the [SOFS Design & Deployment Guide](reference/sofs-design-and-deployment-guide.md) Phase 1 for the exact `New-Volume` commands.
+>
 ### What Phase 1 creates
 
 | Resource | Count | Description |
@@ -241,9 +244,10 @@ See [Validation](deployment/validation.md) for the complete procedure.
 
 ## Step 6: Configure AVD Session Hosts
 
-!!! info "Separate deployment"
-    AVD session host deployment is outside this repo's scope. See [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/azurelocal-avd) for AVD-specific automation.
-
+> [!NOTE]
+> **Separate deployment**
+> AVD session host deployment is outside this repo's scope. See [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/azurelocal-avd) for AVD-specific automation.
+>
 After the SOFS is validated, configure FSLogix on your AVD session hosts:
 
 ### FSLogix registry keys (Triple layout — Three Shares)

@@ -4,9 +4,10 @@
 
 FSLogix Profile Containers redirect user profiles into VHD/VHDX files stored on the SOFS share. Configuration is done on AVD **session hosts** (not on the SOFS VMs) via registry keys or Group Policy.
 
-!!! info "This page covers session host configuration"
-    The SOFS shares and permissions are configured during [deployment](../deployment/powershell.md). This page covers the FSLogix agent settings on the machines that **consume** those shares.
-
+> [!NOTE]
+> **This page covers session host configuration**
+> The SOFS shares and permissions are configured during [deployment](../deployment/powershell.md). This page covers the FSLogix agent settings on the machines that **consume** those shares.
+>
 ---
 
 ## Single Share vs Three Shares — When to Use Each
@@ -55,9 +56,10 @@ The most important decision on this page is whether to put all FSLogix data on *
 | Operational complexity | Lower | Higher (3× shares, permissions, backups) |
 | NTFS contention risk | Acceptable | Needs isolation |
 
-!!! tip "When in doubt, start with Single layout"
-    You can always split later by adding ODFC and AppData volumes. Going from Triple layout back to Single layout requires migrating all user data into a single volume — much harder.
-
+> [!TIP]
+> **When in doubt, start with Single layout**
+> You can always split later by adding ODFC and AppData volumes. Going from Triple layout back to Single layout requires migrating all user data into a single volume — much harder.
+>
 For worked examples of both options with real sizing, see [Deployment Scenarios](../architecture/scenarios.md).
 
 ---
@@ -118,9 +120,10 @@ HKLM\SOFTWARE\Policies\FSLogix\ODFC
 | `VHDLocations` | `\\iic-fslogix\ODFC` | Points to the dedicated ODFC share |
 | `IncludeOutlookPersonalization` | `1` | Includes Outlook signatures, stationery, and other personalization data |
 
-!!! note "ODFC separates Office data"
-    When ODFC containers are enabled, Outlook OST files, Teams cache, and OneDrive data are stored in the ODFC VHDX instead of the profile container. This keeps profile containers smaller and allows independent sizing for each workload.
-
+> [!NOTE]
+> **ODFC separates Office data**
+> When ODFC containers are enabled, Outlook OST files, Teams cache, and OneDrive data are stored in the ODFC VHDX instead of the profile container. This keeps profile containers smaller and allows independent sizing for each workload.
+>
 ### AppData Redirection
 
 The AppData share can be consumed via:
@@ -171,9 +174,10 @@ The `CCDLocations` value is a semicolon-separated list of providers:
 | SMB (SOFS) | `type=smb,name="<label>",connectionString=\\<server>\<share>` |
 | Azure Blob | `type=azure,name="<label>",connectionString="\|fslogix/<key-vault-key>\|"` |
 
-!!! warning "Do not use both `VHDLocations` and `CCDLocations`"
-    These are mutually exclusive. If `CCDLocations` is set, `VHDLocations` is ignored. Choose one approach.
-
+> [!WARNING]
+> **Do not use both `VHDLocations` and `CCDLocations`**
+> These are mutually exclusive. If `CCDLocations` is set, `VHDLocations` is ignored. Choose one approach.
+>
 ---
 
 ## Profile Sizing

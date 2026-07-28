@@ -43,16 +43,17 @@ One large volume holds all three VMs:
 
 ### No Thin Provisioning
 
-!!! danger "Do not thin-provision the host volumes"
-    `New-Volume` uses fixed provisioning by default — leave it that way. Thin provisioning creates more problems than it solves for SOFS host volumes:
-
-    - **Pool full = all volumes die.** If total writes exceed the physical pool capacity, S2D puts the pool into a degraded/read-only state. That's not one volume full — it's every SOFS VM going read-only simultaneously.
-    - **Defeats fault isolation.** Three volumes on a shared thin pool are back to a shared-fate dependency on pool free space — exactly what separate volumes are designed to eliminate.
-    - **Write-time allocation overhead.** Every write must find and allocate slabs from the pool. During a logon storm, that's an extra metadata operation per write. Fixed provisioning has pre-allocated extents — writes go straight to reserved space.
-    - **Misleading capacity reporting.** Volumes report large free space while the underlying pool may be nearly full. Admin tools, PerfMon, and FSRM all show the logical number, not the physical reality.
-
-    Fixed provisioning: pre-calculate sizes from [Capacity Planning](capacity-planning.md), allocate up front, monitor each volume independently.
-
+> [!CAUTION]
+> **Do not thin-provision the host volumes**
+> `New-Volume` uses fixed provisioning by default — leave it that way. Thin provisioning creates more problems than it solves for SOFS host volumes:
+>
+> - **Pool full = all volumes die.** If total writes exceed the physical pool capacity, S2D puts the pool into a degraded/read-only state. That's not one volume full — it's every SOFS VM going read-only simultaneously.
+> - **Defeats fault isolation.** Three volumes on a shared thin pool are back to a shared-fate dependency on pool free space — exactly what separate volumes are designed to eliminate.
+> - **Write-time allocation overhead.** Every write must find and allocate slabs from the pool. During a logon storm, that's an extra metadata operation per write. Fixed provisioning has pre-allocated extents — writes go straight to reserved space.
+> - **Misleading capacity reporting.** Volumes report large free space while the underlying pool may be nearly full. Admin tools, PerfMon, and FSRM all show the logical number, not the physical reality.
+>
+> Fixed provisioning: pre-calculate sizes from [Capacity Planning](capacity-planning.md), allocate up front, monitor each volume independently.
+>
 ---
 
 ## Decision 2: Guest S2D Resiliency
@@ -81,16 +82,18 @@ Three data copies. Tolerates 2 simultaneous VM failures. Significantly higher ra
 | Raw-to-usable ratio (stacked) | ~6.2 : 1 |
 | Fault tolerance | 2 VM/node failures |
 
-!!! warning "Explicit `-NumberOfDataCopies 2` required"
-    On a 3-node S2D cluster, the default mirror is **three-way**. You must explicitly specify `-NumberOfDataCopies 2` when creating guest volumes to use a two-way mirror. Without it, each volume consumes 50% more raw capacity than expected.
-
+> [!WARNING]
+> **Explicit `-NumberOfDataCopies 2` required**
+> On a 3-node S2D cluster, the default mirror is **three-way**. You must explicitly specify `-NumberOfDataCopies 2` when creating guest volumes to use a two-way mirror. Without it, each volume consumes 50% more raw capacity than expected.
+>
 **Recommendation:** The two-way mirror is recommended for most deployments. The Azure Local two-way mirror underneath already protects against physical disk and host node failures, making the additional three-way mirror at the guest layer hard to justify — especially for profile data that can be repopulated.
 
 ### No Thin Provisioning on Guest Volumes
 
-!!! danger "Do not thin-provision guest S2D volumes"
-    The same thin-provisioning dangers apply at the guest layer. If the guest S2D pool runs out of physical space, **all** guest volumes go read-only — every FSLogix profile becomes inaccessible simultaneously. Fixed provisioning with pre-calculated sizes is the only safe approach.
-
+> [!CAUTION]
+> **Do not thin-provision guest S2D volumes**
+> The same thin-provisioning dangers apply at the guest layer. If the guest S2D pool runs out of physical space, **all** guest volumes go read-only — every FSLogix profile becomes inaccessible simultaneously. Fixed provisioning with pre-calculated sizes is the only safe approach.
+>
 ---
 
 ## Decision 3: Guest Volume Layout (Share Model)

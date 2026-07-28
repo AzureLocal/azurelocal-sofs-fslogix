@@ -6,9 +6,10 @@ Capacity planning for a guest SOFS on Azure Local is different from a traditiona
 
 This page walks through the methodology, provides worked calculations for two-way and three-way guest mirrors, and gives you the ratios needed to size any deployment.
 
-!!! warning "All numbers are examples"
-    The calculations below use a **5 TB usable** target (plus 10% growth headroom). Your deployment will differ based on user count, profile sizes, and resiliency choices. Use the [Azure Local Sizer (Odin)](https://azure.github.io/odinforazurelocal/sizer/) to validate raw capacity requirements for your specific environment.
-
+> [!WARNING]
+> **All numbers are examples**
+> The calculations below use a **5 TB usable** target (plus 10% growth headroom). Your deployment will differ based on user count, profile sizes, and resiliency choices. Use the [Azure Local Sizer (Odin)](https://azure.github.io/odinforazurelocal/sizer/) to validate raw capacity requirements for your specific environment.
+>
 ---
 
 ## The Stacked Mirror Problem
@@ -93,9 +94,10 @@ The three-way mirror adds approximately **9 TB of additional raw physical disk**
 
 ## Which Resiliency to Choose
 
-!!! tip "Recommendation: Two-way mirror"
-    The Azure Local two-way mirror underneath already protects against physical disk and host node failures. The guest S2D two-way mirror adds a **second** resiliency layer at the VM level. A three-way mirror at the guest layer is hard to justify for an extra ~9 TB of raw capacity — especially for FSLogix profile data that can be regenerated from Cloud Cache or a secondary provider.
-
+> [!TIP]
+> **Recommendation: Two-way mirror**
+> The Azure Local two-way mirror underneath already protects against physical disk and host node failures. The guest S2D two-way mirror adds a **second** resiliency layer at the VM level. A three-way mirror at the guest layer is hard to justify for an extra ~9 TB of raw capacity — especially for FSLogix profile data that can be regenerated from Cloud Cache or a secondary provider.
+>
 Choose **three-way** only if:
 
 - Regulatory or compliance requirements mandate it
@@ -117,9 +119,10 @@ Data disks are created with **dynamic provisioning** — they don't consume thei
 
 This means Day one cluster impact is minimal. However, **you must reserve the full ceiling capacity** on the Azure Local cluster because the data disks will grow over time and you cannot safely over-commit the host storage pool.
 
-!!! danger "Do not thin-provision host volumes"
-    Fixed provisioning on the Azure Local host volumes ensures each volume has its full capacity reserved. Thin provisioning lets you over-commit the storage pool — if total writes exceed physical capacity, **all** volumes go read-only simultaneously. See [Storage Design — No Thin Provisioning](storage-design.md) for the full rationale.
-
+> [!CAUTION]
+> **Do not thin-provision host volumes**
+> Fixed provisioning on the Azure Local host volumes ensures each volume has its full capacity reserved. Thin provisioning lets you over-commit the storage pool — if total writes exceed physical capacity, **all** volumes go read-only simultaneously. See [Storage Design — No Thin Provisioning](storage-design.md) for the full rationale.
+>
 ---
 
 ## Growth Headroom

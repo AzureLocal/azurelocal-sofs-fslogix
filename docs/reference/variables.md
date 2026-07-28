@@ -2,13 +2,14 @@
 
 All deployment tools read from a single central configuration file: `config/variables.yml`. This file is the **single source of truth** — your architecture decisions, sizing calculations, identity settings, and infrastructure IDs are all declared here and consumed by every automation tool.
 
-!!! tip "Getting started"
-    Copy the example and fill in your values:
-    ```powershell
-    cp config/variables.example.yml config/variables.yml
-    ```
-    **Never commit** `variables.yml` — it is excluded by `.gitignore` because it contains environment-specific values and Key Vault references.
-
+> [!TIP]
+> **Getting started**
+> Copy the example and fill in your values:
+> ```powershell
+> cp config/variables.example.yml config/variables.yml
+> ```
+> **Never commit** `variables.yml` — it is excluded by `.gitignore` because it contains environment-specific values and Key Vault references.
+>
 ---
 
 ## Deployment Architecture Choices
@@ -147,9 +148,10 @@ azure_local:
 | `azure_local.storage_path_id` | string | Single layout | Storage path for single-volume deployments (all VMs on one volume) | — | 2 |
 | `azure_local.storage_path_ids` | map | Triple layout | Per-VM storage paths keyed by node number for three-volume deployments (fault isolation) | — | 2 |
 
-!!! tip "storage_path_id vs. storage_path_ids"
-    Use `storage_path_id` (singular) when all VMs share one host volume. Use `storage_path_ids` (plural, keyed by node number) when each VM has its own host volume for fault isolation. The deployment tools check which one is populated and behave accordingly.
-
+> [!TIP]
+> **storage_path_id vs. storage_path_ids**
+> Use `storage_path_id` (singular) when all VMs share one host volume. Use `storage_path_ids` (plural, keyed by node number) when each VM has its own host volume for fault isolation. The deployment tools check which one is populated and behave accordingly.
+>
 ---
 
 ## Virtual Machines
@@ -195,9 +197,10 @@ data_disks:
 | `data_disks.size_gb` | integer | **Yes** | Size of each data disk in GB — derived from [Capacity Planning](../architecture/capacity-planning.md) | `500` | 2 |
 | `data_disks.dynamic` | boolean | No | Reserved for future dynamic disk provisioning | `false` | — |
 
-!!! important "Size drives everything"
-    `data_disks.size_gb` × `data_disks.count` × `vm.count` = total S2D pool. For the 5.5 TB usable example with two-way mirror: 4 × 1024 GB × 3 VMs = 12,288 GB total pool.
-
+> [!IMPORTANT]
+> **Size drives everything**
+> `data_disks.size_gb` × `data_disks.count` × `vm.count` = total S2D pool. For the 5.5 TB usable example with two-way mirror: 4 × 1024 GB × 3 VMs = 12,288 GB total pool.
+>
 ---
 
 ## Domain
@@ -296,9 +299,10 @@ dns_servers:
 | `sofs.shares[].name` | string | Triple layout | SMB share name (e.g., `Profiles`, `ODFC`, `AppData`) | — | 8 |
 | `sofs.shares[].volume` | string | Triple layout | S2D volume that backs this share (must match `s2d.volumes[].name`) | — | 8 |
 
-!!! tip "Which option?"
-    See [FSLogix Configuration — Single Share vs Three Shares](../configuration/fslogix.md#single-share-vs-three-shares-when-to-use-each) for guidance on when to use each model.
-
+> [!TIP]
+> **Which option?**
+> See [FSLogix Configuration — Single Share vs Three Shares](../configuration/fslogix.md#single-share-vs-three-shares-when-to-use-each) for guidance on when to use each model.
+>
 ---
 
 ## Storage Spaces Direct (S2D)
@@ -339,9 +343,10 @@ dns_servers:
 | `s2d.volumes[].size_gb` | integer | Triple layout | Volume size in GB per-workload — from [Capacity Planning](../architecture/capacity-planning.md) | — | 7 |
 | `s2d.volumes[].data_copies` | integer | Triple layout | Per-volume mirror level (typically all match) | `2` | 7 |
 
-!!! danger "data_copies defaults matter"
-    S2D defaults to three-way mirror on a 3-node cluster. You must explicitly set `data_copies: 2` for a two-way mirror. Getting this wrong silently consumes 50% more raw capacity.
-
+> [!CAUTION]
+> **data_copies defaults matter**
+> S2D defaults to three-way mirror on a 3-node cluster. You must explicitly set `data_copies: 2` for a two-way mirror. Getting this wrong silently consumes 50% more raw capacity.
+>
 !!! note "Triple layout volume sizing"
     A typical split for Triple layout is ~55% Profiles, ~35% ODFC, ~10% AppData. Adjust based on your user personas — heavy Outlook users need more ODFC space. See [Scenario C](../architecture/scenarios.md#scenario-c-enterprise-2000-users-high-density-pooled) for a worked example.
 
@@ -463,9 +468,10 @@ Each automation tool reads from `config/variables.yml` and maps values to its ow
 | **PowerShell** | Reads `config/variables.yml` directly | Accepts `-ConfigPath` parameter |
 | **Ansible** | `src/ansible/inventory.yml` | Host inventory + all SOFS variables in group_vars |
 
-!!! tip "Central config, tool-specific params"
-    For Terraform, Bicep, and ARM, you maintain both `config/variables.yml` (your design decisions) and the tool-specific parameter file. The PowerShell and Ansible tools read the central config directly.
-
+> [!TIP]
+> **Central config, tool-specific params**
+> For Terraform, Bicep, and ARM, you maintain both `config/variables.yml` (your design decisions) and the tool-specific parameter file. The PowerShell and Ansible tools read the central config directly.
+>
 ---
 
 ## Key Vault Secret Resolution
@@ -552,9 +558,10 @@ Shows which variable groups are consumed by each deployment phase.
 | `host_volumes.name` | string | single_volume | Single CSV volume name | — | Reference |
 | `host_volumes.size_tb` | number | single_volume | Total host volume size in TB | — | Reference |
 
-!!! note "Reference only"
-    Host volumes are provisioned directly on the Azure Local cluster as a prerequisite. These variables exist for documentation, validation, and reporting — automation tools do not create host volumes.
-
+> [!NOTE]
+> **Reference only**
+> Host volumes are provisioned directly on the Azure Local cluster as a prerequisite. These variables exist for documentation, validation, and reporting — automation tools do not create host volumes.
+>
 ---
 
 ## Permissions
@@ -619,5 +626,6 @@ winrm:
 | `winrm.use_ssl` | boolean | No | Use HTTPS for WinRM connections | `false` | — | 3–11 |
 | `winrm.cert_validation` | string | No | Certificate validation mode for SSL connections | `ignore` | `ignore`, `validate` | 3–11 |
 
-!!! tip "Transport choice"
-    Use `kerberos` for domain-joined environments (most secure, requires AD). Use `ntlm` when Kerberos delegation is not available. Avoid `basic` in production.
+> [!TIP]
+> **Transport choice**
+> Use `kerberos` for domain-joined environments (most secure, requires AD). Use `ntlm` when Kerberos delegation is not available. Avoid `basic` in production.

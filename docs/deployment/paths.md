@@ -58,9 +58,10 @@ All five tools can create Azure resources through the control plane:
 - Data disks for the S2D pool
 - Domain join via `JsonADDomainExtension` Arc extension
 
-!!! info "Domain join"
-    Domain join is an Azure resource deployment, not a guest OS operation. All five tools deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines` as part of Phase 4.
-
+> [!NOTE]
+> **Domain join**
+> Domain join is an Azure resource deployment, not a guest OS operation. All five tools deploy the `JsonADDomainExtension` extension on `Microsoft.HybridCompute/machines` as part of Phase 4.
+>
 ### Guest OS Configuration
 
 Only PowerShell and Ansible can configure the Windows Server guest VMs (via WinRM):

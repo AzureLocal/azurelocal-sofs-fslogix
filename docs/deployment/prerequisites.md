@@ -28,9 +28,10 @@ Azure Local CSV host volumes must be **pre-created** before running any automati
 
 See [Storage Design](../architecture/storage-design.md) for the design rationale and sizing.
 
-!!! info "Host volume creation is a manual step"
-    Creating Azure Local CSV volumes requires PowerShell on a cluster node (`New-Volume`). This is an infrastructure operation, not something IaC tools can automate through the Azure control plane. Future automation for this step is planned.
-
+> [!NOTE]
+> **Host volume creation is a manual step**
+> Creating Azure Local CSV volumes requires PowerShell on a cluster node (`New-Volume`). This is an infrastructure operation, not something IaC tools can automate through the Azure control plane. Future automation for this step is planned.
+>
 ### Gallery Image
 
 A **Windows Server 2025 Datacenter: Azure Edition Core (Gen2)** gallery image must be registered on the Azure Local cluster.
@@ -50,9 +51,10 @@ Azure resource-level storage paths must be created for each CSV volume so that V
 
 ## Licensing
 
-!!! warning "Do not skip this section"
-    Licensing is the most commonly overlooked prerequisite. Getting it wrong means the SOFS VMs cannot run Storage Spaces Direct.
-
+> [!WARNING]
+> **Do not skip this section**
+> Licensing is the most commonly overlooked prerequisite. Getting it wrong means the SOFS VMs cannot run Storage Spaces Direct.
+>
 ### Windows Server 2025 Datacenter
 
 **Storage Spaces Direct (S2D) requires Windows Server Datacenter edition.** Standard edition does not support S2D. Each of the 3 SOFS VMs must be licensed for Windows Server 2025 Datacenter.
@@ -189,9 +191,9 @@ The deployment follows 11 phases across two domains. This table shows what the *
 | 10 | Antivirus exclusions | Guest | — | — | — | ✅ | ✅ |
 | 11 | Validation | Guest | — | — | — | ✅ | ✅ |
 
-!!! note
-    Terraform, Bicep, and ARM handle **Azure resource provisioning** (Phases 1–2 and Phase 4 domain join). Guest OS configuration (Phases 3, 5–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
-
+> [!NOTE]
+> Terraform, Bicep, and ARM handle **Azure resource provisioning** (Phases 1–2 and Phase 4 domain join). Guest OS configuration (Phases 3, 5–11) requires the PowerShell script or Ansible playbook — IaC tools cannot configure Windows Failover Clustering or S2D inside guest VMs.
+>
 ---
 
 ## Pre-Deployment Checklist

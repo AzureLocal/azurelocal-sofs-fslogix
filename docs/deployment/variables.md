@@ -1,8 +1,9 @@
 # Variables
 
-!!! info "This page has moved"
-    The complete variable reference — including all configuration sections, single/triple layout examples, type information, defaults, and phase mapping — is now at **[Variable Reference](../reference/variables.md)**.
-
+> [!NOTE]
+> **This page has moved**
+> The complete variable reference — including all configuration sections, single/triple layout examples, type information, defaults, and phase mapping — is now at **[Variable Reference](../reference/variables.md)**.
+>
 ## Quick Start
 
 1. Copy the example file:

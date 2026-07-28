@@ -46,9 +46,10 @@ Each scenario references its matching architecture diagram so you can see exactl
 
 **Raw-to-usable ratio: ~25 : 1**
 
-!!! note "Minimum practical sizes"
-    The ratio looks extreme because the usable space is tiny (60 GB) but the infrastructure overhead is fixed (3 VMs × OS disks, S2D metadata, host volume overhead). For very small deployments, the capacity tax is proportionally larger. However, the absolute raw footprint (~1.5 TB) is trivial for any Azure Local cluster.
-
+> [!NOTE]
+> **Minimum practical sizes**
+> The ratio looks extreme because the usable space is tiny (60 GB) but the infrastructure overhead is fixed (3 VMs × OS disks, S2D metadata, host volume overhead). For very small deployments, the capacity tax is proportionally larger. However, the absolute raw footprint (~1.5 TB) is trivial for any Azure Local cluster.
+>
 ### Key Variable Values
 
 ```yaml
@@ -197,9 +198,10 @@ sofs:
 
 **Raw-to-usable ratio: ~4.1 : 1**
 
-!!! warning "This is a large deployment"
-    241 TB of raw physical disk is significant. At this scale, validate with the [Azure Local Sizer](https://azure.github.io/odinforazurelocal/sizer/) and consider whether multiple SOFS clusters (departmental or geographic) might be more practical than a single massive cluster. Also consider that Azure Local clusters have a maximum number of volumes and maximum pool size — confirm your hardware supports this configuration.
-
+> [!WARNING]
+> **This is a large deployment**
+> 241 TB of raw physical disk is significant. At this scale, validate with the [Azure Local Sizer](https://azure.github.io/odinforazurelocal/sizer/) and consider whether multiple SOFS clusters (departmental or geographic) might be more practical than a single massive cluster. Also consider that Azure Local clusters have a maximum number of volumes and maximum pool size — confirm your hardware supports this configuration.
+>
 ### Key Variable Values
 
 ```yaml

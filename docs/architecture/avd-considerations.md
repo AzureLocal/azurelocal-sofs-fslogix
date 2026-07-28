@@ -24,9 +24,10 @@ Because both sides (session hosts and SOFS) are joined to the same AD domain, Ke
 
 **Hybrid Entra ID Join** (domain-joined + registered in Entra ID) is also supported and recommended if you want SSO to the AVD gateway via Entra ID. It does not change the SOFS authentication path — session hosts still use AD Kerberos for SMB access to `\\iic-fslogix\Profiles`.
 
-!!! important "Plan identity before building the SOFS"
-    The NTFS permissions and SMB share permissions reference AD domain groups (`Domain Users`, `Domain Admins`). If your AVD users are in a different domain, OU, or security group, adjust those group references in the [Permissions](../configuration/permissions.md) configuration.
-
+> [!IMPORTANT]
+> **Plan identity before building the SOFS**
+> The NTFS permissions and SMB share permissions reference AD domain groups (`Domain Users`, `Domain Admins`). If your AVD users are in a different domain, OU, or security group, adjust those group references in the [Permissions](../configuration/permissions.md) configuration.
+>
 ---
 
 ## Personal vs. Pooled Host Pools
@@ -134,9 +135,9 @@ FSLogix Cloud Cache provides read/write replication of profile data to multiple 
 type=smb,name="SOFS",connectionString=\\iic-fslogix\Profiles;type=azure,name="AzureBlob",connectionString="|fslogix/<KEY-NAME>|"
 ```
 
-!!! note
-    Cloud Cache replaces `VHDLocations` — you use `CCDLocations` instead. See [FSLogix Configuration](../configuration/fslogix.md) for the complete registry setup.
-
+> [!NOTE]
+> Cloud Cache replaces `VHDLocations` — you use `CCDLocations` instead. See [FSLogix Configuration](../configuration/fslogix.md) for the complete registry setup.
+>
 ---
 
 ## Profile Sizing Guidance

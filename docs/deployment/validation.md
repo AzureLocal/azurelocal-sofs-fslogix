@@ -177,9 +177,10 @@ All nodes should be `Up`. The quorum model should show `CloudWitness`.
 
 ## Failover Testing
 
-!!! warning "Test during a maintenance window"
-    Failover testing should be done before production onboarding, not during active user sessions.
-
+> [!WARNING]
+> **Test during a maintenance window**
+> Failover testing should be done before production onboarding, not during active user sessions.
+>
 ### Test Procedure
 
 1. **Create a test file** on the SOFS share:

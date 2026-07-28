@@ -2,9 +2,10 @@
 
 ![ARM](https://img.shields.io/badge/-ARM_Templates-0078D4?logo=microsoftazure&logoColor=white) ![Status: Tested](https://img.shields.io/badge/status-tested-brightgreen) ![Run on: Mgmt Workstation](https://img.shields.io/badge/run_on-Mgmt_Workstation-6c757d) ![CI/CD: Examples Available](https://img.shields.io/badge/CI%2FCD-examples_available-blueviolet?logo=githubactions&logoColor=white)
 
-!!! note "Bicep recommended for new deployments"
-    ARM JSON templates are maintained for environments that require JSON (legacy tooling, policy constraints). For new deployments, use [Bicep](bicep.md) instead — it compiles to the same ARM JSON but is more readable and maintainable.
-
+> [!NOTE]
+> **Bicep recommended for new deployments**
+> ARM JSON templates are maintained for environments that require JSON (legacy tooling, policy constraints). For new deployments, use [Bicep](bicep.md) instead — it compiles to the same ARM JSON but is more readable and maintainable.
+>
 ## Overview
 
 The ARM template is **compiled from Bicep** (`az bicep build`) and deploys all the same Azure-side resources. This ensures feature parity — any capability added to Bicep is automatically available in ARM.

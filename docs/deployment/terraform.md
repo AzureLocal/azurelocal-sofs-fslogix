@@ -227,9 +227,9 @@ To tear down all Azure resources:
 terraform destroy -var-file="terraform.tfvars"
 ```
 
-!!! warning
-    This destroys the resource group and all resources. Data on the SOFS shares will be lost. The Azure Local host volumes are not managed by Terraform and are unaffected.
-
+> [!WARNING]
+> This destroys the resource group and all resources. Data on the SOFS shares will be lost. The Azure Local host volumes are not managed by Terraform and are unaffected.
+>
 ---
 
 ## Next Steps

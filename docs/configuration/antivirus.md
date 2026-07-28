@@ -4,9 +4,10 @@
 
 Antivirus scanning of FSLogix VHDX files and cluster processes is a common cause of profile corruption, slow logons, and S2D performance issues. Exclusions must be configured on **both** the SOFS VMs and the AVD session hosts.
 
-!!! danger "Configure exclusions before onboarding users"
-    Profile corruption caused by AV scanning VHDx files during mount/dismount is difficult to recover from. Apply these exclusions immediately after deployment.
-
+> [!CAUTION]
+> **Configure exclusions before onboarding users**
+> Profile corruption caused by AV scanning VHDx files during mount/dismount is difficult to recover from. Apply these exclusions immediately after deployment.
+>
 ---
 
 ## SOFS VM Exclusions

@@ -2,9 +2,10 @@
 
 ![Azure Local SOFS for FSLogix](assets/images/azurelocal-sofs-fslogix-banner.svg)
 
-!!! warning "Under Active Development"
-    This repository is a work in progress. Scripts, templates, and automation are **not guaranteed to work** at this time. Use at your own risk and expect breaking changes.
-
+> [!WARNING]
+> **Under Active Development**
+> This repository is a work in progress. Scripts, templates, and automation are **not guaranteed to work** at this time. Use at your own risk and expect breaking changes.
+>
 Automation and Infrastructure-as-Code for deploying a **Scale Out File Server (SOFS)** on **Azure Local** to host **FSLogix** profile containers for **Azure Virtual Desktop (AVD)** session hosts.
 
 **Sister repo:** [AzureLocal/azurelocal-avd](https://github.com/AzureLocal/aurelocal-avd) — AVD session host deployment on Azure Local.

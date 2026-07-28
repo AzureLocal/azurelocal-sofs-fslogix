@@ -96,9 +96,10 @@ The migration from `option_a`/`option_b` to `single`/`triple` layout naming foll
 | Deprecation warning emitted | v1.0.0 | ✅ Done | PowerShell and Ansible emit `WARN` when legacy values are detected |
 | Legacy aliases removed | v2.0.0 | ⬜ Planned | `option_a` and `option_b` values will be rejected; only `single`/`triple` accepted |
 
-!!! warning "Migration action required before v2.0.0"
-    If your `config/variables.yml` uses `guest_layout: "option_a"` or `guest_layout: "option_b"`, update to `single` or `triple` respectively. The v1.x compatibility shim will be removed in v2.0.0.
-
+> [!WARNING]
+> **Migration action required before v2.0.0**
+> If your `config/variables.yml` uses `guest_layout: "option_a"` or `guest_layout: "option_b"`, update to `single` or `triple` respectively. The v1.x compatibility shim will be removed in v2.0.0.
+>
 ---
 
 ## Cross-Repository Dependencies

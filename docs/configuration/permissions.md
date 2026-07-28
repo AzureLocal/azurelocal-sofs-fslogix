@@ -74,9 +74,10 @@ function Set-FSLogixNTFS {
     Set-FSLogixNTFS -SharePath "C:\ClusterStorage\AppData\AppData"
     ```
 
-!!! warning "Inheritance is disabled"
-    `SetAccessRuleProtection($true, $false)` removes all inherited ACEs and disables further inheritance. This is intentional — the FSLogix permission model requires a clean ACL with only the four entries above.
-
+> [!WARNING]
+> **Inheritance is disabled**
+> `SetAccessRuleProtection($true, $false)` removes all inherited ACEs and disables further inheritance. This is intentional — the FSLogix permission model requires a clean ACL with only the four entries above.
+>
 ---
 
 ## SMB Share Permissions
@@ -107,9 +108,10 @@ SMB encryption is recommended for in-transit protection:
 Set-SmbServerConfiguration -EncryptData $true -Force
 ```
 
-!!! note "Performance impact"
-    SMB encryption adds CPU overhead. On modern processors with AES-NI, the impact is minimal (~2-5% throughput reduction). For Azure Local deployments where SOFS VMs are on the same compute network as session hosts, the security benefit outweighs the performance cost.
-
+> [!NOTE]
+> **Performance impact**
+> SMB encryption adds CPU overhead. On modern processors with AES-NI, the impact is minimal (~2-5% throughput reduction). For Azure Local deployments where SOFS VMs are on the same compute network as session hosts, the security benefit outweighs the performance cost.
+>
 ---
 
 ## Single vs Triple Layout Permissions

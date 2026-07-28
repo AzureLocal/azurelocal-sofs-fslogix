@@ -185,9 +185,10 @@ flowchart TD
     style D fill:#e1d5e7,stroke:#9673a6,color:#333
 ```
 
-!!! tip "Full-resolution diagram"
-    A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing. The exported PNG is at [sofs-deployment-phases.png](../assets/images/sofs-deployment-phases.png). See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
-
+> [!TIP]
+> **Full-resolution diagram**
+> A draw.io source file is available at `docs/assets/diagrams/sofs-deployment-phases.drawio` for editing. The exported PNG is at [sofs-deployment-phases.png](../assets/images/sofs-deployment-phases.png). See [Deployment Paths](../deployment/paths.md) for guidance on choosing your tool combination.
+>
 ![SOFS Deployment Phases — 11-Phase Model](../assets/images/sofs-deployment-phases.png)
 
 ---
@@ -278,9 +279,10 @@ Because both sides (session hosts and SOFS) are in the same AD domain, Kerberos 
 
 Hybrid Entra ID Join (domain-joined + registered in Entra ID) is supported and recommended for SSO to the AVD gateway. It does **not** change the SOFS authentication path — session hosts still use AD Kerberos for SMB access.
 
-!!! info "Plan identity before deploying"
-    The NTFS and SMB share permissions reference AD domain groups. If your AVD users are in a different domain or OU, adjust the group references during the [permissions configuration](../configuration/permissions.md).
-
+> [!NOTE]
+> **Plan identity before deploying**
+> The NTFS and SMB share permissions reference AD domain groups. If your AVD users are in a different domain or OU, adjust the group references during the [permissions configuration](../configuration/permissions.md).
+>
 ---
 
 ## What's Next
